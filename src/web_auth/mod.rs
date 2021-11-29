@@ -29,14 +29,14 @@ pub fn login(data: web::Data<super::AppState>) -> HttpResponse {
 }
 
 pub fn logout(session: Session) -> HttpResponse {
-    session.remove("login");
+    session.remove("user_info");
     HttpResponse::Found()
         .append_header((header::LOCATION, "/".to_string()))
         .finish()
 }
 
 #[allow(non_snake_case)]
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct UserInfo {
     mail: String,
     userPrincipalName: String,
@@ -98,18 +98,7 @@ pub async fn auth(
 
     let user_info = read_user(&data.api_base_url, token.access_token()).await;
 
-    session.insert("login", user_info.displayName.to_string()).unwrap();
+    session.insert("user_info", &user_info).unwrap();
 
-    let html = format!(
-        r#"<html>
-        <head><title>OAuth2 Test</title></head>
-        <body>
-            User info:
-            <pre>{:?}</pre>
-            <a href="/">Home</a>
-        </body>
-    </html>"#,
-        user_info
-    );
-    HttpResponse::Ok().body(html)
+    HttpResponse::Found().append_header(("location", "/")).finish()
 }

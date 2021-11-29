@@ -3,6 +3,7 @@ extern crate serde_derive;
 
 use actix_session::{Session, CookieSession};
 use actix_web::{web, App, HttpResponse, HttpServer};
+use tera::{ Tera, Context};
 use oauth2::basic::BasicClient;
 use oauth2::{
     AuthUrl, ClientId, ClientSecret,
@@ -15,25 +16,17 @@ mod web_auth;
 pub struct AppState {
     pub oauth: BasicClient,
     pub api_base_url: String,
+    pub tmpl: Tera
 }
 
-fn index(session: Session) -> HttpResponse {
-    let login = session.get::<String>("login").unwrap();
-    let link = if login.is_some() { "logout" } else { "login" };
+fn index(session: Session, data: web::Data<AppState>) -> HttpResponse {
+    let login = session.get::<web_auth::UserInfo>("user_info").unwrap();
+    let web_auth_link = if login.is_some() { "logout" } else { "login" };
 
-    let html = format!(
-        r#"<html>
-        <head><title>OAuth2 Test</title></head>
-        <body>
-            {} <a href="/{}">{}</a>
-        </body>
-    </html>"#,
-        login.unwrap_or("".to_string()),
-        link,
-        link
-    );
-
-    HttpResponse::Ok().body(html)
+    let mut ctx = Context::new();
+    ctx.insert("web_auth_link", web_auth_link);
+    let rendered = data.tmpl.render("index.html", &ctx).unwrap();
+    HttpResponse::Ok().body(rendered)
 }
 
 #[actix_rt::main]
@@ -70,10 +63,16 @@ async fn main() {
                 .expect("Invalid redirect URL"),
         );
 
+        let tera =
+        Tera::new(
+            concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")
+        ).unwrap();
+
         let app_state = web::Data::new(
             AppState {
                 oauth: client,
                 api_base_url,
+                tmpl: tera
             }
         );
 
