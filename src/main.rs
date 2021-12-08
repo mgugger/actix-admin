@@ -15,6 +15,7 @@ use sea_orm::{{ DatabaseConnection, ConnectOptions }};
 
 mod web_auth;
 mod entity;
+mod actix_admin;
 
 #[derive(Debug, Clone)]
 pub struct AppState {
@@ -96,6 +97,7 @@ async fn main() {
         App::new()
             .app_data(web::Data::new(app_state.clone()))
             .wrap(CookieSession::signed(&[0; 32]).secure(false))
+            .service(actix_admin::admin_scope())
             .route("/", web::get().to(index))
             .route("/login", web::get().to(web_auth::login))
             .route("/logout", web::get().to(web_auth::logout))
