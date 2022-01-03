@@ -74,7 +74,6 @@ async fn main() {
         concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")
     ).unwrap();
 
-    dotenv::dotenv().ok();
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
     let mut opt = ConnectOptions::new(db_url);
     opt.max_connections(100)

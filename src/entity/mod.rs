@@ -2,7 +2,7 @@
 use sea_orm::sea_query::{ColumnDef, TableCreateStatement};
 use sea_orm::{error::*, sea_query, ConnectionTrait, DbConn, ExecResult};
 
-mod post;
+pub mod post;
 pub use post::Entity as Post;
 
 // setup
