@@ -11,21 +11,35 @@ use oauth2::{
 };
 use std::time::{Duration};
 use std::env;
-use sea_orm::{{ DatabaseConnection, ConnectOptions }};
+use sea_orm::{{ DatabaseConnection, ConnectOptions, EntityName }};
+use actix_admin::{ActixAdminViewModelTrait, AppDataTrait, ActixAdminViewModel, ActixAdminModel};
+use std::collections::HashMap;
 
 mod web_auth;
 mod entity;
-mod actix_admin;
+
+use entity::{ Post };
 
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub oauth: BasicClient,
     pub api_base_url: String,
     pub tmpl: Tera,
-    pub db: DatabaseConnection
+    pub db: DatabaseConnection,
+    pub view_model_map: HashMap<&'static str, ActixAdminViewModel>
 }
 
-fn index(session: Session, data: web::Data<AppState>) -> HttpResponse {
+impl AppDataTrait for AppState {
+    fn get_db(&self) -> &DatabaseConnection {
+        &self.db
+    }
+
+    fn get_view_model_map(&self) -> &HashMap<&'static str, ActixAdminViewModel> {
+        &self.view_model_map
+    }
+}
+
+async fn index(session: Session, data: web::Data<AppState>) -> HttpResponse {
     let login = session.get::<web_auth::UserInfo>("user_info").unwrap();
     let web_auth_link = if login.is_some() { "logout" } else { "login" };
 
@@ -85,18 +99,27 @@ async fn main() {
     let conn = sea_orm::Database::connect(opt).await.unwrap();
     let _ = entity::create_post_table(&conn).await;
 
+    let viewmodel_entity = ActixAdminViewModel {
+        entity_name: "posts",
+        admin_model: ActixAdminModel::from(Post)
+    };
+
+    let actix_admin = actix_admin::ActixAdmin::new()
+        .add_entity(viewmodel_entity.clone());
+
     let app_state = AppState {
         oauth: client,
         api_base_url,
         tmpl: tera,
-        db: conn
+        db: conn,
+        view_model_map: actix_admin.get_view_model_map()
     };
 
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(app_state.clone()))
             .wrap(CookieSession::signed(&[0; 32]).secure(false))
-            .service(actix_admin::admin_scope())
+            .service(actix_admin.clone().create_scope(&app_state))
             .route("/", web::get().to(index))
             .route("/login", web::get().to(web_auth::login))
             .route("/logout", web::get().to(web_auth::logout))

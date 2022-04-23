@@ -10,7 +10,7 @@ use oauth2::{
 use std::str;
 use url::Url;
 
-pub fn login(data: web::Data<super::AppState>) -> HttpResponse {
+pub async fn login(data: web::Data<super::AppState>) -> HttpResponse {
     // Create a PKCE code verifier and SHA-256 encode it as a code challenge.
     // let (_pkce_code_challenge, _pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
     // Generate the authorization URL to which we'll redirect the user.
@@ -28,7 +28,7 @@ pub fn login(data: web::Data<super::AppState>) -> HttpResponse {
         .finish()
 }
 
-pub fn logout(session: Session) -> HttpResponse {
+pub async fn logout(session: Session) -> HttpResponse {
     session.remove("user_info");
     HttpResponse::Found()
         .append_header((header::LOCATION, "/".to_string()))
