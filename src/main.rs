@@ -1,35 +1,30 @@
-#[macro_use]
 extern crate serde_derive;
 
 use actix_session::{Session, CookieSession};
 use actix_web::{web, App, HttpResponse, HttpServer};
 use tera::{ Tera, Context};
 use oauth2::basic::BasicClient;
-use oauth2::{
-    AuthUrl, ClientId, ClientSecret,
-    RedirectUrl, TokenUrl,
-};
+use oauth2::{ RedirectUrl };
 use std::time::{Duration};
 use std::env;
-use sea_orm::{{ DatabaseConnection, ConnectOptions, EntityName }};
-use actix_admin::{ActixAdminViewModelTrait, AppDataTrait, ActixAdminViewModel, ActixAdminModel};
 use std::collections::HashMap;
+use sea_orm::{{ DatabaseConnection, ConnectOptions }};
 
-mod web_auth;
+use actix_admin::{ AppDataTrait as ActixAdminAppDataTrait, ActixAdminViewModel, ActixAdminModel};
+use azure_auth::{ AzureAuth, UserInfo, AppDataTrait as AzureAuthAppDataTrait };
+
 mod entity;
-
 use entity::{ Post };
 
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub oauth: BasicClient,
-    pub api_base_url: String,
     pub tmpl: Tera,
     pub db: DatabaseConnection,
     pub view_model_map: HashMap<&'static str, ActixAdminViewModel>
 }
 
-impl AppDataTrait for AppState {
+impl ActixAdminAppDataTrait for AppState {
     fn get_db(&self) -> &DatabaseConnection {
         &self.db
     }
@@ -39,9 +34,15 @@ impl AppDataTrait for AppState {
     }
 }
 
+impl AzureAuthAppDataTrait for AppState {
+    fn get_oauth(&self) -> &BasicClient {
+        &self.oauth
+    }
+}
+
 async fn index(session: Session, data: web::Data<AppState>) -> HttpResponse {
-    let login = session.get::<web_auth::UserInfo>("user_info").unwrap();
-    let web_auth_link = if login.is_some() { "logout" } else { "login" };
+    let login = session.get::<UserInfo>("user_info").unwrap();
+    let web_auth_link = if login.is_some() { "/auth/logout" } else { "/auth/login" };
 
     let mut ctx = Context::new();
     ctx.insert("web_auth_link", web_auth_link);
@@ -52,31 +53,13 @@ async fn index(session: Session, data: web::Data<AppState>) -> HttpResponse {
 #[actix_rt::main]
 async fn main() {
     dotenv::dotenv().ok();
-    let oauth2_client_id = ClientId::new(
-        env::var("OAUTH2_CLIENT_ID")
-            .expect("Missing the OAUTH2_CLIENT_ID environment variable."),
-    );
-    let oauth2_client_secret = ClientSecret::new(
-        env::var("OAUTH2_CLIENT_SECRET")
-            .expect("Missing the OAUTH2_CLIENT_SECRET environment variable."),
-    );
-    let oauth2_server =
-        env::var("OAUTH2_SERVER").expect("Missing the OAUTH2_SERVER environment variable.");
-    
-    let auth_url = AuthUrl::new(format!("https://{}/oauth2/v2.0/authorize", oauth2_server))
-        .expect("Invalid authorization endpoint URL");
-    let token_url = TokenUrl::new(format!("https://{}/oauth2/v2.0/token", oauth2_server))
-        .expect("Invalid token endpoint URL");
-    
-    let api_base_url = "https://graph.microsoft.com/v1.0".to_string();
+    let oauth2_client_id = env::var("OAUTH2_CLIENT_ID").expect("Missing the OAUTH2_CLIENT_ID environment variable.");
+    let oauth2_client_secret = env::var("OAUTH2_CLIENT_SECRET").expect("Missing the OAUTH2_CLIENT_SECRET environment variable.");
+    let oauth2_server = env::var("OAUTH2_SERVER").expect("Missing the OAUTH2_SERVER environment variable.");
+    let azure_auth = AzureAuth::new(&oauth2_server, &oauth2_client_id, &oauth2_client_secret);
 
     // Set up the config for the OAuth2 process.
-    let client = BasicClient::new(
-        oauth2_client_id,
-        Some(oauth2_client_secret),
-        auth_url,
-        Some(token_url),
-    )
+    let client = azure_auth.clone().get_oauth_client()
     // This example will be running its own server at 127.0.0.1:5000.
     .set_redirect_uri(
         RedirectUrl::new("http://localhost:5000/auth".to_string())
@@ -109,7 +92,6 @@ async fn main() {
 
     let app_state = AppState {
         oauth: client,
-        api_base_url,
         tmpl: tera,
         db: conn,
         view_model_map: actix_admin.get_view_model_map()
@@ -119,11 +101,9 @@ async fn main() {
         App::new()
             .app_data(web::Data::new(app_state.clone()))
             .wrap(CookieSession::signed(&[0; 32]).secure(false))
-            .service(actix_admin.clone().create_scope(&app_state))
             .route("/", web::get().to(index))
-            .route("/login", web::get().to(web_auth::login))
-            .route("/logout", web::get().to(web_auth::logout))
-            .route("/auth", web::get().to(web_auth::auth))
+            .service(actix_admin.clone().create_scope(&app_state))
+            .service(azure_auth.clone().create_scope(&app_state))
     })
     .bind("127.0.0.1:5000")
     .expect("Can not bind to port 5000")

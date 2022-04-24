@@ -1,9 +1,6 @@
 // setup
 use sea_orm::sea_query::{ColumnDef, TableCreateStatement};
 use sea_orm::{error::*, sea_query, ConnectionTrait, DbConn, ExecResult};
-use sea_orm::{{ DatabaseConnection, ConnectOptions }};
-use sea_orm::{ entity::*, query::*, SelectorTrait, ModelTrait, ColumnTrait, PaginatorTrait, EntityTrait };
-use async_trait::async_trait;
 pub mod post;
 pub use post::Entity as Post;
 
