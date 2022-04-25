@@ -1,16 +1,15 @@
 extern crate serde_derive;
 
 use actix_session::{Session, CookieSession};
-use actix_web::{web, App, HttpResponse, HttpServer};
+use actix_web::{web, App, HttpResponse, HttpServer, HttpRequest, Error};
 use tera::{ Tera, Context};
 use oauth2::basic::BasicClient;
 use oauth2::{ RedirectUrl };
 use std::time::{Duration};
 use std::env;
-use std::collections::HashMap;
 use sea_orm::{{ DatabaseConnection, ConnectOptions }};
 
-use actix_admin::{ AppDataTrait as ActixAdminAppDataTrait, ActixAdminViewModel, ActixAdminModel};
+use actix_admin::{ AppDataTrait as ActixAdminAppDataTrait, ActixAdminViewModel, ActixAdminModelTrait};
 use azure_auth::{ AzureAuth, UserInfo, AppDataTrait as AzureAuthAppDataTrait };
 
 mod entity;
@@ -21,16 +20,11 @@ pub struct AppState {
     pub oauth: BasicClient,
     pub tmpl: Tera,
     pub db: DatabaseConnection,
-    pub view_model_map: HashMap<&'static str, ActixAdminViewModel>
 }
 
 impl ActixAdminAppDataTrait for AppState {
     fn get_db(&self) -> &DatabaseConnection {
         &self.db
-    }
-
-    fn get_view_model_map(&self) -> &HashMap<&'static str, ActixAdminViewModel> {
-        &self.view_model_map
     }
 }
 
@@ -82,19 +76,10 @@ async fn main() {
     let conn = sea_orm::Database::connect(opt).await.unwrap();
     let _ = entity::create_post_table(&conn).await;
 
-    let viewmodel_entity = ActixAdminViewModel {
-        entity_name: "posts",
-        admin_model: ActixAdminModel::from(Post)
-    };
-
-    let actix_admin = actix_admin::ActixAdmin::new()
-        .add_entity(viewmodel_entity.clone());
-
     let app_state = AppState {
         oauth: client,
         tmpl: tera,
         db: conn,
-        view_model_map: actix_admin.get_view_model_map()
     };
 
     HttpServer::new(move || {
@@ -102,12 +87,26 @@ async fn main() {
             .app_data(web::Data::new(app_state.clone()))
             .wrap(CookieSession::signed(&[0; 32]).secure(false))
             .route("/", web::get().to(index))
-            .service(actix_admin.clone().create_scope(&app_state))
             .service(azure_auth.clone().create_scope(&app_state))
+            .service(
+                actix_admin::ActixAdmin::new()
+                    .create_scope(&app_state)
+                    .service(
+                        web::scope(&format!("/{}", "posts")).route("/list", web::get().to(list)),
+                    )
+            )
     })
     .bind("127.0.0.1:5000")
     .expect("Can not bind to port 5000")
     .run()
     .await
     .unwrap();
+}
+
+// Actix admin Routes to be auto generated
+async fn list(req: HttpRequest, data: web::Data<AppState>)-> Result<HttpResponse, Error> {
+    let db = &data.get_db();
+    let entities = Post::list(db, 1, 5);
+    let model = ActixAdminViewModel::from(Post);
+    actix_admin::list_model(req, model)
 }
