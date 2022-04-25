@@ -1,7 +1,7 @@
 use actix_web::{error, guard, web, Error, HttpRequest, HttpResponse};
 use actix_web::{ dev, App, FromRequest};
 use actix_web::error::ErrorBadRequest;
-use serde_derive::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tera::{Context, Tera};
 use futures::future::{ok, err, Ready};
@@ -9,6 +9,8 @@ use lazy_static::lazy_static;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
 use sea_orm::ModelTrait;
+use std::pin::Pin;
+use std::any::Any;
 
 use async_trait::async_trait;
 
@@ -29,7 +31,7 @@ pub struct Params {
 }
 
 // Fields
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub enum Field {
     Text
 }
@@ -42,28 +44,21 @@ pub trait AppDataTrait {
 
 // ActixAdminModel
 #[async_trait]
-pub trait ActixAdminModelTrait {
-    async fn list(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> Vec<ActixAdminModel>;
+pub trait ActixAdminModelTrait : Clone {
+    async fn list(&self, db: &DatabaseConnection, page: usize, posts_per_page: usize) -> Vec<&str>;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct ActixAdminModel {
-    pub fields: Vec<(&'static str, Field)>
+    pub fields: Vec<(&'static str, Field)>,
 }
 
 // ActixAdminViewModel
 pub trait ActixAdminViewModelTrait : Clone {
     fn get_model_name(&self) -> &str;
-    //fn get_entities() -> Vec<ActixAdminModel>;
 }
 
-impl ActixAdminViewModelTrait for ActixAdminViewModel {
-    fn get_model_name(&self) -> &str {
-        &self.entity_name
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct ActixAdminViewModel {
     pub entity_name: &'static str,
     pub admin_model: ActixAdminModel
@@ -106,10 +101,10 @@ impl ActixAdmin {
 }
 
 async fn index<T: AppDataTrait>(data: web::Data<T>) -> Result<HttpResponse, Error> {
-    let keys = Vec::from_iter(data.get_view_model_map().keys());
+    let view_models = Vec::from_iter(data.get_view_model_map().values());
 
     let mut ctx = Context::new();
-    ctx.insert("view_models", &keys);
+    ctx.insert("view_models", &view_models);
 
     let body = TERA
          .render("index.html", &ctx)
@@ -118,6 +113,8 @@ async fn index<T: AppDataTrait>(data: web::Data<T>) -> Result<HttpResponse, Erro
 }
 
 async fn list<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>) -> Result<HttpResponse, Error> {
+    let view_model = data.get_view_model_map().get("posts").unwrap();
+
     let db = &data.get_db();
     let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
 
@@ -126,28 +123,17 @@ async fn list<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>) -> Result<H
 
     let columns: Vec<String> = Vec::new();
 
-    // let paginator = post::Entity::find()
-    //     .order_by_asc(post::Column::Id)
-    //     .paginate(db, posts_per_page);
-    //let num_pages = paginator.num_pages().await.ok().unwrap();
+    let entities: Vec<&str> = Vec::new(); // view_model.get_entities()
 
-    let posts: Vec<&str> = Vec::new();
-    //let posts = paginator
-    //     .fetch_page(page - 1)
-    //     .await
-    //     .expect("could not retrieve posts");
     let mut ctx = Context::new();
-    ctx.insert("posts", &posts);
+    ctx.insert("posts", &entities);
     ctx.insert("page", &page);
     ctx.insert("posts_per_page", &posts_per_page);
     ctx.insert("num_pages", "5" /*&num_pages*/);
     ctx.insert("columns", &columns);
 
-    // let body = data.tmpl
-    //     .render("list.html", &ctx)
-    //     .map_err(|_| error::ErrorInternalServerError("Template error"))?;
-    //Ok(HttpResponse::Ok().content_type("text/html").body(body))
-    Ok(HttpResponse::Ok()
-        .content_type("text/html")
-        .body("<html></html>"))
+    let body = TERA
+         .render("list.html", &ctx)
+         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }

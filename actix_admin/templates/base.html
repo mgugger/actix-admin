@@ -1,14 +1,21 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8">
-        <title>Actix Admin</title>
-        
-        <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
 
-    </head>
-    <body>
-        {% block content %}
-        {% endblock content %}
-    </body>
+<head>
+    <meta charset="utf-8">
+    <title>Actix Admin</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.classless.min.css">
+</head>
+
+<body>
+    {% include "header.html" %}
+    <main>
+        <div>
+            {% block content %}
+            {% endblock content %}
+        </div>
+    </main>
+</body>
+
 </html>
