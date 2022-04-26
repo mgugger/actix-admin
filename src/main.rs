@@ -8,12 +8,12 @@ use oauth2::{ RedirectUrl };
 use std::time::{Duration};
 use std::env;
 use sea_orm::{{ DatabaseConnection, ConnectOptions }};
-
-use actix_admin::{ AppDataTrait as ActixAdminAppDataTrait, ActixAdminViewModel, ActixAdminModelTrait};
+use std::any::Any;
+use actix_admin::{ AppDataTrait as ActixAdminAppDataTrait, ActixAdminViewModelTrait };
 use azure_auth::{ AzureAuth, UserInfo, AppDataTrait as AzureAuthAppDataTrait };
 
 mod entity;
-use entity::{ Post };
+use entity::{ Post, Comment };
 
 #[derive(Debug, Clone)]
 pub struct AppState {
@@ -92,7 +92,7 @@ async fn main() {
                 actix_admin::ActixAdmin::new()
                     .create_scope(&app_state)
                     .service(
-                        web::scope(&format!("/{}", "posts")).route("/list", web::get().to(list)),
+                        web::scope(&format!("/{}", "posts")).route("/list", web::get().to(Post::list::<AppState>)),
                     )
             )
     })
@@ -101,12 +101,4 @@ async fn main() {
     .run()
     .await
     .unwrap();
-}
-
-// Actix admin Routes to be auto generated
-async fn list(req: HttpRequest, data: web::Data<AppState>)-> Result<HttpResponse, Error> {
-    let db = &data.get_db();
-    let entities = Post::list(db, 1, 5);
-    let model = ActixAdminViewModel::from(Post);
-    actix_admin::list_model(req, model)
 }

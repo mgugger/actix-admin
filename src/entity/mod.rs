@@ -2,7 +2,9 @@
 use sea_orm::sea_query::{ColumnDef, TableCreateStatement};
 use sea_orm::{error::*, sea_query, ConnectionTrait, DbConn, ExecResult};
 pub mod post;
+pub mod comment;
 pub use post::Entity as Post;
+pub use comment::Entity as Comment;
 
 // setup
 async fn create_table(db: &DbConn, stmt: &TableCreateStatement) -> Result<ExecResult, DbErr> {

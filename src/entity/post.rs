@@ -1,7 +1,6 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
-
-use actix_admin::{ DeriveActixAdminModel, ActixAdminViewModel };
+use actix_admin::{ DeriveActixAdminModel };
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, DeriveActixAdminModel)]
 #[sea_orm(table_name = "post")]
@@ -18,29 +17,3 @@ pub struct Model {
 pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
-
-impl From<Entity> for ActixAdminViewModel {
-    fn from(entity: Entity) -> Self {
-        ActixAdminViewModel {
-            entity_name: entity.table_name().to_string()
-        }
-    }
-}
-
-#[async_trait]
-impl ActixAdminModelTrait for Entity {
-    async fn list(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> Vec<&str> {
-        use sea_orm::{ query::* };
-        let paginator = Entity::find()
-            .order_by_asc(Column::Id)
-            .paginate(db, posts_per_page);
-        let entities = paginator
-            .fetch_page(page - 1)
-            .await
-            .expect("could not retrieve entities");
-        //entities to ActixAdminModel
-        vec![
-
-        ]
-    }
-}

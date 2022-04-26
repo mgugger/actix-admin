@@ -45,7 +45,7 @@ pub trait AppDataTrait {
 // ActixAdminModel
 #[async_trait]
 pub trait ActixAdminModelTrait: Clone {
-    async fn list(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> Vec<&str>;
+    async fn list_db(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> Vec<&str>;
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -54,8 +54,9 @@ pub struct ActixAdminModel {
 }
 
 // ActixAdminViewModel
-pub trait ActixAdminViewModelTrait: Clone {
-    fn get_model_name(&self) -> &str;
+#[async_trait(?Send)]
+pub trait ActixAdminViewModelTrait {
+    async fn list<T: AppDataTrait + Sync + Send>(req: HttpRequest, data: web::Data<T>) -> Result<HttpResponse, Error>;
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -103,8 +104,10 @@ pub fn list_model(req: HttpRequest, view_model: ActixAdminViewModel) -> Result<H
     let columns: Vec<String> = Vec::new();
 
     let entities: Vec<&str> = Vec::new(); // view_model.get_entities()
+    let view_models: Vec<&str> = Vec::new();
 
     let mut ctx = Context::new();
+    ctx.insert("view_models", &view_models);
     ctx.insert("posts", &entities);
     ctx.insert("page", &page);
     ctx.insert("posts_per_page", &posts_per_page);
@@ -113,6 +116,6 @@ pub fn list_model(req: HttpRequest, view_model: ActixAdminViewModel) -> Result<H
 
     let body = TERA
         .render("list.html", &ctx)
-        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
+        .map_err(|err| error::ErrorInternalServerError(err))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
