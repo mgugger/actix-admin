@@ -4,8 +4,8 @@
             <li>Actix Admin</li>
         </ul>
         <ul>
-            {% for view_model in view_models -%}
-            <li><a href="/admin/{{ view_model.entity_name}}/list" class="secondary">{{ view_model.entity_name }}</a></li>
+            {% for entity_name in entity_names -%}
+            <li><a href="/admin/{{ entity_name }}/list" class="secondary">{{ entity_name }}</a></li>
             {%- endfor %}
         </ul>
     </nav>

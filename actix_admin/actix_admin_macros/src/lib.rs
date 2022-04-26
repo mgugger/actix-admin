@@ -40,8 +40,9 @@ pub fn derive_crud_fns(_input: proc_macro::TokenStream) -> proc_macro::TokenStre
             async fn list<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>) -> Result<HttpResponse, Error> {
                 let db = &data.get_db();
                 let entities = Entity::list_db(db, 1, 5);
+                let entity_names = &data.get_actix_admin().entity_names;
                 let model = ActixAdminViewModel::from(Entity);
-                actix_admin::list_model(req, model)
+                actix_admin::list_model(req, &data, model, entity_names)
             }
         }
     };

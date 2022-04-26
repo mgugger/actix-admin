@@ -66,7 +66,7 @@ impl AzureAuth {
         )
     }
 
-    pub fn create_scope<T: AppDataTrait + 'static>(self, _app_state: &T) -> actix_web::Scope {
+    pub fn create_scope<T: AppDataTrait + 'static>(self) -> actix_web::Scope {
         let scope = web::scope("/auth")
             .route("/login", web::get().to(login::<T>))
             .route("/logout", web::get().to(logout))

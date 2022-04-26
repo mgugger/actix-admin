@@ -1,5 +1,5 @@
 use actix_web::error::ErrorBadRequest;
-use actix_web::{dev, App, FromRequest};
+use actix_web::{dev, App, FromRequest, Route};
 use actix_web::{error, guard, web, Error, HttpRequest, HttpResponse};
 use futures::future::{err, ok, Ready};
 use lazy_static::lazy_static;
@@ -18,7 +18,7 @@ pub use actix_admin_macros::DeriveActixAdminModel;
 
 const DEFAULT_POSTS_PER_PAGE: usize = 5;
 
-// templates
+// globals
 lazy_static! {
     static ref TERA: Tera =
         Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
@@ -40,6 +40,7 @@ pub enum Field {
 // AppDataTrait
 pub trait AppDataTrait {
     fn get_db(&self) -> &DatabaseConnection;
+    fn get_actix_admin(&self) -> &ActixAdmin;
 }
 
 // ActixAdminModel
@@ -61,22 +62,29 @@ pub trait ActixAdminViewModelTrait {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ActixAdminViewModel {
-    pub entity_name: String 
+    pub entity_name: String,
 }
 
 // ActixAdminController
 #[derive(Clone, Debug)]
 pub struct ActixAdmin {
+    pub entity_names: Vec<String> 
 }
 
 impl ActixAdmin {
     pub fn new() -> Self {
         let actix_admin = ActixAdmin {
+            entity_names: Vec::new()
         };
         actix_admin
     }
 
-    pub fn create_scope<T: AppDataTrait + 'static>(self, _app_state: &T) -> actix_web::Scope {
+    pub fn add_entity<T: AppDataTrait + 'static>(mut self, view_model: &ActixAdminViewModel) -> Self {
+        self.entity_names.push(view_model.entity_name.to_string());
+        self
+    }
+
+    pub fn create_scope<T: AppDataTrait + 'static>(&self) -> actix_web::Scope {
         let scope = web::scope("/admin").route("/", web::get().to(index::<T>));
 
         scope
@@ -85,9 +93,9 @@ impl ActixAdmin {
 
 async fn index<T: AppDataTrait>(data: web::Data<T>) -> Result<HttpResponse, Error> {
 
-    let view_models: Vec<&str> = Vec::new();
+    let entity_names = &data.get_actix_admin().entity_names;
     let mut ctx = Context::new();
-    ctx.insert("view_models", &view_models);
+    ctx.insert("entity_names", &entity_names);
 
     let body = TERA
         .render("index.html", &ctx)
@@ -95,7 +103,7 @@ async fn index<T: AppDataTrait>(data: web::Data<T>) -> Result<HttpResponse, Erro
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
-pub fn list_model(req: HttpRequest, view_model: ActixAdminViewModel) -> Result<HttpResponse, Error> {
+pub fn list_model<T: AppDataTrait>(req: HttpRequest, data: &web::Data<T>, view_model: ActixAdminViewModel, entity_names: &Vec<String>) -> Result<HttpResponse, Error> {
     let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
 
     let page = params.page.unwrap_or(1);
@@ -104,10 +112,9 @@ pub fn list_model(req: HttpRequest, view_model: ActixAdminViewModel) -> Result<H
     let columns: Vec<String> = Vec::new();
 
     let entities: Vec<&str> = Vec::new(); // view_model.get_entities()
-    let view_models: Vec<&str> = Vec::new();
 
     let mut ctx = Context::new();
-    ctx.insert("view_models", &view_models);
+    ctx.insert("entity_names", &entity_names);
     ctx.insert("posts", &entities);
     ctx.insert("page", &page);
     ctx.insert("posts_per_page", &posts_per_page);

@@ -1,15 +1,14 @@
 extern crate serde_derive;
 
 use actix_session::{Session, CookieSession};
-use actix_web::{web, App, HttpResponse, HttpServer, HttpRequest, Error};
+use actix_web::{web, App, HttpResponse, HttpServer};
 use tera::{ Tera, Context};
 use oauth2::basic::BasicClient;
 use oauth2::{ RedirectUrl };
 use std::time::{Duration};
 use std::env;
 use sea_orm::{{ DatabaseConnection, ConnectOptions }};
-use std::any::Any;
-use actix_admin::{ AppDataTrait as ActixAdminAppDataTrait, ActixAdminViewModelTrait };
+use actix_admin::{ AppDataTrait as ActixAdminAppDataTrait, ActixAdminViewModel, ActixAdmin, ActixAdminViewModelTrait };
 use azure_auth::{ AzureAuth, UserInfo, AppDataTrait as AzureAuthAppDataTrait };
 
 mod entity;
@@ -20,11 +19,15 @@ pub struct AppState {
     pub oauth: BasicClient,
     pub tmpl: Tera,
     pub db: DatabaseConnection,
+    pub actix_admin: ActixAdmin
 }
 
 impl ActixAdminAppDataTrait for AppState {
     fn get_db(&self) -> &DatabaseConnection {
         &self.db
+    }
+    fn get_actix_admin(&self) -> &ActixAdmin {
+        &self.actix_admin
     }
 }
 
@@ -76,10 +79,17 @@ async fn main() {
     let conn = sea_orm::Database::connect(opt).await.unwrap();
     let _ = entity::create_post_table(&conn).await;
 
+    let post_view_model = ActixAdminViewModel::from(Post);
+    let comment_view_model = ActixAdminViewModel::from(Comment);
+    let actix_admin = ActixAdmin::new()
+        .add_entity::<AppState>(&post_view_model)
+        .add_entity::<AppState>(&comment_view_model);
+    
     let app_state = AppState {
         oauth: client,
         tmpl: tera,
         db: conn,
+        actix_admin: actix_admin.clone()
     };
 
     HttpServer::new(move || {
@@ -87,12 +97,18 @@ async fn main() {
             .app_data(web::Data::new(app_state.clone()))
             .wrap(CookieSession::signed(&[0; 32]).secure(false))
             .route("/", web::get().to(index))
-            .service(azure_auth.clone().create_scope(&app_state))
+            .service(azure_auth.clone().create_scope::<AppState>())
             .service(
-                actix_admin::ActixAdmin::new()
-                    .create_scope(&app_state)
+                    // TODO: Generate this with a Macro accepting Tuples of (Entity, viewmodel)
+                    actix_admin
+                    .create_scope::<AppState>()
                     .service(
-                        web::scope(&format!("/{}", "posts")).route("/list", web::get().to(Post::list::<AppState>)),
+                        web::scope(&format!("/{}", post_view_model.entity_name))
+                        .route("/list", web::get().to(Post::list::<AppState>)),
+                    )
+                    .service(
+                        web::scope(&format!("/{}", comment_view_model.entity_name))
+                        .route("/list", web::get().to(Comment::list::<AppState>)),
                     )
             )
     })
