@@ -1,5 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
-Hello
+<table>
+    <tr>
+        {% for model_field in model_fields -%}
+        <th>{{ model_field[0] }}</th>
+        {%- endfor %}
+    </tr>
+    <tr>
+        <td></td>
+    </tr>
+</table>
 {% endblock content %}

@@ -1,6 +1,8 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use actix_admin::{ DeriveActixAdminModel };
+use sea_orm::{entity::*, query::*, tests_cfg::cake};
+
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, DeriveActixAdminModel)]
 #[sea_orm(table_name = "post")]

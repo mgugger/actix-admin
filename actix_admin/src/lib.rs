@@ -33,7 +33,7 @@ pub struct Params {
 
 // Fields
 #[derive(Clone, Debug, Serialize)]
-pub enum Field {
+pub enum ActixAdminField {
     Text,
 }
 
@@ -47,22 +47,25 @@ pub trait AppDataTrait {
 #[async_trait]
 pub trait ActixAdminModelTrait: Clone {
     async fn list_db(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> Vec<&str>;
+    fn get_fields() -> Vec<(&'static str, ActixAdminField)>;
 }
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ActixAdminModel {
-    pub fields: Vec<(&'static str, Field)>,
+
 }
 
 // ActixAdminViewModel
 #[async_trait(?Send)]
 pub trait ActixAdminViewModelTrait {
     async fn list<T: AppDataTrait + Sync + Send>(req: HttpRequest, data: web::Data<T>) -> Result<HttpResponse, Error>;
+    
 }
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ActixAdminViewModel {
     pub entity_name: String,
+    pub fields: Vec<(&'static str, ActixAdminField)>,
 }
 
 // ActixAdminController
@@ -120,6 +123,7 @@ pub fn list_model<T: AppDataTrait>(req: HttpRequest, data: &web::Data<T>, view_m
     ctx.insert("posts_per_page", &posts_per_page);
     ctx.insert("num_pages", "5" /*&num_pages*/);
     ctx.insert("columns", &columns);
+    ctx.insert("model_fields", &view_model.fields);
 
     let body = TERA
         .render("list.html", &ctx)

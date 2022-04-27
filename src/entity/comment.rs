@@ -9,9 +9,9 @@ pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip_deserializing)]
     pub id: i32,
-    pub title: String,
+    pub comment: String,
     #[sea_orm(column_type = "Text")]
-    pub text: String,
+    pub user: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
