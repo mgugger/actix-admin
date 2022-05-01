@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form method="post">
+    <div class="grid">
+        {% for model_field in view_model.fields -%}
+        <input type="text" name="{{ model_field[0] }}" placeholder="{{ model_field[0] }}" aria-label="{{ model_field[0] }}"><!-- required="" -->
+        {%- endfor %}
+        <button type="submit">Save</button>
+    </div>
+</form>
+{% endblock content %}

@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
+<a href="create" role="button">Create</a>
 <table>
     <tr>
-        {% for model_field in model_fields -%}
+        {% for model_field in view_model.fields -%}
         <th>{{ model_field[0] }}</th>
         {%- endfor %}
     </tr>
