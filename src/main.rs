@@ -2,7 +2,7 @@ extern crate serde_derive;
 
 use actix_admin::{
     ActixAdmin, ActixAdminViewModel, ActixAdminViewModelTrait,
-    AppDataTrait as ActixAdminAppDataTrait,
+    AppDataTrait as ActixAdminAppDataTrait, ActixAdminModelTrait
 };
 use actix_session::{CookieSession, Session};
 use actix_web::{web, App, HttpResponse, HttpServer, middleware};
@@ -15,6 +15,7 @@ use sea_orm::EntityTrait;
 use std::env;
 use std::time::Duration;
 use tera::{Context, Tera};
+use std::sync::Arc;
 
 mod entity;
 use entity::{Comment, Post, comment, post};
@@ -65,12 +66,12 @@ fn setup_actix_admin(
     actix_admin
         .create_scope::<AppState>()
         .service(
-            web::scope(&format!("/{}", post_view_model.entity_name))
-                .route("/list", web::get().to(Post::list::<AppState>))
-                .route("/create", web::get().to(Post::create_get::<AppState>))
-                .route("/create", web::post().to(Post::create_post::<AppState, post::Model>))
-
+            web::scope("/{entity_name}")
+            .route("/list", web::get().to(actix_admin::list::<AppState>))
+            .route("/create", web::get().to(actix_admin::create_get::<AppState>))
+            .route("/create", web::post().to(actix_admin::create_post::<AppState>))
         )
+        
         // .service(
         //     web::scope(&format!("/{}", comment_view_model.entity_name))
         //         .route("/list", web::get().to(Comment::list::<AppState>))
@@ -116,7 +117,7 @@ async fn main() {
     let post_view_model = ActixAdminViewModel::from(Post);
     //let comment_view_model = ActixAdminViewModel::from(Comment);
     let actix_admin = ActixAdmin::new()
-        .add_entity::<AppState>(&post_view_model)
+        .add_entity(&post_view_model)
         //.add_entity::<AppState>(&comment_view_model)
         ;
     let app_state = AppState {
