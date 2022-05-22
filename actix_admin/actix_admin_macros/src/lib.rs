@@ -48,6 +48,16 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
             }
         }
 
+        impl From<ActixAdminModel> for ActiveModel {
+            fn from(model: ActixAdminModel) -> Self {
+                ActiveModel {
+                    title: Set("test".to_string()),
+                    text: Set("test".to_string()),
+                    ..Default::default()
+                }
+            }
+        } 
+
         #[async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
             async fn list(db: &DatabaseConnection, page: usize, entities_per_page: usize) -> Vec<ActixAdminModel> {
@@ -56,11 +66,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
             }
 
             async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> ActixAdminModel {
-                let new_model = ActiveModel {
-                    title: Set("test".to_string()),
-                    text: Set("test".to_string()),
-                    ..Default::default()
-                };
+                let new_model = ActiveModel::from(model.clone());
                 let insert_operation = Entity::insert(new_model).exec(db).await;
 
                 model
@@ -78,7 +84,6 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                     .fetch_page(page - 1)
                     .await
                     .expect("could not retrieve entities");
-                // TODO: must be dynamic
                 let mut model_entities = Vec::new();
                 for entity in entities {
                     model_entities.push(
