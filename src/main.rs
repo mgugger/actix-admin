@@ -1,8 +1,8 @@
 extern crate serde_derive;
 
 use actix_admin::{
-    ActixAdmin, ActixAdminViewModel, ActixAdminViewModelTrait,
-    AppDataTrait as ActixAdminAppDataTrait, ActixAdminModelTrait
+    ActixAdmin, ActixAdminViewModel,
+    AppDataTrait as ActixAdminAppDataTrait
 };
 use actix_session::{CookieSession, Session};
 use actix_web::{web, App, HttpResponse, HttpServer, middleware};
@@ -10,15 +10,13 @@ use azure_auth::{AppDataTrait as AzureAuthAppDataTrait, AzureAuth, UserInfo};
 use oauth2::basic::BasicClient;
 use oauth2::RedirectUrl;
 use sea_orm::{ConnectOptions, DatabaseConnection};
-use sea_orm::{entity::*, query::*};
-use sea_orm::EntityTrait;
+//use sea_orm::{entity::*, query::*};
 use std::env;
 use std::time::Duration;
 use tera::{Context, Tera};
-use std::sync::Arc;
 
 mod entity;
-use entity::{Comment, Post, comment, post};
+use entity::{Post};
 
 #[derive(Debug, Clone)]
 pub struct AppState {
@@ -60,8 +58,6 @@ async fn index(session: Session, data: web::Data<AppState>) -> HttpResponse {
 // TODO: Generate this with a Macro accepting Tuples of (Entity, viewmodel)
 fn setup_actix_admin(
     actix_admin: &ActixAdmin,
-    post_view_model: &ActixAdminViewModel,
-    //comment_view_model: &ActixAdminViewModel,
 ) -> actix_web::Scope {
     actix_admin
         .create_scope::<AppState>()
@@ -134,9 +130,7 @@ async fn main() {
             .route("/", web::get().to(index))
             .service(azure_auth.clone().create_scope::<AppState>())
             .service(setup_actix_admin(
-                &actix_admin,
-                &post_view_model,
-                //&comment_view_model,
+                &actix_admin
             ))
             .wrap(middleware::Logger::default())
     })

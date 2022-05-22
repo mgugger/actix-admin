@@ -7,8 +7,8 @@ const ATTR_META_SKIP: &'static str = "skip";
 
 pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::Vec<(syn::Visibility, proc_macro2::Ident)> {
     let ast: DeriveInput = syn::parse(input).unwrap();
-    let (vis, ty, generics) = (&ast.vis, &ast.ident, &ast.generics);
-    let names_struct_ident = Ident::new(&(ty.to_string() + "FieldStaticStr"), Span::call_site());
+    let (_vis, ty, _generics) = (&ast.vis, &ast.ident, &ast.generics);
+    let _names_struct_ident = Ident::new(&(ty.to_string() + "FieldStaticStr"), Span::call_site());
 
     let fields = filter_fields(match ast.data {
         syn::Data::Struct(ref s) => &s.fields,

@@ -1,17 +1,11 @@
-use actix_web::{error, web, Responder, get, post, route, Error, HttpRequest, HttpResponse};
+use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use lazy_static::lazy_static;
-use sea_orm::{ DatabaseConnection, ModelTrait, ConnectionTrait};
+use sea_orm::{ DatabaseConnection};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use actix_web::http::header;
 use tera::{Context, Tera};
-use std::any::Any;
-use std::convert::From;
 use async_trait::async_trait;
-use sea_orm::ActiveValue::Set;
-use sea_orm::{ConnectOptions };
-use sea_orm::{entity::*, query::*};
-use sea_orm::EntityTrait;
 
 pub use actix_admin_macros::DeriveActixAdminModel;
 
@@ -45,21 +39,20 @@ pub trait AppDataTrait {
 // ActixAdminModel
 #[async_trait]
 pub trait ActixAdminModelTrait: Clone {
-    async fn list_db(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> Vec<&str>;
+    async fn list_model(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> Vec<&str>;
     fn get_fields() -> Vec<(String, ActixAdminField)>;
 }
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ActixAdminModel {
-
+    values: HashMap<&'static str, &'static str>
 }
 
 // ActixAdminViewModel
 #[async_trait(?Send)]
 pub trait ActixAdminViewModelTrait {
-    async fn list<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>) -> Result<HttpResponse, Error>;
-    async fn create_get<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>) -> Result<HttpResponse, Error>;
-    async fn create_post<T: AppDataTrait, M>(req: HttpRequest, data: web::Data<T>, post_form: web::Form<M>) -> Result<HttpResponse, Error>;
+    async fn list(db: DatabaseConnection, page: usize, entities_per_page: usize) -> Vec<ActixAdminModel>;
+    async fn create_post(db: DatabaseConnection, model: ActixAdminModel) -> ActixAdminModel;
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -112,22 +105,16 @@ pub async fn index<T: AppDataTrait>(data: web::Data<T>) -> Result<HttpResponse, 
 pub async fn list<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>, path: web::Path<String>) -> Result<HttpResponse, Error> {
     let entity_name: String = path.into_inner();
     let actix_admin = data.get_actix_admin();
-    let view_model = actix_admin.view_models.get(&entity_name).unwrap();
+    let view_model: &ActixAdminViewModel = actix_admin.view_models.get(&entity_name).unwrap();
     let entity_names = &data.get_actix_admin().entity_names;
 
-    let db = data.get_db();
-    //let entities: Vec<&str> = Vec::new(); //  E::list_db(db, 1, 5);
-    // TODO: Get ViewModel from ActixAdmin to honor individual settings
-    list_model(req, &data, view_model.clone(), entity_names)
-}
-
-pub fn list_model<T: AppDataTrait>(req: HttpRequest, data: &web::Data<T>, view_model: ActixAdminViewModel, entity_names: &Vec<String>) -> Result<HttpResponse, Error> {
     let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
 
     let page = params.page.unwrap_or(1);
     let entities_per_page = params.entities_per_page.unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
 
-    let entities: Vec<&str> = Vec::new(); // view_model.get_entities()
+    let db = data.get_db();
+    let entities: Vec<ActixAdminModel> = view_model.list(db, page, entities_per_page);
 
     let mut ctx = Context::new();
     ctx.insert("entity_names", &entity_names);
@@ -143,20 +130,16 @@ pub fn list_model<T: AppDataTrait>(req: HttpRequest, data: &web::Data<T>, view_m
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
-pub async fn create_get<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>, mut body: web::Payload, text: String, entity_name: web::Path<(String)>) -> impl Responder  {
-    let db = &data.get_db();
+pub async fn create_get<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>, _body: web::Payload, _text: String, entity_name: web::Path<String>) -> Result<HttpResponse, Error>   {
+    let _db = &data.get_db();
     let entity_name: String = entity_name.into_inner();
     println!("{}", &entity_name);
     let entity_names = &data.get_actix_admin().entity_names;
-    // TODO: Get ViewModel from ActixAdmin to honor individual settings
+
     let actix_admin = data.get_actix_admin();
 
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
 
-    create_get_model(req, &data, view_model.clone(), entity_names)
-}
-
-pub fn create_get_model<T: AppDataTrait>(req: HttpRequest, data: &web::Data<T>, view_model: ActixAdminViewModel, entity_names: &Vec<String>) -> Result<HttpResponse, Error> {
     let mut ctx = Context::new();
     ctx.insert("entity_names", &entity_names);
     ctx.insert("view_model", &view_model);
@@ -168,28 +151,16 @@ pub fn create_get_model<T: AppDataTrait>(req: HttpRequest, data: &web::Data<T>, 
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
-pub async fn create_post<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>, text: String, entity_name: web::Path<(String)>) -> Result<HttpResponse, Error> {
-    let db = &data.get_db();
+pub async fn create_post<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>, text: String, entity_name: web::Path<String>) -> Result<HttpResponse, Error> {
+    let _db = &data.get_db();
     let entity_name: String = entity_name.into_inner();
     let actix_admin = data.get_actix_admin();
     
-    let entity_names = &actix_admin.entity_names;
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
 
     println!("{}", &entity_name);
     println!("{}", &text);
-    //println!("{}", &body.);
-    // let new_model = ActiveModel {
-    //     title: Set("test".to_string()),
-    //     text: Set("test".to_string()),
-    //     ..Default::default()
-    // };
-    // let insert_operation = M::insert(new_model).exec(data.get_db()).await;            
 
-    create_post_model(req, &data, view_model.clone())
-}
-
-pub fn create_post_model<T: AppDataTrait>(req: HttpRequest, data: &web::Data<T>, view_model: ActixAdminViewModel) -> Result<HttpResponse, Error> {
     Ok(HttpResponse::Found()
         .append_header((header::LOCATION, format!("/admin/{}/list", view_model.entity_name)))
         .finish())

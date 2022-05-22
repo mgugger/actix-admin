@@ -36,42 +36,27 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
         #[async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
-            async fn list<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>) -> Result<HttpResponse, Error> {
+            async fn list<T: AppDataTrait>(db: DatabaseConnection, page: usize, entities_per_page: usize) -> Vec<ActixAdminModel> {
                 let model = ActixAdminViewModel::from(Entity);
                 let entity_names = &data.get_actix_admin().entity_names;
-
-                let db = data.get_db();
-                let entities = Entity::list_db(db, 1, 5);
-                // TODO: Get ViewModel from ActixAdmin to honor individual settings
-                actix_admin::list_model(req, &data, model, entity_names)
+                let entities = Entity::list_model(db, 1, 5);
+                entities
             }
 
-            async fn create_get<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>) -> Result<HttpResponse, Error> {
-                let db = &data.get_db();
-                let entity_names = &data.get_actix_admin().entity_names;
-                // TODO: Get ViewModel from ActixAdmin to honor individual settings
-                let model = ActixAdminViewModel::from(Entity);
-                actix_admin::create_get_model(req, &data, model, entity_names)
-            }
-
-            async fn create_post<T: AppDataTrait, M>(req: HttpRequest, data: web::Data<T>, post_form: web::Form<M>) -> Result<HttpResponse, Error> {
-                let view_model = ActixAdminViewModel::from(Entity);
-
-                let form = post_form.into_inner();
-
+            async fn create_post(db: DatabaseConnection, model: ActixAdminModel) -> ActixAdminModel{
                 let new_model = ActiveModel {
                     title: Set("test".to_string()),
                     text: Set("test".to_string()),
                     ..Default::default()
                 };
-                let insert_operation = Entity::insert(new_model).exec(data.get_db()).await;            
+                let insert_operation = Entity::insert(new_model).exec(data.get_db()).await;
 
                 actix_admin::create_post_model(req, &data, view_model)
             }
         }
         #[async_trait]
         impl ActixAdminModelTrait for Entity {
-            async fn list_db(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> Vec<&str> {
+            async fn list_model(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> Vec<ActixAdminModel> {
                 use sea_orm::{ query::* };
                 let paginator = Entity::find()
                     .order_by_asc(Column::Id)
@@ -80,9 +65,20 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                     .fetch_page(page - 1)
                     .await
                     .expect("could not retrieve entities");
-                //entities to ActixAdminModel
-                vec![
-                ]
+                // TODO: must be dynamic
+                model_entities = Vec::new();
+                for entity in entities {
+                    model_values = HashMap::new();
+                    model_values.insert("title", entity.title);
+                    model_values.insert("text", entity.text);
+                    model_values.insert("id", entity.id);
+                    vec.push(
+                        ActixAdminModel {
+                            values: model_values,
+                        });
+                }
+
+                model_entities
             }
 
             fn get_fields() -> Vec<(String, ActixAdminField)> {
