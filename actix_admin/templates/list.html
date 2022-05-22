@@ -8,8 +8,12 @@
         <th>{{ model_field[0] }}</th>
         {%- endfor %}
     </tr>
+    {% for entity in entities -%}
     <tr>
-        <td></td>
+        {% for model_field in view_model.fields -%}
+        <td>{{ entity.values | get(key=model_field[0]) }}</td>
+        {%- endfor %}
     </tr>
+    {%- endfor %}
 </table>
 {% endblock content %}

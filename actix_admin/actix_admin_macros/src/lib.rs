@@ -37,13 +37,12 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
         #[async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
-            async fn list(self, db: &DatabaseConnection, page: usize, entities_per_page: usize) -> Vec<ActixAdminModel> {
-                let model = ActixAdminViewModel::from(Entity);
+            async fn list(db: &DatabaseConnection, page: usize, entities_per_page: usize) -> Vec<ActixAdminModel> {
                 let entities = Entity::list_model(db, 1, 5).await;
                 entities
             }
 
-            async fn create_entity(self, db: &DatabaseConnection, model: ActixAdminModel) -> ActixAdminModel {
+            async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> ActixAdminModel {
                 let new_model = ActiveModel {
                     title: Set("test".to_string()),
                     text: Set("test".to_string()),
@@ -51,7 +50,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 };
                 let insert_operation = Entity::insert(new_model).exec(db).await;
 
-                ActixAdminModel{ values: HashMap::new() }
+                model
             }
         }
 

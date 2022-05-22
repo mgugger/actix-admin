@@ -64,9 +64,9 @@ fn setup_actix_admin(
         .create_scope::<AppState>()
         .service(
             web::scope("/{entity_name}")
-            .route("/list", web::get().to(actix_admin::list::<AppState>))
-            .route("/create", web::get().to(actix_admin::create_get::<AppState>))
-            .route("/create", web::post().to(actix_admin::create_post::<AppState>))
+            .route("/list", web::get().to(actix_admin::list::<AppState, Post>))
+            .route("/create", web::get().to(actix_admin::create_get::<AppState, Post>))
+            .route("/create", web::post().to(actix_admin::create_post::<AppState, Post>))
         )
 }
 
