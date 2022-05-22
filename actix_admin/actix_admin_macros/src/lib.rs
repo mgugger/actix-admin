@@ -23,6 +23,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         use sea_orm::ActiveValue::Set;
         use sea_orm::{ConnectOptions, DatabaseConnection};
         use sea_orm::{entity::*, query::*};
+        use std::collections::HashMap;
         use sea_orm::EntityTrait;
 
         impl From<Entity> for ActixAdminViewModel {
@@ -36,24 +37,24 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
         #[async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
-            async fn list<T: AppDataTrait>(db: DatabaseConnection, page: usize, entities_per_page: usize) -> Vec<ActixAdminModel> {
+            async fn list(self, db: &DatabaseConnection, page: usize, entities_per_page: usize) -> Vec<ActixAdminModel> {
                 let model = ActixAdminViewModel::from(Entity);
-                let entity_names = &data.get_actix_admin().entity_names;
-                let entities = Entity::list_model(db, 1, 5);
+                let entities = Entity::list_model(db, 1, 5).await;
                 entities
             }
 
-            async fn create_post(db: DatabaseConnection, model: ActixAdminModel) -> ActixAdminModel{
+            async fn create_entity(self, db: &DatabaseConnection, model: ActixAdminModel) -> ActixAdminModel {
                 let new_model = ActiveModel {
                     title: Set("test".to_string()),
                     text: Set("test".to_string()),
                     ..Default::default()
                 };
-                let insert_operation = Entity::insert(new_model).exec(data.get_db()).await;
+                let insert_operation = Entity::insert(new_model).exec(db).await;
 
-                actix_admin::create_post_model(req, &data, view_model)
+                ActixAdminModel{ values: HashMap::new() }
             }
         }
+
         #[async_trait]
         impl ActixAdminModelTrait for Entity {
             async fn list_model(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> Vec<ActixAdminModel> {
@@ -66,13 +67,13 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                     .await
                     .expect("could not retrieve entities");
                 // TODO: must be dynamic
-                model_entities = Vec::new();
+                let mut model_entities = Vec::new();
                 for entity in entities {
-                    model_values = HashMap::new();
+                    let mut model_values = HashMap::new();
                     model_values.insert("title", entity.title);
                     model_values.insert("text", entity.text);
-                    model_values.insert("id", entity.id);
-                    vec.push(
+                    model_values.insert("id", entity.id.to_string());
+                    model_entities.push(
                         ActixAdminModel {
                             values: model_values,
                         });

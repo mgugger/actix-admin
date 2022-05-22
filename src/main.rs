@@ -2,7 +2,8 @@ extern crate serde_derive;
 
 use actix_admin::{
     ActixAdmin, ActixAdminViewModel,
-    AppDataTrait as ActixAdminAppDataTrait
+    AppDataTrait as ActixAdminAppDataTrait,
+    ActixAdminViewModelTrait
 };
 use actix_session::{CookieSession, Session};
 use actix_web::{web, App, HttpResponse, HttpServer, middleware};
@@ -67,13 +68,6 @@ fn setup_actix_admin(
             .route("/create", web::get().to(actix_admin::create_get::<AppState>))
             .route("/create", web::post().to(actix_admin::create_post::<AppState>))
         )
-        
-        // .service(
-        //     web::scope(&format!("/{}", comment_view_model.entity_name))
-        //         .route("/list", web::get().to(Comment::list::<AppState>))
-        //         .route("/create", web::get().to(Comment::create_get::<AppState>))
-        //         .route("/create", web::post().to(Comment::create_post::<AppState, comment::Model>))
-        // )
 }
 
 #[actix_rt::main]

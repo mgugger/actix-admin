@@ -38,21 +38,21 @@ pub trait AppDataTrait {
 
 // ActixAdminModel
 #[async_trait]
-pub trait ActixAdminModelTrait: Clone {
-    async fn list_model(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> Vec<&str>;
+pub trait ActixAdminModelTrait {
+    async fn list_model(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> Vec<ActixAdminModel>;
     fn get_fields() -> Vec<(String, ActixAdminField)>;
 }
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ActixAdminModel {
-    values: HashMap<&'static str, &'static str>
+    pub values: HashMap<&'static str, String>
 }
 
 // ActixAdminViewModel
 #[async_trait(?Send)]
 pub trait ActixAdminViewModelTrait {
-    async fn list(db: DatabaseConnection, page: usize, entities_per_page: usize) -> Vec<ActixAdminModel>;
-    async fn create_post(db: DatabaseConnection, model: ActixAdminModel) -> ActixAdminModel;
+    async fn list(self, db: &DatabaseConnection, page: usize, entities_per_page: usize) -> Vec<ActixAdminModel>;
+    async fn create_entity(self, db: &DatabaseConnection, model: ActixAdminModel) -> ActixAdminModel;
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -114,7 +114,7 @@ pub async fn list<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>, path: w
     let entities_per_page = params.entities_per_page.unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
 
     let db = data.get_db();
-    let entities: Vec<ActixAdminModel> = view_model.list(db, page, entities_per_page);
+    let entities: Vec<ActixAdminModel> = Vec::new(); // entity.list(db, page, entities_per_page).await;
 
     let mut ctx = Context::new();
     ctx.insert("entity_names", &entity_names);
@@ -130,7 +130,7 @@ pub async fn list<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>, path: w
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
-pub async fn create_get<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>, _body: web::Payload, _text: String, entity_name: web::Path<String>) -> Result<HttpResponse, Error>   {
+pub async fn create_get<T: AppDataTrait>(_req: HttpRequest, data: web::Data<T>, _body: web::Payload, _text: String, entity_name: web::Path<String>) -> Result<HttpResponse, Error>   {
     let _db = &data.get_db();
     let entity_name: String = entity_name.into_inner();
     println!("{}", &entity_name);
@@ -151,7 +151,7 @@ pub async fn create_get<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>, _
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
-pub async fn create_post<T: AppDataTrait>(req: HttpRequest, data: web::Data<T>, text: String, entity_name: web::Path<String>) -> Result<HttpResponse, Error> {
+pub async fn create_post<T: AppDataTrait>(_req: HttpRequest, data: web::Data<T>, text: String, entity_name: web::Path<String>) -> Result<HttpResponse, Error> {
     let _db = &data.get_db();
     let entity_name: String = entity_name.into_inner();
     let actix_admin = data.get_actix_admin();
