@@ -19,7 +19,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         use std::convert::From;
         use async_trait::async_trait;
         use actix_web::{web, HttpResponse, HttpRequest, Error};
-        use actix_admin::{ ActixAdminField, ActixAdminModelTrait, ActixAdminViewModelTrait, ActixAdminViewModel, ActixAdminModel, AppDataTrait };
+        use actix_admin::{ ActixAdminField, ActixAdminModelTrait, ActixAdminViewModelTrait, ActixAdminViewModel, ActixAdminModel, AppDataTrait , hashmap};
         use sea_orm::ActiveValue::Set;
         use sea_orm::{ConnectOptions, DatabaseConnection};
         use sea_orm::{entity::*, query::*};
@@ -31,6 +31,19 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 ActixAdminViewModel {
                     entity_name: entity.table_name().to_string(),
                     fields: Entity::get_fields()
+                }
+            }
+        }
+
+        impl From<Model> for ActixAdminModel {
+            fn from(model: Model) -> Self {
+                ActixAdminModel {
+                    // TODO: create dynamically
+                    values: hashmap![
+                        "title" => model.title,
+                        "text" => model.text,
+                        "id" => model.id.to_string()
+                    ]
                 }
             }
         }
@@ -68,14 +81,9 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 // TODO: must be dynamic
                 let mut model_entities = Vec::new();
                 for entity in entities {
-                    let mut model_values = HashMap::new();
-                    model_values.insert("title", entity.title);
-                    model_values.insert("text", entity.text);
-                    model_values.insert("id", entity.id.to_string());
                     model_entities.push(
-                        ActixAdminModel {
-                            values: model_values,
-                        });
+                        ActixAdminModel::from(entity)
+                    );
                 }
 
                 model_entities

@@ -11,6 +11,15 @@ pub use actix_admin_macros::DeriveActixAdminModel;
 
 const DEFAULT_ENTITIES_PER_PAGE: usize = 5;
 
+#[macro_export]
+macro_rules! hashmap {
+    ($( $key: expr => $val: expr ),*) => {{
+         let mut map = ::std::collections::HashMap::new();
+         $( map.insert($key, $val); )*
+         map
+    }}
+}
+
 // globals
 lazy_static! {
     static ref TERA: Tera =
