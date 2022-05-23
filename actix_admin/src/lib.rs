@@ -15,10 +15,18 @@ const DEFAULT_ENTITIES_PER_PAGE: usize = 5;
 macro_rules! hashmap {
     ($( $key: expr => $val: expr ),*) => {{
          let mut map = ::std::collections::HashMap::new();
-         $( map.insert($key, $val); )*
+         $( map.insert($key.to_string(), $val.to_string()); )*
          map
     }}
 }
+
+#[macro_export]
+macro_rules! make_fields {
+    ($($element: ident: $ty: ty),*) => {
+        $($element: $ty),*
+    }
+}
+
 
 // globals
 lazy_static! {
@@ -54,7 +62,7 @@ pub trait ActixAdminModelTrait {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ActixAdminModel {
-    pub values: HashMap<&'static str, String>
+    pub values: HashMap<String, String>
 }
 
 // ActixAdminViewModel
@@ -97,6 +105,22 @@ impl ActixAdmin {
     pub fn create_scope<T: AppDataTrait + 'static >(&self) -> actix_web::Scope {
         let scope = web::scope("/admin").route("/", web::get().to(index::<T>));
         scope
+    }
+}
+
+impl From<String> for ActixAdminModel {
+    fn from(string: String) -> Self {
+        let mut hashmap = HashMap::new();
+        let key_values: Vec<&str> = string.split('&').collect();
+        for key_value in key_values {
+            let mut iter = key_value.splitn(2, '=');
+            hashmap.insert(iter.next().unwrap().to_string(), iter.next().unwrap().to_string());
+        }
+
+        ActixAdminModel {
+            // TODO: create dynamically
+            values: hashmap
+        }
     }
 }
 
@@ -166,11 +190,8 @@ pub async fn create_post<T: AppDataTrait, E: ActixAdminViewModelTrait>(_req: Htt
     let actix_admin = data.get_actix_admin();
     
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
-    let mut model = ActixAdminModel{ values: HashMap::new() };
-    model = E::create_entity(db, model).await;
-
-    println!("{}", &entity_name);
-    println!("{}", &text);
+    let mut admin_model = ActixAdminModel::from(text);
+    admin_model = E::create_entity(db, admin_model).await;
 
     Ok(HttpResponse::Found()
         .append_header((header::LOCATION, format!("/admin/{}/list", view_model.entity_name)))

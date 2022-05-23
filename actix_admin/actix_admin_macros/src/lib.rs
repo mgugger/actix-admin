@@ -51,8 +51,8 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         impl From<ActixAdminModel> for ActiveModel {
             fn from(model: ActixAdminModel) -> Self {
                 ActiveModel {
-                    title: Set("test".to_string()),
-                    text: Set("test".to_string()),
+                    title: Set(model.values.get("title").unwrap().to_string()),
+                    text: Set(model.values.get("text").unwrap().to_string()),
                     ..Default::default()
                 }
             }
