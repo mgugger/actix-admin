@@ -1,7 +1,7 @@
 extern crate serde_derive;
 
 use actix_admin::{
-    ActixAdmin, ActixAdminViewModel,
+    ActixAdmin, ActixAdminBuilder, ActixAdminBuilderTrait, ActixAdminViewModel,
     AppDataTrait as ActixAdminAppDataTrait,
 };
 use actix_session::{CookieSession, Session};
@@ -55,24 +55,15 @@ async fn index(session: Session, data: web::Data<AppState>) -> HttpResponse {
     HttpResponse::Ok().body(rendered)
 }
 
-// TODO: Generate this with a Macro accepting Tuples of (Entity, viewmodel)
-fn setup_actix_admin(
-    actix_admin: &ActixAdmin,
-) -> actix_web::Scope {
-    actix_admin
-        .create_scope::<AppState>()
-        .service(
-            web::scope("/post")
-            .route("/list", web::get().to(actix_admin::list::<AppState, Post>))
-            .route("/create", web::get().to(actix_admin::create_get::<AppState, Post>))
-            .route("/create", web::post().to(actix_admin::create_post::<AppState, Post>))
-        )
-        .service(
-            web::scope("/comment")
-            .route("/list", web::get().to(actix_admin::list::<AppState, Comment>))
-            .route("/create", web::get().to(actix_admin::create_get::<AppState, Comment>))
-            .route("/create", web::post().to(actix_admin::create_post::<AppState, Comment>))
-        )
+fn create_actix_admin_builder() -> ActixAdminBuilder {
+    let post_view_model = ActixAdminViewModel::from(Post);
+    let comment_view_model = ActixAdminViewModel::from(Comment);
+
+    let mut admin_builder = ActixAdminBuilder::new();
+    admin_builder.add_entity::<AppState, Post>(&post_view_model);
+    admin_builder.add_entity::<AppState, Comment>(&comment_view_model);
+
+    admin_builder
 }
 
 #[actix_rt::main]
@@ -109,17 +100,13 @@ async fn main() {
     let conn = sea_orm::Database::connect(opt).await.unwrap();
     let _ = entity::create_post_table(&conn).await;
 
-    let post_view_model = ActixAdminViewModel::from(Post);
-    let comment_view_model = ActixAdminViewModel::from(Comment);
-    let actix_admin = ActixAdmin::new()
-        .add_entity::<Post>(&post_view_model)
-        .add_entity::<Comment>(&comment_view_model)
-        ;
+    let actix_admin = create_actix_admin_builder().get_actix_admin();
+    
     let app_state = AppState {
         oauth: client,
         tmpl: tera,
         db: conn,
-        actix_admin: actix_admin.clone(),
+        actix_admin: actix_admin,
     };
 
     HttpServer::new(move || {
@@ -128,9 +115,9 @@ async fn main() {
             .wrap(CookieSession::signed(&[0; 32]).secure(false))
             .route("/", web::get().to(index))
             .service(azure_auth.clone().create_scope::<AppState>())
-            .service(setup_actix_admin(
-                &actix_admin
-            ))
+            .service(
+                create_actix_admin_builder().get_scope::<AppState>()
+            )
             .wrap(middleware::Logger::default())
     })
     .bind("127.0.0.1:5000")
