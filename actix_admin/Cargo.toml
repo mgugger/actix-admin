@@ -21,4 +21,4 @@ futures = "0.3.21"
 serde = "1.0.136"
 serde_json = "1.0.79"
 serde_derive = "1.0.136"
-sea-orm = { version = "0.6.0", features = [ "sqlx-sqlite", "runtime-actix-native-tls", "macros" ], default-features = false }
+sea-orm = { version = "0.8.0", features = [ "sqlx-sqlite", "runtime-actix-native-tls", "macros" ], default-features = false }

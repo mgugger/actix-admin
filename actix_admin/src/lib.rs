@@ -20,14 +20,6 @@ macro_rules! hashmap {
     }}
 }
 
-#[macro_export]
-macro_rules! make_fields {
-    ($($element: ident: $ty: ty),*) => {
-        $($element: $ty),*
-    }
-}
-
-
 // globals
 lazy_static! {
     static ref TERA: Tera =
@@ -70,6 +62,7 @@ pub struct ActixAdminModel {
 pub trait ActixAdminViewModelTrait {
     async fn list(db: &DatabaseConnection, page: usize, entities_per_page: usize) -> Vec<ActixAdminModel>;
     async fn create_entity(db: &DatabaseConnection, model: ActixAdminModel) -> ActixAdminModel;
+    fn get_entity_name() -> String;
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -94,8 +87,8 @@ impl ActixAdmin {
         actix_admin
     }
 
-    pub fn add_entity(mut self, view_model: &ActixAdminViewModel) -> Self {
-        self.entity_names.push(view_model.entity_name.to_string());
+    pub fn add_entity<E: ActixAdminViewModelTrait>(mut self, view_model: &ActixAdminViewModel) -> Self {
+        self.entity_names.push(E::get_entity_name());
         let view_model_cloned = view_model.clone();
         let key = view_model.entity_name.to_string();
         self.view_models.insert(key, view_model_cloned);
@@ -124,6 +117,17 @@ impl From<String> for ActixAdminModel {
     }
 }
 
+impl ActixAdminModel {
+    pub fn get_value<T: std::str::FromStr>(&self, key: &str) -> Option<T> {
+        println!("get value for key {}", key);
+        let value = self.values.get(key).unwrap().to_string().parse::<T>();
+        match value {
+            Ok(val) => Some(val),
+            Err(_) => None //panic!("key {} could not be parsed", key)
+        }
+    } 
+}
+
 pub async fn index<T: AppDataTrait>(data: web::Data<T>) -> Result<HttpResponse, Error> {
     let entity_names = &data.get_actix_admin().entity_names;
     let mut ctx = Context::new();
@@ -135,8 +139,8 @@ pub async fn index<T: AppDataTrait>(data: web::Data<T>) -> Result<HttpResponse, 
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
-pub async fn list<T: AppDataTrait, E: ActixAdminViewModelTrait>(req: HttpRequest, data: web::Data<T>, path: web::Path<String>) -> Result<HttpResponse, Error> {
-    let entity_name: String = path.into_inner();
+pub async fn list<T: AppDataTrait, E: ActixAdminViewModelTrait>(req: HttpRequest, data: web::Data<T>) -> Result<HttpResponse, Error> {
+    let entity_name = E::get_entity_name();
     let actix_admin = data.get_actix_admin();
     let view_model: &ActixAdminViewModel = actix_admin.view_models.get(&entity_name).unwrap();
     let entity_names = &data.get_actix_admin().entity_names;
@@ -163,10 +167,9 @@ pub async fn list<T: AppDataTrait, E: ActixAdminViewModelTrait>(req: HttpRequest
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
-pub async fn create_get<T: AppDataTrait, E: ActixAdminViewModelTrait>(_req: HttpRequest, data: web::Data<T>, _body: web::Payload, _text: String, entity_name: web::Path<String>) -> Result<HttpResponse, Error>   {
+pub async fn create_get<T: AppDataTrait, E: ActixAdminViewModelTrait>(_req: HttpRequest, data: web::Data<T>, _body: web::Payload, _text: String) -> Result<HttpResponse, Error>   {
     let _db = &data.get_db();
-    let entity_name: String = entity_name.into_inner();
-    println!("{}", &entity_name);
+    let entity_name = E::get_entity_name();
     let entity_names = &data.get_actix_admin().entity_names;
 
     let actix_admin = data.get_actix_admin();
@@ -184,9 +187,9 @@ pub async fn create_get<T: AppDataTrait, E: ActixAdminViewModelTrait>(_req: Http
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
-pub async fn create_post<T: AppDataTrait, E: ActixAdminViewModelTrait>(_req: HttpRequest, data: web::Data<T>, text: String, entity_name: web::Path<String>) -> Result<HttpResponse, Error> {
+pub async fn create_post<T: AppDataTrait, E: ActixAdminViewModelTrait>(_req: HttpRequest, data: web::Data<T>, text: String) -> Result<HttpResponse, Error> {
     let db = &data.get_db();
-    let entity_name: String = entity_name.into_inner();
+    let entity_name = E::get_entity_name();
     let actix_admin = data.get_actix_admin();
     
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();

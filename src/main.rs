@@ -3,7 +3,6 @@ extern crate serde_derive;
 use actix_admin::{
     ActixAdmin, ActixAdminViewModel,
     AppDataTrait as ActixAdminAppDataTrait,
-    ActixAdminViewModelTrait
 };
 use actix_session::{CookieSession, Session};
 use actix_web::{web, App, HttpResponse, HttpServer, middleware};
@@ -17,7 +16,7 @@ use std::time::Duration;
 use tera::{Context, Tera};
 
 mod entity;
-use entity::{Post};
+use entity::{Post, Comment};
 
 #[derive(Debug, Clone)]
 pub struct AppState {
@@ -63,10 +62,16 @@ fn setup_actix_admin(
     actix_admin
         .create_scope::<AppState>()
         .service(
-            web::scope("/{entity_name}")
+            web::scope("/post")
             .route("/list", web::get().to(actix_admin::list::<AppState, Post>))
             .route("/create", web::get().to(actix_admin::create_get::<AppState, Post>))
             .route("/create", web::post().to(actix_admin::create_post::<AppState, Post>))
+        )
+        .service(
+            web::scope("/comment")
+            .route("/list", web::get().to(actix_admin::list::<AppState, Comment>))
+            .route("/create", web::get().to(actix_admin::create_get::<AppState, Comment>))
+            .route("/create", web::post().to(actix_admin::create_post::<AppState, Comment>))
         )
 }
 
@@ -105,10 +110,10 @@ async fn main() {
     let _ = entity::create_post_table(&conn).await;
 
     let post_view_model = ActixAdminViewModel::from(Post);
-    //let comment_view_model = ActixAdminViewModel::from(Comment);
+    let comment_view_model = ActixAdminViewModel::from(Comment);
     let actix_admin = ActixAdmin::new()
-        .add_entity(&post_view_model)
-        //.add_entity::<AppState>(&comment_view_model)
+        .add_entity::<Post>(&post_view_model)
+        .add_entity::<Comment>(&comment_view_model)
         ;
     let app_state = AppState {
         oauth: client,

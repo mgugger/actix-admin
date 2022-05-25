@@ -8,12 +8,37 @@ use struct_fields::get_fields_for_tokenstream;
 pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let fields = get_fields_for_tokenstream(input);
 
-    let names_const_fields_str = fields.iter().map(|(_vis, ident)| {
-        let ident_name = ident.to_string();
-        quote! {
-            #ident_name
-        }
-    });
+    let names_const_fields_str = fields
+        .iter()
+        .map(|(_vis, ident, _ty)| {
+            let ident_name = ident.to_string();
+            quote! {
+                #ident_name
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let fields_for_create_model = fields
+        .iter()
+        // TODO: filter id attr based on struct attr or sea_orm primary_key attr
+        .filter(|(_vis, ident, _ty)| !ident.to_string().eq("id"))
+        .map(|(_vis, ident, ty)| {
+            let ident_name = ident.to_string();
+            quote! {
+                #ident: Set(model.get_value::<#ty>(#ident_name).unwrap())
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let fields_for_from_model = fields
+        .iter()
+        .map(|(_vis, ident, _ty)| {
+            let ident_name = ident.to_string();
+            quote! {
+                #ident_name => model.#ident.to_string()
+            }
+        })
+        .collect::<Vec<_>>();
 
     let expanded = quote! {
         use std::convert::From;
@@ -25,6 +50,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         use sea_orm::{entity::*, query::*};
         use std::collections::HashMap;
         use sea_orm::EntityTrait;
+        use quote::quote;
 
         impl From<Entity> for ActixAdminViewModel {
             fn from(entity: Entity) -> Self {
@@ -40,9 +66,10 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 ActixAdminModel {
                     // TODO: create dynamically
                     values: hashmap![
-                        "title" => model.title,
-                        "text" => model.text,
-                        "id" => model.id.to_string()
+                        #(#fields_for_from_model),*
+                        // "title" => model.title,
+                        // "text" => model.text,
+                        // "id" => model.id.to_string()
                     ]
                 }
             }
@@ -50,13 +77,14 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
         impl From<ActixAdminModel> for ActiveModel {
             fn from(model: ActixAdminModel) -> Self {
-                ActiveModel {
-                    title: Set(model.values.get("title").unwrap().to_string()),
-                    text: Set(model.values.get("text").unwrap().to_string()),
+                ActiveModel
+                {
+                    #(#fields_for_create_model),*
+                    ,
                     ..Default::default()
                 }
             }
-        } 
+        }
 
         #[async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
@@ -70,6 +98,10 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 let insert_operation = Entity::insert(new_model).exec(db).await;
 
                 model
+            }
+
+            fn get_entity_name() -> String {
+                Entity.table_name().to_string()
             }
         }
 
