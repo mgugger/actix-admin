@@ -10,7 +10,6 @@ use azure_auth::{AppDataTrait as AzureAuthAppDataTrait, AzureAuth, UserInfo};
 use oauth2::basic::BasicClient;
 use oauth2::RedirectUrl;
 use sea_orm::{ConnectOptions, DatabaseConnection};
-//use sea_orm::{entity::*, query::*};
 use std::env;
 use std::time::Duration;
 use tera::{Context, Tera};
