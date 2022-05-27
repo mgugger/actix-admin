@@ -4,10 +4,7 @@
 use actix_web::{web};
 use std::collections::HashMap;
 
-use crate::ActixAdmin;
-use crate::ActixAdminViewModelTrait;
-use crate::ActixAdminViewModel;
-use crate::AppDataTrait;
+use crate::prelude::*;
 
 use crate::routes::list;
 use crate::routes::create_get;
@@ -21,8 +18,8 @@ pub struct ActixAdminBuilder {
 
 pub trait ActixAdminBuilderTrait {
     fn new() -> Self;
-    fn add_entity<T: AppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(&mut self, view_model: &ActixAdminViewModel);
-    fn get_scope<T: AppDataTrait + 'static>(self) -> actix_web::Scope;
+    fn add_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(&mut self, view_model: &ActixAdminViewModel);
+    fn get_scope<T: ActixAdminAppDataTrait + 'static>(self) -> actix_web::Scope;
     fn get_actix_admin(&self) -> ActixAdmin;
 }
 
@@ -37,7 +34,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         }
     }
 
-    fn add_entity<T: AppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
+    fn add_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         view_model: &ActixAdminViewModel,
     ) {
@@ -54,7 +51,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         self.actix_admin.view_models.insert(key, view_model.clone());
     }
 
-    fn get_scope<T: AppDataTrait + 'static>(self) -> actix_web::Scope {
+    fn get_scope<T: ActixAdminAppDataTrait + 'static>(self) -> actix_web::Scope {
         let mut scope = web::scope("/admin").route("/", web::get().to(index::<T>));
         for entity_scope in self.scopes {
             scope = scope.service(entity_scope);

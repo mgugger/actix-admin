@@ -2,7 +2,8 @@ use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use serde::{Deserialize};
 use tera::{Context};
 
-use crate::AppDataTrait;
+use crate::prelude::*;
+
 use crate::ActixAdminViewModelTrait;
 use crate::ActixAdminViewModel;
 use crate::ActixAdminModel;
@@ -16,7 +17,7 @@ pub struct Params {
     entities_per_page: Option<usize>,
 }
 
-pub async fn list<T: AppDataTrait, E: ActixAdminViewModelTrait>(
+pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     req: HttpRequest,
     data: web::Data<T>,
 ) -> Result<HttpResponse, Error> {

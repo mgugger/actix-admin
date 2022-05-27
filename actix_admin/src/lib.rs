@@ -4,21 +4,22 @@ use serde::{Serialize};
 use std::collections::HashMap;
 use tera::{Tera};
 
-pub use actix_admin_macros::DeriveActixAdminModel;
+pub mod view_model;
+pub mod model;
+pub mod routes;
+pub mod builder;
 
-mod view_model;
-pub use view_model::ActixAdminViewModel;
-pub use view_model::ActixAdminViewModelTrait;
+pub mod prelude {
+    pub use crate::builder::{ ActixAdminBuilder, ActixAdminBuilderTrait};
+    pub use crate::model::{ ActixAdminModel, ActixAdminModelTrait};
+    pub use crate::view_model::{ ActixAdminViewModel, ActixAdminViewModelTrait};
+    pub use actix_admin_macros::{ DeriveActixAdminModel };
+    pub use crate::{ ActixAdminAppDataTrait, ActixAdmin};
+    pub use crate::{ hashmap };
+    pub use crate::{ ActixAdminField };
+}
 
-mod model;
-pub use model::ActixAdminModel;
-pub use model::ActixAdminModelTrait;
-
-mod builder;
-pub use builder::ActixAdminBuilder;
-pub use builder::ActixAdminBuilderTrait;
-
-mod routes;
+use crate::prelude::*; 
 
 #[macro_export]
 macro_rules! hashmap {
@@ -42,7 +43,7 @@ pub enum ActixAdminField {
 }
 
 // AppDataTrait
-pub trait AppDataTrait {
+pub trait ActixAdminAppDataTrait {
     fn get_db(&self) -> &DatabaseConnection;
     fn get_actix_admin(&self) -> &ActixAdmin;
 }

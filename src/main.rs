@@ -1,9 +1,6 @@
 extern crate serde_derive;
 
-use actix_admin::{
-    ActixAdmin, ActixAdminBuilder, ActixAdminBuilderTrait, ActixAdminViewModel,
-    AppDataTrait as ActixAdminAppDataTrait,
-};
+use actix_admin::prelude::*;
 use actix_session::{CookieSession, Session};
 use actix_web::{web, App, HttpResponse, HttpServer, middleware};
 use azure_auth::{AppDataTrait as AzureAuthAppDataTrait, AzureAuth, UserInfo};

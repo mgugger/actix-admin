@@ -1,11 +1,11 @@
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use tera::{Context};
 
-use crate::AppDataTrait;
-use crate::ActixAdminViewModelTrait;
+use crate::prelude::*;
+
 use crate::TERA;
 
-pub async fn create_get<T: AppDataTrait, E: ActixAdminViewModelTrait>(
+pub async fn create_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     _req: HttpRequest,
     data: web::Data<T>,
     _body: web::Payload,

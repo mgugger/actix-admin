@@ -1,11 +1,9 @@
 use actix_web::http::header;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 
-use crate::AppDataTrait;
-use crate::ActixAdminViewModelTrait;
-use crate::ActixAdminModel;
+use crate::prelude::*;
 
-pub async fn create_post<T: AppDataTrait, E: ActixAdminViewModelTrait>(
+pub async fn create_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     _req: HttpRequest,
     data: web::Data<T>,
     text: String,

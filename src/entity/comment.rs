@@ -1,7 +1,6 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
-
-use actix_admin::{ DeriveActixAdminModel };
+use actix_admin::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, DeriveActixAdminModel)]
 #[sea_orm(table_name = "comment")]
