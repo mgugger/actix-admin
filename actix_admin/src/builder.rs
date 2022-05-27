@@ -9,6 +9,7 @@ use crate::prelude::*;
 use crate::routes::list;
 use crate::routes::create_get;
 use crate::routes::create_post;
+use crate::routes::delete_post;
 use crate::routes::index;
 
 pub struct ActixAdminBuilder {
@@ -42,11 +43,11 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
             web::scope(&format!("/{}", E::get_entity_name()))
                 .route("/list", web::get().to(list::<T, E>))
                 .route("/create", web::get().to(create_get::<T, E>))
-                .route("/create", web::post().to(create_post::<T, E>)),
+                .route("/create", web::post().to(create_post::<T, E>))
+                .route("/delete/{id}", web::post().to(delete_post::<T, E>)),
         );
 
         self.actix_admin.entity_names.push(E::get_entity_name());
-        //let view_model_cloned = view_model.clone();
         let key = E::get_entity_name();
         self.actix_admin.view_models.insert(key, view_model.clone());
     }

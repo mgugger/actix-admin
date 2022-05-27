@@ -12,7 +12,10 @@ pub trait ActixAdminViewModelTrait {
         page: usize,
         entities_per_page: usize,
     ) -> Vec<ActixAdminModel>;
+    
     async fn create_entity(db: &DatabaseConnection, model: ActixAdminModel) -> ActixAdminModel;
+    async fn delete_entity(db: &DatabaseConnection, model: ActixAdminModel) -> ActixAdminModel;
+    
     fn get_entity_name() -> String;
 }
 

@@ -7,12 +7,19 @@
         {% for model_field in view_model.fields -%}
         <th>{{ model_field[0] }}</th>
         {%- endfor %}
+        <th><!-- Delete Action --></th>
     </tr>
     {% for entity in entities -%}
     <tr>
         {% for model_field in view_model.fields -%}
         <td>{{ entity.values | get(key=model_field[0]) }}</td>
         {%- endfor %}
+        <td>
+            <form method="post" action="delete/{{ entity.values | get(key=view_model.fields[0][0]) }}">
+                <input type="hidden" id="{{ view_model.fields[0][0] }}" name="{{ view_model.fields[0][0] }}" value="{{ entity.values | get(key=view_model.fields[0][0]) }}">
+                <button type="submit" class="outline">Delete</button>
+            </form>
+        </td>
     </tr>
     {%- endfor %}
 </table>

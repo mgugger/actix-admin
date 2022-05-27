@@ -96,6 +96,14 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 model
             }
 
+            async fn delete_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> ActixAdminModel {
+                // TODO: separate primary key from other keys
+                let entity = Entity::find_by_id(model.get_value::<i32>("id").unwrap()).one(db).await.unwrap().unwrap();
+                let delete_operation = entity.delete(db).await;
+                
+                model
+            }
+
             fn get_entity_name() -> String {
                 Entity.table_name().to_string()
             }
