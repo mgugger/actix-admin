@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form method="post">
+    <div class="grid">
+        {% for key, value in model.values -%}
+        <input type="text" value="{{ value }}" name="{{ key }}" placeholder="{{ key }}" aria-label="{{ key }}"><!-- required="" -->
+        {%- endfor %}
+        <button type="submit">Save</button>
+    </div>
+</form>
+{% endblock content %}

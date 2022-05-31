@@ -13,8 +13,11 @@ pub trait ActixAdminViewModelTrait {
         entities_per_page: usize,
     ) -> Vec<ActixAdminModel>;
     
+    // TODO: Replace return value with proper Result Type containing Ok or Err
     async fn create_entity(db: &DatabaseConnection, model: ActixAdminModel) -> ActixAdminModel;
-    async fn delete_entity(db: &DatabaseConnection, model: ActixAdminModel) -> ActixAdminModel;
+    async fn delete_entity(db: &DatabaseConnection, id: i32) -> bool;
+    async fn get_entity(db: &DatabaseConnection, id: i32) -> ActixAdminModel;
+    async fn edit_entity(db: &DatabaseConnection, id: i32, model: ActixAdminModel) -> ActixAdminModel;
     
     fn get_entity_name() -> String;
 }

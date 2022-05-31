@@ -1,16 +1,9 @@
-
-
-
-use actix_web::{web};
+use actix_web::web;
 use std::collections::HashMap;
 
 use crate::prelude::*;
 
-use crate::routes::list;
-use crate::routes::create_get;
-use crate::routes::create_post;
-use crate::routes::delete_post;
-use crate::routes::index;
+use crate::routes::{create_get, create_post, delete_post, edit_get, edit_post, index, list};
 
 pub struct ActixAdminBuilder {
     pub scopes: Vec<actix_web::Scope>,
@@ -19,7 +12,10 @@ pub struct ActixAdminBuilder {
 
 pub trait ActixAdminBuilderTrait {
     fn new() -> Self;
-    fn add_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(&mut self, view_model: &ActixAdminViewModel);
+    fn add_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
+        &mut self,
+        view_model: &ActixAdminViewModel,
+    );
     fn get_scope<T: ActixAdminAppDataTrait + 'static>(self) -> actix_web::Scope;
     fn get_actix_admin(&self) -> ActixAdmin;
 }
@@ -44,6 +40,8 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 .route("/list", web::get().to(list::<T, E>))
                 .route("/create", web::get().to(create_get::<T, E>))
                 .route("/create", web::post().to(create_post::<T, E>))
+                .route("/edit/{id}", web::get().to(edit_get::<T, E>))
+                .route("/edit/{id}", web::post().to(edit_post::<T, E>))
                 .route("/delete/{id}", web::post().to(delete_post::<T, E>)),
         );
 

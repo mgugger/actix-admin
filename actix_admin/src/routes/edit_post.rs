@@ -3,7 +3,7 @@ use actix_web::{web, Error, HttpRequest, HttpResponse};
 
 use crate::prelude::*;
 
-pub async fn delete_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     _req: HttpRequest,
     data: web::Data<T>,
     text: String,
@@ -13,8 +13,8 @@ pub async fn delete_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     let entity_name = E::get_entity_name();
     let actix_admin = data.get_actix_admin();
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
-    // TODO:handle any errors
-    let _result = E::delete_entity(db, id.into_inner()).await;
+    let mut admin_model = ActixAdminModel::from(text);
+    admin_model = E::edit_entity(db, id.into_inner(), admin_model).await;
 
     Ok(HttpResponse::Found()
         .append_header((

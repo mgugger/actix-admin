@@ -30,6 +30,18 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         })
         .collect::<Vec<_>>();
 
+    let fields_for_edit_model = fields
+        .iter()
+        // TODO: filter id attr based on struct attr or sea_orm primary_key attr
+        .filter(|(_vis, ident, _ty)| !ident.to_string().eq("id"))
+        .map(|(_vis, ident, ty)| {
+            let ident_name = ident.to_string();
+            quote! {
+                entity.#ident = Set(model.get_value::<#ty>(#ident_name).unwrap())
+            }
+        })
+        .collect::<Vec<_>>();
+
     let fields_for_from_model = fields
         .iter()
         .map(|(_vis, ident, _ty)| {
@@ -96,12 +108,35 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 model
             }
 
-            async fn delete_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> ActixAdminModel {
+            async fn get_entity(db: &DatabaseConnection, id: i32) -> ActixAdminModel {
                 // TODO: separate primary key from other keys
-                let entity = Entity::find_by_id(model.get_value::<i32>("id").unwrap()).one(db).await.unwrap().unwrap();
-                let delete_operation = entity.delete(db).await;
+                let entity = Entity::find_by_id(id).one(db).await.unwrap().unwrap();
+                let model = ActixAdminModel::from(entity);
                 
                 model
+            }
+
+            async fn edit_entity(db: &DatabaseConnection, id: i32, mut model: ActixAdminModel) -> ActixAdminModel {
+                // TODO: separate primary key from other keys
+                let entity: Option<Model> = Entity::find_by_id(id).one(db).await.unwrap();
+                let mut entity: ActiveModel = entity.unwrap().into();
+
+                #(#fields_for_edit_model);*;
+                
+                let entity: Model = entity.update(db).await.unwrap();
+                
+                model
+            }
+
+            async fn delete_entity(db: &DatabaseConnection, id: i32) -> bool {
+                // TODO: separate primary key from other keys
+                let entity = Entity::find_by_id(id).one(db).await.unwrap().unwrap();
+                let result = entity.delete(db).await;
+
+                match result {
+                    Ok(_) => true,
+                    Err(_) => false
+                }
             }
 
             fn get_entity_name() -> String {
