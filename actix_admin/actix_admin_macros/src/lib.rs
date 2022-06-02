@@ -96,8 +96,8 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
         #[async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
-            async fn list(db: &DatabaseConnection, page: usize, entities_per_page: usize) -> Vec<ActixAdminModel> {
-                let entities = Entity::list_model(db, 1, 5).await;
+            async fn list(db: &DatabaseConnection, page: usize, entities_per_page: usize) -> (usize, Vec<ActixAdminModel>) {
+                let entities = Entity::list_model(db, page, entities_per_page).await;
                 entities
             }
 
@@ -146,11 +146,12 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
         #[async_trait]
         impl ActixAdminModelTrait for Entity {
-            async fn list_model(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> Vec<ActixAdminModel> {
+            async fn list_model(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> (usize, Vec<ActixAdminModel>) {
                 use sea_orm::{ query::* };
                 let paginator = Entity::find()
                     .order_by_asc(Column::Id)
                     .paginate(db, posts_per_page);
+                let num_pages = paginator.num_pages().await.ok().unwrap();
                 let entities = paginator
                     .fetch_page(page - 1)
                     .await
@@ -162,7 +163,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                     );
                 }
 
-                model_entities
+                (num_pages, model_entities)
             }
 
             fn get_fields() -> Vec<(String, ActixAdminField)> {

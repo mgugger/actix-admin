@@ -1,27 +1,48 @@
 {% extends "base.html" %}
 
 {% block content %}
-<a href="create" role="button">Create</a>
-<table>
-    <tr>
-        {% for model_field in view_model.fields -%}
-        <th>{{ model_field[0] }}</th>
+<a href="create" role="button">&#43;</a>
+<table role="grid">
+    <thead>
+        <tr>
+            {% for model_field in view_model.fields -%}
+            <th>{{ model_field[0] }}</th>
+            {%- endfor %}
+            <th>
+                <!-- Edit Action -->
+                <!-- Delete Action -->
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for entity in entities -%}
+        <tr>
+            {% for model_field in view_model.fields -%}
+            <td>{{ entity.values | get(key=model_field[0]) }}</td>
+            {%- endfor %}
+            <td>
+                <a href="edit/{{ entity.values | get(key=view_model.fields[0][0]) }}">&#9998;</a>
+                <a href="delete/{{ entity.values | get(key=view_model.fields[0][0]) }}">&#128465;</a>
+                <!--
+                    <form method="post" action="delete/{{ entity.values | get(key=view_model.fields[0][0]) }}">
+                    <button type="submit">&#128465;</button>
+                </form>
+                -->
+            </td>
+        </tr>
         {%- endfor %}
-        <th><!-- Edit Action --></th>
-        <th><!-- Delete Action --></th>
-    </tr>
-    {% for entity in entities -%}
-    <tr>
-        {% for model_field in view_model.fields -%}
-        <td>{{ entity.values | get(key=model_field[0]) }}</td>
-        {%- endfor %}
-        <td><a href="edit/{{ entity.values | get(key=view_model.fields[0][0]) }}" role="button">Edit</a></td>
-        <td>
-            <form method="post" action="delete/{{ entity.values | get(key=view_model.fields[0][0]) }}">
-                <button type="submit">Delete</button>
-            </form>
-        </td>
-    </tr>
-    {%- endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="{{ num_pages + 2 }}">
+                <div>
+                    <a href="?page={{ page - 1 }}&entities_per_page={{ entities_per_page }}">&laquo;</a>
+                    {% for i in range(end=num_pages) %}
+                    <a href="?page={{ i + 1 }}&entities_per_page={{ entities_per_page }}">{{ i + 1 }}</a>
+                    {%- endfor %}
+                    <a href="?page={{ page + 1 }}&entities_per_page={{ entities_per_page }}">&raquo;</a>
+            </td>
+        </tr>
+    </tfoot>
 </table>
 {% endblock content %}

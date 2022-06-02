@@ -11,7 +11,7 @@ pub trait ActixAdminModelTrait {
         db: &DatabaseConnection,
         page: usize,
         posts_per_page: usize,
-    ) -> Vec<ActixAdminModel>;
+    ) -> (usize, Vec<ActixAdminModel>);
     fn get_fields() -> Vec<(String, ActixAdminField)>;
 }
 

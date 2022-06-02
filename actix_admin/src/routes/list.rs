@@ -34,14 +34,16 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
         .unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
 
     let db = data.get_db();
-    let entities: Vec<ActixAdminModel> = E::list(db, page, entities_per_page).await;
+    let result: (usize, Vec<ActixAdminModel>) = E::list(db, page, entities_per_page).await;
+    let entities = result.1;
+    let num_pages = result.0;
 
     let mut ctx = Context::new();
     ctx.insert("entity_names", &entity_names);
     ctx.insert("entities", &entities);
     ctx.insert("page", &page);
     ctx.insert("entities_per_page", &entities_per_page);
-    ctx.insert("num_pages", "5" /*&num_pages*/);
+    ctx.insert("num_pages", &num_pages);
     ctx.insert("view_model", &view_model);
 
     let body = TERA

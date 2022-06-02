@@ -11,7 +11,7 @@ pub trait ActixAdminViewModelTrait {
         db: &DatabaseConnection,
         page: usize,
         entities_per_page: usize,
-    ) -> Vec<ActixAdminModel>;
+    ) -> (usize, Vec<ActixAdminModel>);
     
     // TODO: Replace return value with proper Result Type containing Ok or Err
     async fn create_entity(db: &DatabaseConnection, model: ActixAdminModel) -> ActixAdminModel;
