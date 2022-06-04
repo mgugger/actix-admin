@@ -14,7 +14,7 @@
             </th>
         </tr>
     </thead>
-    <tbody>
+    <tbody hx-confirm="Are you sure?" hx-target="closest tr" hx-swap="outerHTML">
         {% for entity in entities -%}
         <tr>
             {% for model_field in view_model.fields -%}
@@ -22,12 +22,7 @@
             {%- endfor %}
             <td>
                 <a href="edit/{{ entity.values | get(key=view_model.fields[0][0]) }}">&#9998;</a>
-                <a href="delete/{{ entity.values | get(key=view_model.fields[0][0]) }}">&#128465;</a>
-                <!--
-                    <form method="post" action="delete/{{ entity.values | get(key=view_model.fields[0][0]) }}">
-                    <button type="submit">&#128465;</button>
-                </form>
-                -->
+                <a hx-post="delete/{{ entity.values | get(key=view_model.fields[0][0]) }}">&#128465;</a>
             </td>
         </tr>
         {%- endfor %}

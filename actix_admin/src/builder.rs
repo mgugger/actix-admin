@@ -42,7 +42,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 .route("/create", web::post().to(create_post::<T, E>))
                 .route("/edit/{id}", web::get().to(edit_get::<T, E>))
                 .route("/edit/{id}", web::post().to(edit_post::<T, E>))
-                .route("/delete/{id}", web::post().to(delete_post::<T, E>)),
+                .route("/delete/{id}", web::post().to(delete_post::<T, E>))
         );
 
         self.actix_admin.entity_names.push(E::get_entity_name());
