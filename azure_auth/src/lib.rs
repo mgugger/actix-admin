@@ -125,7 +125,6 @@ async fn read_user(api_base_url: &str, access_token: &AccessToken) -> UserInfo {
         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
     };
 
-    println!("{} {}", &resp.status_code, s);
     serde_json::from_slice(&resp.body).unwrap()
 }
 

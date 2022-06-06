@@ -17,6 +17,7 @@ pub trait ActixAdminModelTrait {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ActixAdminModel {
+    pub primary_key: Option<String>,
     pub values: HashMap<String, String>,
 }
 
@@ -32,13 +33,12 @@ impl From<String> for ActixAdminModel {
             );
         }
 
-        ActixAdminModel { values: hashmap }
+        ActixAdminModel { primary_key: None, values: hashmap }
     }
 }
 
 impl ActixAdminModel {
     pub fn get_value<T: std::str::FromStr>(&self, key: &str) -> Option<T> {
-        println!("get value for key {}", key);
         let value = self.values.get(key).unwrap().to_string().parse::<T>();
         match value {
             Ok(val) => Some(val),

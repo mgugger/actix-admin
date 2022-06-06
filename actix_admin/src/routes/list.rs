@@ -37,7 +37,6 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     let result: (usize, Vec<ActixAdminModel>) = E::list(db, page, entities_per_page).await;
     let entities = result.1;
     let num_pages = result.0;
-    println!("{:?}", entities);
 
     let mut ctx = Context::new();
     ctx.insert("entity_names", &entity_names);

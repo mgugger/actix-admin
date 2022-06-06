@@ -5,6 +5,7 @@
 <table role="grid">
     <thead>
         <tr>
+            <th>{{ view_model.primary_key }}</th>
             {% for model_field in view_model.fields -%}
             <th>{{ model_field[0] }}</th>
             {%- endfor %}
@@ -17,12 +18,13 @@
     <tbody hx-confirm="Are you sure?" hx-target="closest tr" hx-swap="outerHTML">
         {% for entity in entities -%}
         <tr>
+            <td>{{ entity.primary_key }}</td>
             {% for model_field in view_model.fields -%}
             <td>{{ entity.values | get(key=model_field[0]) }}</td>
             {%- endfor %}
             <td>
-                <a href="edit/{{ entity.values | get(key=view_model.fields[0][0]) }}">&#9998;</a>
-                <a hx-post="delete/{{ entity.values | get(key=view_model.fields[0][0]) }}">&#128465;</a>
+                <a href="edit/{{ entity.primary_key }}">&#9998;</a>
+                <a hx-post="delete/{{ entity.primary_key }}">&#128465;</a>
             </td>
         </tr>
         {%- endfor %}

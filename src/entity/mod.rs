@@ -29,7 +29,7 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
         .col(ColumnDef::new(post::Column::TeaOptional).string())
         .to_owned();
 
-    create_table(db, &stmt).await;
+    let _result = create_table(db, &stmt).await;
 
     let stmt = sea_query::Table::create()
         .table(comment::Entity)

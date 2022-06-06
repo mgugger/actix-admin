@@ -2,7 +2,9 @@ use proc_macro;
 use quote::quote;
 
 mod struct_fields;
-use struct_fields::get_fields_for_tokenstream;
+use struct_fields::{ get_fields_for_tokenstream, get_fields_for_edit_model, get_fields_for_from_model, get_fields_for_create_model, get_field_names, get_field_for_primary_key, get_primary_key_field_name};
+
+mod model_fields;
 
 mod attributes;
 
@@ -10,82 +12,12 @@ mod attributes;
 pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let fields = get_fields_for_tokenstream(input);
 
-    let names_const_fields_str = fields
-        .iter()
-        .map(|(_vis, ident, _ty, _is_option)| {
-            let ident_name = ident.to_string();
-            quote! {
-                #ident_name
-            }
-        })
-        .collect::<Vec<_>>();
-
-    let fields_for_create_model = fields
-        .iter()
-        // TODO: filter id attr based on struct attr or sea_orm primary_key attr
-        .filter(|(_vis, ident, _ty, _is_option)| !ident.to_string().eq("id"))
-        .map(|(_vis, ident, ty, is_option)| {
-            let ident_name = ident.to_string();
-            match is_option {
-                true => {
-                    quote! {
-                        #ident: Set(model.get_value::<#ty>(#ident_name))
-                    }
-                },
-                false => {
-                    quote! {
-                        #ident: Set(model.get_value::<#ty>(#ident_name).unwrap())
-                    }
-                }
-            }
-        })
-        .collect::<Vec<_>>();
-
-    let fields_for_edit_model = fields
-        .iter()
-        // TODO: filter id attr based on struct attr or sea_orm primary_key attr
-        .filter(|(_vis, ident, _ty, _is_option)| !ident.to_string().eq("id"))
-        .map(|(_vis, ident, ty, is_option)| {
-            let ident_name = ident.to_string();
-            println!("edit {} {:?}", &ident_name, ty);
-            match is_option {
-                true => {
-                    quote! {
-                        entity.#ident = Set(model.get_value::<#ty>(#ident_name))
-                    }
-                },
-                false => {
-                    quote! {
-                        entity.#ident = Set(model.get_value::<#ty>(#ident_name).unwrap())
-                    }
-                }
-            }
-        })
-        .collect::<Vec<_>>();
-
-    let fields_for_from_model = fields
-        .iter()
-        .map(|(_vis, ident, _ty, is_option)| {
-            let ident_name = ident.to_string();
-            println!("from {} {:?}", &ident_name, _ty);
-
-            match is_option {
-            true => {
-                quote! {
-                    #ident_name => match model.#ident {
-                        Some(val) => val.to_string(),
-                        None => "".to_owned()
-                    }
-                }
-            },
-            false => {
-                quote! {
-                    #ident_name => model.#ident.to_string()
-                }
-            }
-        }
-        })
-        .collect::<Vec<_>>();
+    let names_const_fields_str = get_field_names(&fields);
+    let name_primary_field_str = get_primary_key_field_name(&fields);
+    let fields_for_create_model = get_fields_for_create_model(&fields);
+    let fields_for_edit_model = get_fields_for_edit_model(&fields);
+    let fields_for_from_model = get_fields_for_from_model(&fields);
+    let field_for_primary_key = get_field_for_primary_key(&fields);
 
     let expanded = quote! {
         use std::convert::From;
@@ -102,6 +34,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         impl From<Entity> for ActixAdminViewModel {
             fn from(entity: Entity) -> Self {
                 ActixAdminViewModel {
+                    primary_key: #name_primary_field_str.to_string(),
                     entity_name: entity.table_name().to_string(),
                     fields: Entity::get_fields()
                 }
@@ -111,6 +44,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         impl From<Model> for ActixAdminModel {
             fn from(model: Model) -> Self {
                 ActixAdminModel {
+                    #field_for_primary_key,
                     values: hashmap![
                         #(#fields_for_from_model),*
                     ]
@@ -139,8 +73,6 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
             async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> ActixAdminModel {
                 let new_model = ActiveModel::from(model.clone());
                 let insert_operation = Entity::insert(new_model).exec(db).await;
-                println!("creating {:?}", model);
-                println!("operation {:?}", insert_operation);
 
                 model
             }

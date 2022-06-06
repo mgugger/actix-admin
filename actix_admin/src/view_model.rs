@@ -25,5 +25,6 @@ pub trait ActixAdminViewModelTrait {
 #[derive(Clone, Debug, Serialize)]
 pub struct ActixAdminViewModel {
     pub entity_name: String,
+    pub primary_key: String,
     pub fields: Vec<(String, ActixAdminField)>,
 }

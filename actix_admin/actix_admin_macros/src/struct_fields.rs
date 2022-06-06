@@ -1,13 +1,12 @@
-use proc_macro2::{Span, Ident};
+use proc_macro2::{Span, Ident, TokenStream};
 use syn::{
-    Attribute, Fields, Meta, NestedMeta, Visibility, DeriveInput, Type
+    Fields, DeriveInput
 };
-
+use quote::quote;
 use crate::attributes::derive_attr;
+use crate::model_fields::{ ModelField };
 
-const ACTIX_ADMIN: &'static str = "actix_admin";
-
-pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::Vec<(syn::Visibility, proc_macro2::Ident, Type, bool)> {
+pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::Vec<ModelField> {
     let ast: DeriveInput = syn::parse(input).unwrap();
     let (_vis, ty, _generics) = (&ast.vis, &ast.ident, &ast.generics);
     let _names_struct_ident = Ident::new(&(ty.to_string() + "FieldStaticStr"), Span::call_site());
@@ -19,58 +18,29 @@ pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::V
     fields
 }
 
-pub fn has_skip_attr(attr: &Attribute, path: &'static str) -> bool {
-    if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
-        //println!("1");
-        //println!("{:?}", meta_list.path);
-        //println!("{}", path);
-        if meta_list.path.is_ident(path) {
-            //println!("2");
-            for nested_item in meta_list.nested.iter() {
-                if let NestedMeta::Meta(Meta::Path(path)) = nested_item {
-                    //println!("3");
-                    if path.is_ident(ACTIX_ADMIN) {
-                        //println!("true");
-                        return true;
-                    }
-                }
-            }
-        }
-    }
-    false
-}
-
-pub fn get_field_type<'a>(actix_admin_attr: &'a Option<derive_attr::ActixAdmin>, field: &'a syn::Field) -> &'a syn::Type {
-    match actix_admin_attr {
-        Some(attr) => {
-            match &attr.inner_type {
-                Some(inner_type) => &inner_type,
-                None => &field.ty
-            }
-        },
-        _ => &field.ty
-    }
-}
-
-pub fn filter_fields(fields: &Fields) -> Vec<(Visibility, Ident, Type, bool)> {
+pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
     fields
         .iter()
         .filter_map(|field| {
             let actix_admin_attr = derive_attr::ActixAdmin::try_from_attributes(&field.attrs).unwrap_or_default();
             
-            if field
-                .attrs
-                .iter()
-                .find(|attr| has_skip_attr(attr, ACTIX_ADMIN))
-                .is_none()
-                && field.ident.is_some()
+            if field.ident.is_some()
             {
                 let field_vis = field.vis.clone();
                 let field_ident = field.ident.as_ref().unwrap().clone();
-                println!("{}", field_ident.to_string());
-                let is_option = extract_type_from_option(&field.ty).is_some();
-                let field_ty = get_field_type(&actix_admin_attr, &field).to_owned();
-                Some((field_vis, field_ident, field_ty, is_option))
+                let inner_type = extract_type_from_option(&field.ty);
+                let field_ty = field.ty.to_owned();
+                let is_primary_key = actix_admin_attr.map_or(false, |attr| attr.primary_key.is_some());
+
+                let model_field = ModelField {
+                    visibility: field_vis,
+                    ident: field_ident,
+                    ty: field_ty,
+                    inner_type: inner_type,
+                    primary_key: is_primary_key
+                };
+                
+                Some(model_field)
             } else {
                 None
             }
@@ -78,7 +48,7 @@ pub fn filter_fields(fields: &Fields) -> Vec<(Visibility, Ident, Type, bool)> {
         .collect::<Vec<_>>()
 }
 
-fn extract_type_from_option(ty: &syn::Type) -> Option<&syn::Type> {
+fn extract_type_from_option(ty: &syn::Type) -> Option<syn::Type> {
     use syn::{GenericArgument, Path, PathArguments, PathSegment};
 
     fn extract_type_path(ty: &syn::Type) -> Option<&Path> {
@@ -117,7 +87,125 @@ fn extract_type_from_option(ty: &syn::Type) -> Option<&syn::Type> {
             }
         })
         .and_then(|generic_arg| match *generic_arg {
-            GenericArgument::Type(ref ty) => Some(ty),
+            GenericArgument::Type(ref ty) => Some(ty.to_owned()),
             _ => None,
         })
+}
+
+pub fn get_field_names(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+        .iter()
+        .filter(|model_field| !model_field.primary_key)
+        .map(|model_field| {
+            let ident_name = model_field.ident.to_string();
+            quote! {
+                #ident_name
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
+pub fn get_field_for_primary_key(fields: &Vec<ModelField>) -> TokenStream {
+    let primary_key_model_field = fields
+    .iter()
+    // TODO: filter id attr based on struct attr or sea_orm primary_key attr
+    .find(|model_field| model_field.primary_key)
+    .expect("model must have a single primary key");
+
+    let ident = primary_key_model_field.ident.to_owned();
+
+    quote! {
+        primary_key: Some(model.#ident.to_string())
+    }
+}
+
+pub fn get_primary_key_field_name(fields: &Vec<ModelField>) -> String {
+    let primary_key_model_field = fields
+    .iter()
+    // TODO: filter id attr based on struct attr or sea_orm primary_key attr
+    .find(|model_field| model_field.primary_key)
+    .expect("model must have a single primary key");
+
+    primary_key_model_field.ident.to_string()
+}
+
+pub fn get_fields_for_from_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+    .iter()
+    .filter(|model_field| !model_field.primary_key)
+    .map(|model_field| {
+        let ident_name = model_field.ident.to_string();
+        let ident = model_field.ident.to_owned();
+
+        match model_field.is_option() {
+        true => {
+            quote! {
+                #ident_name => match model.#ident {
+                    Some(val) => val.to_string(),
+                    None => "".to_owned()
+                }
+            }
+        },
+        false => {
+            quote! {
+                #ident_name => model.#ident.to_string()
+            }
+        }
+    }
+    })
+    .collect::<Vec<_>>()
+}
+
+pub fn get_fields_for_create_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+    .iter()
+    // TODO: filter id attr based on struct attr or sea_orm primary_key attr
+    .filter(|model_field| !model_field.primary_key)
+    .map(|model_field| {
+        let ident_name = model_field.ident.to_string();
+        let ident = model_field.ident.to_owned();
+        let ty = model_field.ty.to_owned();
+
+        match model_field.is_option() {
+            true => {
+                let inner_ty = model_field.inner_type.to_owned().unwrap();
+                quote! {
+                    #ident: Set(model.get_value::<#inner_ty>(#ident_name))
+                }
+            },
+            false => {
+                quote! {
+                    #ident: Set(model.get_value::<#ty>(#ident_name).unwrap())
+                }
+            }
+        }
+    })
+    .collect::<Vec<_>>()
+}
+
+pub fn get_fields_for_edit_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+    .iter()
+    // TODO: filter id attr based on struct attr or sea_orm primary_key attr
+    .filter(|model_field| !model_field.primary_key)
+    .map(|model_field| {
+        let ident_name = model_field.ident.to_string();
+        let ident = model_field.ident.to_owned();
+        let ty = model_field.ty.to_owned();
+
+        match model_field.is_option() {
+            true => {
+                let inner_ty = model_field.inner_type.to_owned().unwrap();
+                quote! {
+                    entity.#ident = Set(model.get_value::<#inner_ty>(#ident_name))
+                }
+            },
+            false => {
+                quote! {
+                    entity.#ident = Set(model.get_value::<#ty>(#ident_name).unwrap())
+                }
+            }
+        }
+    })
+    .collect::<Vec<_>>()
 }

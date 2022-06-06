@@ -9,7 +9,8 @@ pub mod derive_attr {
         Default
     )]
     pub struct ActixAdmin {
-        pub inner_type: Option<syn::Type>,
+        pub primary_key: Option<()>
+        //pub inner_type: Option<syn::Type>,
 
         // Anything that implements `syn::parse::Parse` is supported.
         //mandatory_type: syn::Type,

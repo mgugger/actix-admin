@@ -13,8 +13,8 @@ pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     let entity_name = E::get_entity_name();
     let actix_admin = data.get_actix_admin();
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
-    let mut admin_model = ActixAdminModel::from(text);
-    admin_model = E::edit_entity(db, id.into_inner(), admin_model).await;
+    let mut _admin_model = ActixAdminModel::from(text);
+    _admin_model = E::edit_entity(db, id.into_inner(), _admin_model).await;
 
     Ok(HttpResponse::Found()
         .append_header((

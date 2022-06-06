@@ -10,12 +10,13 @@ use std::fmt::Display;
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip_deserializing)]
+    #[actix_admin(primary_key)]
     pub id: i32,
     pub title: String,
     #[sea_orm(column_type = "Text")]
     pub text: String,
     pub tea_mandatory: Tea,
-    #[actix_admin(inner_type=Tea)]
+    #[actix_admin()]
     pub tea_optional: Option<Tea>,
 }
 

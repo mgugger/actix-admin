@@ -7,6 +7,7 @@ use actix_admin::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip_deserializing)]
+    #[actix_admin(primary_key)]
     pub id: i32,
     pub comment: String,
     #[sea_orm(column_type = "Text")]
