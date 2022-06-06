@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 actix-web = "4.0.1"
 actix-rt = "2.7.0"
-actix-session = "0.5.0"
+actix-session = "0.6.2"
 tera = "1.15.0"
 actix_admin_macros = { path = "actix_admin_macros" }
 oauth2 = "4.1"
