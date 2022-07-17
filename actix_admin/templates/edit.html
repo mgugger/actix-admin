@@ -7,6 +7,7 @@
         <input type="text" value="{{ value }}" name="{{ key }}" placeholder="{{ key }}" aria-label="{{ key }}"><!-- required="" -->
         {%- endfor %}
         <button type="submit">Save</button>
+        <button onclick="history.back()">Cancel</button>
     </div>
 </form>
 {% endblock content %}

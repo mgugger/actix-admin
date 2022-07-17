@@ -43,6 +43,7 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
         )
         .col(ColumnDef::new(comment::Column::Comment).string().not_null())
         .col(ColumnDef::new(comment::Column::User).string().not_null())
+        .col(ColumnDef::new(comment::Column::InsertDate).date_time().not_null())
         .to_owned();
 
     create_table(db, &stmt).await

@@ -6,10 +6,12 @@ pub mod derive_attr {
         Eq,
         PartialEq,
         FromAttributes,
-        Default
+        Default,
+        Clone
     )]
     pub struct ActixAdmin {
-        pub primary_key: Option<()>
+        pub primary_key: Option<()>,
+        pub html_input_type: Option<syn::LitStr>
         //pub inner_type: Option<syn::Type>,
 
         // Anything that implements `syn::parse::Parse` is supported.

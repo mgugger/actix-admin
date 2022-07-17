@@ -3,7 +3,6 @@ use sea_orm::DatabaseConnection;
 use serde::{Serialize};
 
 use crate::ActixAdminModel;
-use crate::ActixAdminField;
 
 #[async_trait(?Send)]
 pub trait ActixAdminViewModelTrait {
@@ -26,5 +25,5 @@ pub trait ActixAdminViewModelTrait {
 pub struct ActixAdminViewModel {
     pub entity_name: String,
     pub primary_key: String,
-    pub fields: Vec<(String, ActixAdminField)>,
+    pub fields: Vec<(String, String)>,
 }

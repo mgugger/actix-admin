@@ -1,8 +1,8 @@
 use lazy_static::lazy_static;
 use sea_orm::DatabaseConnection;
-use serde::{Serialize};
 use std::collections::HashMap;
 use tera::{Tera};
+use serde::{Serialize};
 
 pub mod view_model;
 pub mod model;
@@ -16,7 +16,6 @@ pub mod prelude {
     pub use actix_admin_macros::{ DeriveActixAdminModel };
     pub use crate::{ ActixAdminAppDataTrait, ActixAdmin};
     pub use crate::{ hashmap };
-    pub use crate::{ ActixAdminField };
 }
 
 use crate::prelude::*; 
@@ -34,12 +33,6 @@ macro_rules! hashmap {
 lazy_static! {
     static ref TERA: Tera =
         Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
-}
-
-// Fields
-#[derive(Clone, Debug, Serialize)]
-pub enum ActixAdminField {
-    Text,
 }
 
 // AppDataTrait

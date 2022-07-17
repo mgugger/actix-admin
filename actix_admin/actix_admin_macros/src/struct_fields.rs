@@ -1,6 +1,6 @@
 use proc_macro2::{Span, Ident, TokenStream};
 use syn::{
-    Fields, DeriveInput
+    Fields, DeriveInput, LitStr
 };
 use quote::quote;
 use crate::attributes::derive_attr;
@@ -30,14 +30,18 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let field_ident = field.ident.as_ref().unwrap().clone();
                 let inner_type = extract_type_from_option(&field.ty);
                 let field_ty = field.ty.to_owned();
-                let is_primary_key = actix_admin_attr.map_or(false, |attr| attr.primary_key.is_some());
+                let is_primary_key = actix_admin_attr.clone().map_or(false, |attr| attr.primary_key.is_some());
+                let html_input_type = actix_admin_attr.map_or("text".to_string(), |attr| attr.html_input_type.map_or("text".to_string(), 
+                    |attr_field| (LitStr::from(attr_field)).value()
+                ));
 
                 let model_field = ModelField {
                     visibility: field_vis,
                     ident: field_ident,
                     ty: field_ty,
                     inner_type: inner_type,
-                    primary_key: is_primary_key
+                    primary_key: is_primary_key,
+                    html_input_type: html_input_type
                 };
                 
                 Some(model_field)
@@ -92,14 +96,29 @@ fn extract_type_from_option(ty: &syn::Type) -> Option<syn::Type> {
         })
 }
 
-pub fn get_field_names(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+pub fn get_actix_admin_fields(fields: &Vec<ModelField>) -> Vec<TokenStream> {
     fields
         .iter()
         .filter(|model_field| !model_field.primary_key)
         .map(|model_field| {
             let ident_name = model_field.ident.to_string();
+
             quote! {
                 #ident_name
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
+pub fn get_actix_admin_fields_html_input(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+        .iter()
+        .filter(|model_field| !model_field.primary_key)
+        .map(|model_field| {
+            let html_input_type = model_field.html_input_type.to_string();
+
+            quote! {
+                #html_input_type
             }
         })
         .collect::<Vec<_>>()

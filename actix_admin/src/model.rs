@@ -3,8 +3,6 @@ use sea_orm::DatabaseConnection;
 use serde::{Serialize};
 use std::collections::HashMap;
 
-use crate::ActixAdminField;
-
 #[async_trait]
 pub trait ActixAdminModelTrait {
     async fn list_model(
@@ -12,7 +10,7 @@ pub trait ActixAdminModelTrait {
         page: usize,
         posts_per_page: usize,
     ) -> (usize, Vec<ActixAdminModel>);
-    fn get_fields() -> Vec<(String, ActixAdminField)>;
+    fn get_fields() -> Vec<(String, String)>;
 }
 
 #[derive(Clone, Debug, Serialize)]

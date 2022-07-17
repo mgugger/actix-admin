@@ -2,17 +2,17 @@ use proc_macro;
 use quote::quote;
 
 mod struct_fields;
-use struct_fields::{ get_fields_for_tokenstream, get_fields_for_edit_model, get_fields_for_from_model, get_fields_for_create_model, get_field_names, get_field_for_primary_key, get_primary_key_field_name};
+use struct_fields::{ get_fields_for_tokenstream, get_fields_for_edit_model, get_fields_for_from_model, get_actix_admin_fields_html_input, get_fields_for_create_model, get_actix_admin_fields, get_field_for_primary_key, get_primary_key_field_name};
 
 mod model_fields;
-
 mod attributes;
 
 #[proc_macro_derive(DeriveActixAdminModel, attributes(actix_admin))]
 pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let fields = get_fields_for_tokenstream(input);
 
-    let names_const_fields_str = get_field_names(&fields);
+    let field_names = get_actix_admin_fields(&fields);
+    let field_html_input_type = get_actix_admin_fields_html_input(&fields);
     let name_primary_field_str = get_primary_key_field_name(&fields);
     let fields_for_create_model = get_fields_for_create_model(&fields);
     let fields_for_edit_model = get_fields_for_edit_model(&fields);
@@ -21,6 +21,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
     let expanded = quote! {
         use std::convert::From;
+        use std::iter::zip;
         use async_trait::async_trait;
         use actix_web::{web, HttpResponse, HttpRequest, Error};
         use actix_admin::prelude::*;
@@ -135,21 +136,32 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 (num_pages, model_entities)
             }
 
-            fn get_fields() -> Vec<(String, ActixAdminField)> {
+            fn get_fields() -> Vec<(String, String)> {
                 let mut vec = Vec::new();
                 let field_names = stringify!(
-                        #(#names_const_fields_str),*
-                    ).split(",")
-                    .collect::<Vec<_>>()
-                    .into_iter()
-                    .for_each( |field_name|
+                        #(#field_names),*
+                ).split(",")
+                .collect::<Vec<_>>();
+                
+                let html_input_types = stringify!(
+                    #(#field_html_input_type),*
+                ).split(",")
+                .collect::<Vec<_>>();
+
+                let mut names_and_input_type = zip(field_names, html_input_types);
+        
+                names_and_input_type
+                    .for_each( |field_name_and_type_tuple|
                         vec.push((
-                            field_name
+                            field_name_and_type_tuple.0
                             .replace('"', "")
                             .replace(' ', "")
                             .to_string(),
                             // TODO: match correct ActixAdminField Value
-                            ActixAdminField::Text
+                            field_name_and_type_tuple.1
+                            .replace('"', "")
+                            .replace(' ', "")
+                            .to_string()
                             )
                         )
                 );

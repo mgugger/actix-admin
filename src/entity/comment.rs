@@ -12,6 +12,9 @@ pub struct Model {
     pub comment: String,
     #[sea_orm(column_type = "Text")]
     pub user: String,
+    #[sea_orm(column_type = "DateTime")]
+    #[actix_admin(html_input_type = "datetime-local")]
+    pub insert_date: DateTimeWithTimeZone
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
