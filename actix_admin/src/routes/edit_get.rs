@@ -26,6 +26,7 @@ pub async fn edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     ctx.insert("entity_names", &entity_names);
     ctx.insert("view_model", &view_model);
     ctx.insert("model", &model);
+    ctx.insert("select_lists", &E::get_select_lists(db).await);
 
     let body = TERA
         .render("edit.html", &ctx)

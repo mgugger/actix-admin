@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use sea_orm::DatabaseConnection;
 use serde::{Serialize};
 use std::collections::HashMap;
+use crate::ActixAdminViewModelField;
 
 #[async_trait]
 pub trait ActixAdminModelTrait {
@@ -10,7 +11,7 @@ pub trait ActixAdminModelTrait {
         page: usize,
         posts_per_page: usize,
     ) -> (usize, Vec<ActixAdminModel>);
-    fn get_fields() -> Vec<(String, String)>;
+    fn get_fields() -> Vec<ActixAdminViewModelField>;
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -37,6 +38,7 @@ impl From<String> for ActixAdminModel {
 
 impl ActixAdminModel {
     pub fn get_value<T: std::str::FromStr>(&self, key: &str) -> Option<T> {
+        println!("{:?}", self.values);
         let value = self.values.get(key).unwrap().to_string().parse::<T>();
         match value {
             Ok(val) => Some(val),

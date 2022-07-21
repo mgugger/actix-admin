@@ -4,7 +4,16 @@
 <form method="post">
     <div class="grid">
         {% for model_field in view_model.fields -%}
-        <input type="{{ model_field[1] }}" name="{{ model_field[0] }}" placeholder="{{ model_field[0] }}" aria-label="{{ model_field[0] }}"><!-- required="" -->
+        {% if model_field.select_list != "" %}
+        <select name="{{ model_field.field_name }}">
+            <option value="" selected>Select</option>
+            {% for select_list_item in select_lists[model_field.field_name] -%}
+            <option value="{{ select_list_item[0] }}">{{ select_list_item[1] }}</option>
+            {%- endfor %}
+        </select>
+        {% else %}
+        <input type="{{ model_field.html_input_type }}" name="{{ model_field.field_name }}" placeholder="{{ model_field.field_name }}" aria-label="{{ model_field.field_name }}"><!-- required="" -->
+        {% endif %}
         {%- endfor %}
         <button type="submit">Save</button>
         <button onclick="history.back()">Cancel</button>

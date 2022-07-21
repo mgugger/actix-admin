@@ -15,8 +15,9 @@ pub struct Model {
     pub title: String,
     #[sea_orm(column_type = "Text")]
     pub text: String,
+    #[actix_admin(select_list="Tea")]
     pub tea_mandatory: Tea,
-    #[actix_admin()]
+    #[actix_admin(select_list="Tea")]
     pub tea_optional: Option<Tea>,
 }
 
@@ -25,7 +26,7 @@ pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
 
-#[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize, DeriveActixAdminSelectList)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "tea")]
 pub enum Tea {
     #[sea_orm(string_value = "EverydayTea")]

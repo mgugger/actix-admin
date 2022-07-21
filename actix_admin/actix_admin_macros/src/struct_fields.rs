@@ -9,7 +9,7 @@ use crate::model_fields::{ ModelField };
 pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::Vec<ModelField> {
     let ast: DeriveInput = syn::parse(input).unwrap();
     let (_vis, ty, _generics) = (&ast.vis, &ast.ident, &ast.generics);
-    let _names_struct_ident = Ident::new(&(ty.to_string() + "FieldStaticStr"), Span::call_site());
+    //let _names_struct_ident = Ident::new(&(ty.to_string() + "FieldStaticStr"), Span::call_site());
 
     let fields = filter_fields(match ast.data {
         syn::Data::Struct(ref s) => &s.fields,
@@ -31,6 +31,9 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let inner_type = extract_type_from_option(&field.ty);
                 let field_ty = field.ty.to_owned();
                 let is_primary_key = actix_admin_attr.clone().map_or(false, |attr| attr.primary_key.is_some());
+                let select_list = actix_admin_attr.clone().map_or("".to_string(), |attr| attr.select_list.map_or("".to_string(), 
+                    |attr_field| (LitStr::from(attr_field)).value()
+                ));
                 let html_input_type = actix_admin_attr.map_or("text".to_string(), |attr| attr.html_input_type.map_or("text".to_string(), 
                     |attr_field| (LitStr::from(attr_field)).value()
                 ));
@@ -41,7 +44,8 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     ty: field_ty,
                     inner_type: inner_type,
                     primary_key: is_primary_key,
-                    html_input_type: html_input_type
+                    html_input_type: html_input_type,
+                    select_list: select_list
                 };
                 
                 Some(model_field)
@@ -123,6 +127,21 @@ pub fn get_actix_admin_fields_html_input(fields: &Vec<ModelField>) -> Vec<TokenS
         })
         .collect::<Vec<_>>()
 }
+
+pub fn get_actix_admin_fields_select_list(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+        .iter()
+        .filter(|model_field| !model_field.primary_key)
+        .map(|model_field| {
+            let select_list = model_field.select_list.to_string();
+
+            quote! {
+                #select_list
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
 
 pub fn get_field_for_primary_key(fields: &Vec<ModelField>) -> TokenStream {
     let primary_key_model_field = fields

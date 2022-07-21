@@ -7,7 +7,7 @@
         <tr>
             <th>{{ view_model.primary_key }}</th>
             {% for model_field in view_model.fields -%}
-            <th>{{ model_field[0] }}</th>
+            <th>{{ model_field.field_name }}</th>
             {%- endfor %}
             <th>
                 <!-- Edit Action -->
@@ -20,7 +20,7 @@
         <tr>
             <td>{{ entity.primary_key }}</td>
             {% for model_field in view_model.fields -%}
-            <td>{{ entity.values | get(key=model_field[0]) }}</td>
+            <td>{{ entity.values | get(key=model_field.field_name) }}</td>
             {%- endfor %}
             <td>
                 <a href="edit/{{ entity.primary_key }}">&#9998;</a>

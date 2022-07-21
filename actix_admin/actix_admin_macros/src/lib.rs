@@ -2,10 +2,31 @@ use proc_macro;
 use quote::quote;
 
 mod struct_fields;
-use struct_fields::{ get_fields_for_tokenstream, get_fields_for_edit_model, get_fields_for_from_model, get_actix_admin_fields_html_input, get_fields_for_create_model, get_actix_admin_fields, get_field_for_primary_key, get_primary_key_field_name};
+use struct_fields::{ 
+    get_fields_for_tokenstream, 
+    get_fields_for_edit_model, 
+    get_fields_for_from_model, 
+    get_actix_admin_fields_html_input, 
+    get_fields_for_create_model, 
+    get_actix_admin_fields, 
+    get_field_for_primary_key, 
+    get_primary_key_field_name,
+    get_actix_admin_fields_select_list
+};
+
+mod selectlist_fields;
+use selectlist_fields::{
+    get_select_list,
+    get_select_lists
+};
 
 mod model_fields;
 mod attributes;
+
+#[proc_macro_derive(DeriveActixAdminSelectList, attributes(actix_admin))]
+pub fn derive_actix_admin_select_list(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    get_select_list(input)
+}
 
 #[proc_macro_derive(DeriveActixAdminModel, attributes(actix_admin))]
 pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -13,11 +34,14 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
     let field_names = get_actix_admin_fields(&fields);
     let field_html_input_type = get_actix_admin_fields_html_input(&fields);
+    let field_select_list = get_actix_admin_fields_select_list(&fields);
     let name_primary_field_str = get_primary_key_field_name(&fields);
     let fields_for_create_model = get_fields_for_create_model(&fields);
     let fields_for_edit_model = get_fields_for_edit_model(&fields);
     let fields_for_from_model = get_fields_for_from_model(&fields);
     let field_for_primary_key = get_field_for_primary_key(&fields);
+
+    let select_lists = get_select_lists(&fields);
 
     let expanded = quote! {
         use std::convert::From;
@@ -30,6 +54,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         use sea_orm::{entity::*, query::*};
         use std::collections::HashMap;
         use sea_orm::EntityTrait;
+        use itertools::izip;
         use quote::quote;
 
         impl From<Entity> for ActixAdminViewModel {
@@ -109,6 +134,12 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 }
             }
 
+            async fn get_select_lists(db: &DatabaseConnection) -> HashMap<String, Vec<(String, String)>> {
+                hashmap![
+                    #(#select_lists),*
+                ]
+            }
+
             fn get_entity_name() -> String {
                 Entity.table_name().to_string()
             }
@@ -136,8 +167,9 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 (num_pages, model_entities)
             }
 
-            fn get_fields() -> Vec<(String, String)> {
+            fn get_fields() -> Vec<ActixAdminViewModelField> {
                 let mut vec = Vec::new();
+                
                 let field_names = stringify!(
                         #(#field_names),*
                 ).split(",")
@@ -148,23 +180,18 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 ).split(",")
                 .collect::<Vec<_>>();
 
-                let mut names_and_input_type = zip(field_names, html_input_types);
-        
-                names_and_input_type
-                    .for_each( |field_name_and_type_tuple|
-                        vec.push((
-                            field_name_and_type_tuple.0
-                            .replace('"', "")
-                            .replace(' ', "")
-                            .to_string(),
-                            // TODO: match correct ActixAdminField Value
-                            field_name_and_type_tuple.1
-                            .replace('"', "")
-                            .replace(' ', "")
-                            .to_string()
-                            )
-                        )
-                );
+                let field_select_lists = stringify!(
+                    #(#field_select_list),*
+                ).split(",")
+                .collect::<Vec<_>>();
+
+                for (field_name, html_input_type, select_list) in izip!(&field_names, &html_input_types, &field_select_lists) {
+                        vec.push(ActixAdminViewModelField {
+                            field_name: field_name.replace('"', "").replace(' ', "").to_string(),
+                            html_input_type: html_input_type.replace('"', "").replace(' ', "").to_string(),
+                            select_list: select_list.replace('"', "").replace(' ', "").to_string()
+                        });
+                    }
                 vec
             }
         }

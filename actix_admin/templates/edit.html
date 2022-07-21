@@ -3,8 +3,17 @@
 {% block content %}
 <form method="post">
     <div class="grid">
-        {% for key, value in model.values -%}
-        <input type="text" value="{{ value }}" name="{{ key }}" placeholder="{{ key }}" aria-label="{{ key }}"><!-- required="" -->
+        {% for model_field in view_model.fields -%}
+        {% if model_field.select_list != "" %}
+        <select name="{{ model_field.field_name }}">
+            <option value="" selected>Select</option>
+            {% for select_list_item in select_lists[model_field.field_name] -%}
+            <option {% if select_list_item[0] == model.values | get(key=model_field.field_name) %} selected {% endif %} value="{{ select_list_item[0] }}">{{ select_list_item[1] }}</option>
+            {%- endfor %}
+        </select>
+        {% else %}
+        <input type="{{ model_field.html_input_type }}" value="{{ model.values | get(key=model_field.field_name) }}" name="{{ model_field.field_name }}" placeholder="{{ model_field.field_name }}" aria-label="{{ model_field.field_name }}"><!-- required="" -->
+        {% endif %}
         {%- endfor %}
         <button type="submit">Save</button>
         <button onclick="history.back()">Cancel</button>

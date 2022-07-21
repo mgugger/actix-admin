@@ -22,7 +22,7 @@ pub async fn create_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     let mut ctx = Context::new();
     ctx.insert("entity_names", &entity_names);
     ctx.insert("view_model", &view_model);
-    ctx.insert("model_fields", &view_model.fields);
+    ctx.insert("select_lists", &E::get_select_lists(_db).await);
 
     let body = TERA
         .render("create.html", &ctx)
