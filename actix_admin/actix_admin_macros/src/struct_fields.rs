@@ -1,4 +1,4 @@
-use proc_macro2::{Span, Ident, TokenStream};
+use proc_macro2::{TokenStream};
 use syn::{
     Fields, DeriveInput, LitStr
 };
@@ -8,7 +8,7 @@ use crate::model_fields::{ ModelField };
 
 pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::Vec<ModelField> {
     let ast: DeriveInput = syn::parse(input).unwrap();
-    let (_vis, ty, _generics) = (&ast.vis, &ast.ident, &ast.generics);
+    //let (_vis, _ty, _generics) = (&ast.vis, &ast.ident, &ast.generics);
     //let _names_struct_ident = Ident::new(&(ty.to_string() + "FieldStaticStr"), Span::call_site());
 
     let fields = filter_fields(match ast.data {
