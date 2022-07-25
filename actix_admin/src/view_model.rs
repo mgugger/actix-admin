@@ -20,6 +20,10 @@ pub trait ActixAdminViewModelTrait {
     async fn get_select_lists(db: &DatabaseConnection) -> HashMap<String, Vec<(String, String)>>;
 
     fn get_entity_name() -> String;
+
+    fn get_list_link() -> &'static str {
+        "list"
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]

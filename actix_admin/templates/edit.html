@@ -2,7 +2,7 @@
 
 {% block content %}
 <form method="post">
-    <div class="grid">
+    <div>
         {% for model_field in view_model.fields -%}
         {% if model_field.select_list != "" %}
         <select name="{{ model_field.field_name }}">
@@ -16,7 +16,7 @@
         {% endif %}
         {%- endfor %}
         <button type="submit">Save</button>
-        <button onclick="history.back()">Cancel</button>
+        <a href="{{ list_link }}" role="button">Cancel</a>
     </div>
 </form>
 {% endblock content %}

@@ -18,11 +18,12 @@ pub async fn create_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     let actix_admin = data.get_actix_admin();
 
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
-
+    
     let mut ctx = Context::new();
     ctx.insert("entity_names", &entity_names);
     ctx.insert("view_model", &view_model);
     ctx.insert("select_lists", &E::get_select_lists(_db).await);
+    ctx.insert("list_link", E::get_list_link());
 
     let body = TERA
         .render("create.html", &ctx)
