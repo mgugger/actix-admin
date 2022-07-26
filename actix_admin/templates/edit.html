@@ -6,7 +6,9 @@
         {% for model_field in view_model.fields -%}
         {% if model_field.select_list != "" %}
         <select name="{{ model_field.field_name }}">
-            <option value="" selected>Select</option>
+            {% if model_field.is_option %}
+            <option value=""></option>
+            {% endif %}
             {% for select_list_item in select_lists[model_field.field_name] -%}
             <option {% if select_list_item[0] == model.values | get(key=model_field.field_name) %} selected {% endif %} value="{{ select_list_item[0] }}">{{ select_list_item[1] }}</option>
             {%- endfor %}
@@ -16,7 +18,7 @@
         {% endif %}
         {%- endfor %}
         <button type="submit">Save</button>
-        <a href="{{ list_link }}" role="button">Cancel</a>
+        <a href="{{ list_link }}" role="button" class="secondary">Cancel</a>
     </div>
 </form>
 {% endblock content %}

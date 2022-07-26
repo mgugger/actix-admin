@@ -11,7 +11,8 @@ use struct_fields::{
     get_actix_admin_fields, 
     get_field_for_primary_key, 
     get_primary_key_field_name,
-    get_actix_admin_fields_select_list
+    get_actix_admin_fields_select_list,
+    get_actix_admin_fields_is_option_list
 };
 
 mod selectlist_fields;
@@ -35,6 +36,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
     let field_names = get_actix_admin_fields(&fields);
     let field_html_input_type = get_actix_admin_fields_html_input(&fields);
     let field_select_list = get_actix_admin_fields_select_list(&fields);
+    let is_option_list = get_actix_admin_fields_is_option_list(&fields);
     let name_primary_field_str = get_primary_key_field_name(&fields);
     let fields_for_create_model = get_fields_for_create_model(&fields);
     let fields_for_edit_model = get_fields_for_edit_model(&fields);
@@ -185,11 +187,16 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 ).split(",")
                 .collect::<Vec<_>>();
 
-                for (field_name, html_input_type, select_list) in izip!(&field_names, &html_input_types, &field_select_lists) {
+                let is_option_lists = [
+                    #(#is_option_list),*
+                ];
+
+                for (field_name, html_input_type, select_list, is_option_list) in izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists) {
                         vec.push(ActixAdminViewModelField {
                             field_name: field_name.replace('"', "").replace(' ', "").to_string(),
                             html_input_type: html_input_type.replace('"', "").replace(' ', "").to_string(),
-                            select_list: select_list.replace('"', "").replace(' ', "").to_string()
+                            select_list: select_list.replace('"', "").replace(' ', "").to_string(),
+                            is_option: is_option_list
                         });
                     }
                 vec

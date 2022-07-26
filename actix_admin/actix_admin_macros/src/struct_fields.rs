@@ -114,6 +114,20 @@ pub fn get_actix_admin_fields(fields: &Vec<ModelField>) -> Vec<TokenStream> {
         .collect::<Vec<_>>()
 }
 
+pub fn get_actix_admin_fields_is_option_list(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+        .iter()
+        .filter(|model_field| !model_field.primary_key)
+        .map(|model_field| {
+            let is_option = model_field.is_option();
+
+            quote! {
+                #is_option
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
 pub fn get_actix_admin_fields_html_input(fields: &Vec<ModelField>) -> Vec<TokenStream> {
     fields
         .iter()

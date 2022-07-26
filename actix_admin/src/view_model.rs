@@ -21,8 +21,8 @@ pub trait ActixAdminViewModelTrait {
 
     fn get_entity_name() -> String;
 
-    fn get_list_link() -> &'static str {
-        "list"
+    fn get_list_link(entity_name: &String) -> String {
+        format!("/admin/{}/list", entity_name)
     }
 }
 
@@ -37,5 +37,6 @@ pub struct ActixAdminViewModel {
 pub struct ActixAdminViewModelField {
     pub field_name: String,
     pub html_input_type: String,
-    pub select_list: String
+    pub select_list: String,
+    pub is_option: bool
 }
