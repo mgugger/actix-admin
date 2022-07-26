@@ -1,24 +1,33 @@
 {% extends "base.html" %}
 
 {% block content %}
-<form method="post">
-    <div>
-        {% for model_field in view_model.fields -%}
-        {% if model_field.select_list != "" %}
-        <select name="{{ model_field.field_name }}">
-            {% if model_field.is_option %}
-            <option value=""></option>
+<article>
+    <form method="post">
+        <div>
+            {% for model_field in view_model.fields -%}
+            <label for="{{ model_field.field_name }}">
+                {{ model_field.field_name }}
+                {% if model_field.select_list != "" %}
+                <select name="{{ model_field.field_name }}">
+                    {% if model_field.is_option %}
+                    <option value=""></option>
+                    {% endif %}
+                    {% for select_list_item in select_lists[model_field.field_name] -%}
+                    <option {% if select_list_item[0]==model.values | get(key=model_field.field_name) %} selected {%
+                        endif %} value="{{ select_list_item[0] }}">{{ select_list_item[1] }}</option>
+                    {%- endfor %}
+                </select>
+            </label>
+            {% else %}
+            <input type="{{ model_field.html_input_type }}" value="{{ model.values | get(key=model_field.field_name) }}"
+                name="{{ model_field.field_name }}" placeholder="{{ model_field.field_name }}"
+                aria-label="{{ model_field.field_name }}"><!-- required="" -->
             {% endif %}
-            {% for select_list_item in select_lists[model_field.field_name] -%}
-            <option {% if select_list_item[0] == model.values | get(key=model_field.field_name) %} selected {% endif %} value="{{ select_list_item[0] }}">{{ select_list_item[1] }}</option>
+            </label>
             {%- endfor %}
-        </select>
-        {% else %}
-        <input type="{{ model_field.html_input_type }}" value="{{ model.values | get(key=model_field.field_name) }}" name="{{ model_field.field_name }}" placeholder="{{ model_field.field_name }}" aria-label="{{ model_field.field_name }}"><!-- required="" -->
-        {% endif %}
-        {%- endfor %}
-        <button type="submit">Save</button>
-        <a href="{{ list_link }}" role="button" class="secondary">Cancel</a>
-    </div>
-</form>
+            <button type="submit">Save</button>
+            <a href="{{ list_link }}" role="button" class="secondary">Cancel</a>
+        </div>
+    </form>
+</article>
 {% endblock content %}

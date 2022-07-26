@@ -1,25 +1,31 @@
 {% extends "base.html" %}
 
 {% block content %}
-<form method="post">
-    {% for model_field in view_model.fields -%}
-    {% if model_field.select_list != "" %}
-    <select name="{{ model_field.field_name }}">
-        {% if model_field.is_option %}
-            <option value="" selected></option>
-        {% else %}
-            <option value="" selected disabled>Select</option>
-        {% endif %}
-        {% for select_list_item in select_lists[model_field.field_name] -%}
-        <option value="{{ select_list_item[0] }}">{{ select_list_item[1] }}</option>
+<article>
+    <form method="post">
+        {% for model_field in view_model.fields -%}
+        <label for="{{ model_field.field_name }}">
+            {{ model_field.field_name }}
+            {% if model_field.select_list != "" %}
+            <select name="{{ model_field.field_name }}">
+                {% if model_field.is_option %}
+                <option value="" selected></option>
+                {% else %}
+                <option value="" selected disabled>Select</option>
+                {% endif %}
+                {% for select_list_item in select_lists[model_field.field_name] -%}
+                <option value="{{ select_list_item[0] }}">{{ select_list_item[1] }}</option>
+                {%- endfor %}
+            </select>
+            {% else %}
+            <input type="{{ model_field.html_input_type }}" name="{{ model_field.field_name }}"
+                placeholder="{{ model_field.field_name }}" aria-label="{{ model_field.field_name }}">
+            <!-- required="" -->
+            {% endif %}
+        </label>
         {%- endfor %}
-    </select>
-    {% else %}
-    <input type="{{ model_field.html_input_type }}" name="{{ model_field.field_name }}"
-        placeholder="{{ model_field.field_name }}" aria-label="{{ model_field.field_name }}"><!-- required="" -->
-    {% endif %}
-    {%- endfor %}
-    <button type="submit">Save</button>
-    <a href="{{ list_link }}" role="button" class="secondary">Cancel</a>
-</form>
+        <button type="submit">Save</button>
+        <a href="{{ list_link }}" role="button" class="secondary">Cancel</a>
+    </form>
+</article>
 {% endblock content %}
