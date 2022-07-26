@@ -8,7 +8,6 @@ use crate::TERA;
 pub async fn edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     _req: HttpRequest,
     data: web::Data<T>,
-    _body: web::Payload,
     _text: String,
     id: web::Path<i32>
 ) -> Result<HttpResponse, Error> {

@@ -78,7 +78,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                     values: hashmap![
                         #(#fields_for_from_model),*
                     ],
-                    errors: Vec::new()
+                    errors: HashMap::new()
                 }
             }
         }
@@ -103,7 +103,8 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
             async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> ActixAdminModel {
                 let mut validation_errs = Entity::validate_model(&model);
-                model.errors.append(&mut validation_errs);
+                //model.errors.append(&mut validation_errs);
+                model.errors = validation_errs;
 
                 if !model.has_errors() {
                     let new_model = ActiveModel::from(model.clone());
@@ -123,7 +124,8 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
             async fn edit_entity(db: &DatabaseConnection, id: i32, mut model: ActixAdminModel) -> ActixAdminModel {
                 let mut validation_errs = Entity::validate_model(&model);
-                model.errors.append(&mut validation_errs);
+                //model.errors.append(&mut validation_errs);
+                model.errors=validation_errs;
 
                 if !model.has_errors() {
                     let entity: Option<Model> = Entity::find_by_id(id).one(db).await.unwrap();
@@ -182,13 +184,13 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
             }
 
             
-            fn validate_model(model: &ActixAdminModel) -> Vec<ActixAdminError> {
-                let mut errors = Vec::<ActixAdminError>::new();
+            fn validate_model(model: &ActixAdminModel) -> HashMap<String, String> {
+                let mut errors = HashMap::<String, String>::new();
                 
                 #(#fields_for_validate_model);*;
                 
-                let mut custom_errors = Entity.validate();
-                errors.append(&mut custom_errors);
+                //let mut custom_errors = Entity.validate();
+                //errors.append(&mut custom_errors);
                 errors
             }
 

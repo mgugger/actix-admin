@@ -2,26 +2,38 @@
 
 {% block content %}
 <article>
+    <div>
+        <ul>
+            {{ model.errors }}
+        </ul>
+    </div>
     <form method="post">
         <div>
             {% for model_field in view_model.fields -%}
             <label for="{{ model_field.field_name }}">
                 {{ model_field.field_name }}
                 {% if model_field.select_list != "" %}
-                <select name="{{ model_field.field_name }}">
+                <select name="{{ model_field.field_name }}" 
+                    {% if model.errors | get(key=model_field.field_name, default="" ) !="" %} placeholder="Invalid" aria-invalid="true" {% endif %}>
                     {% if model_field.is_option %}
                     <option value=""></option>
+                    {% else %}
+                    <option value="" selected disabled>Select</option>
                     {% endif %}
                     {% for select_list_item in select_lists[model_field.field_name] -%}
-                    <option {% if select_list_item[0]==model.values | get(key=model_field.field_name) %} selected {%
-                        endif %} value="{{ select_list_item[0] }}">{{ select_list_item[1] }}</option>
+                    <option {% if select_list_item[0]==model.values | get(key=model_field.field_name, default="" ) %}
+                        selected {% endif %} value="{{ select_list_item[0] }}">{{ select_list_item[1] }}</option>
                     {%- endfor %}
                 </select>
             </label>
             {% else %}
-            <input type="{{ model_field.html_input_type }}" value="{{ model.values | get(key=model_field.field_name) }}"
+            <input type="{{ model_field.html_input_type }}"
+                value="{{ model.values | get(key=model_field.field_name, default="") }}"
                 name="{{ model_field.field_name }}" placeholder="{{ model_field.field_name }}"
-                aria-label="{{ model_field.field_name }}"><!-- required="" -->
+                aria-label="{{ model_field.field_name }}">
+            {% if model.errors | get(key=model_field.field_name, default="") != "" %}
+            placeholder="Invalid" aria-invalid="true"
+            {% endif %}
             {% endif %}
             </label>
             {%- endfor %}

@@ -221,12 +221,12 @@ pub fn get_fields_for_validate_model(fields: &Vec<ModelField>) -> Vec<TokenStrea
             true => {
                 let inner_ty = model_field.inner_type.to_owned().unwrap();
                 quote! {
-                    model.get_value::<#inner_ty>(#ident_name).map_err(|err| errors.push(err)).ok();
+                    model.get_value::<#inner_ty>(#ident_name).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok();
                 }
             },
             false => {
                 quote! {
-                    model.get_value::<#ty>(#ident_name).map_err(|err| errors.push(err)).ok();
+                    model.get_value::<#ty>(#ident_name).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok();
                 }
             }
         }

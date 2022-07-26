@@ -1,7 +1,10 @@
 use actix_web::http::header;
-use actix_web::{web, Error, HttpRequest, HttpResponse};
+use actix_web::{web, error, Error, HttpRequest, HttpResponse};
+use tera::{Context};
+use crate::TERA;
 
 use crate::prelude::*;
+use super::edit_get::edit_get;
 
 pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     _req: HttpRequest,
@@ -12,14 +15,30 @@ pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     let db = &data.get_db();
     let entity_name = E::get_entity_name();
     let actix_admin = data.get_actix_admin();
+    let entity_names = &data.get_actix_admin().entity_names;
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
-    let mut _admin_model = ActixAdminModel::from(text);
-    _admin_model = E::edit_entity(db, id.into_inner(), _admin_model).await;
+    let mut model = ActixAdminModel::from(text);
+    model = E::edit_entity(db, id.into_inner(), model).await;
 
+    if model.has_errors() {
+        let mut ctx = Context::new();
+        ctx.insert("entity_names", &entity_names);
+        ctx.insert("view_model", &view_model);
+        ctx.insert("model", &model);
+        ctx.insert("select_lists", &E::get_select_lists(db).await);
+        ctx.insert("list_link", &E::get_list_link(&entity_name));
+
+    let body = TERA
+        .render("edit.html", &ctx)
+        .map_err(|err| error::ErrorInternalServerError(err))?;
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+    }
+    else {
     Ok(HttpResponse::Found()
         .append_header((
             header::LOCATION,
             format!("/admin/{}/list", view_model.entity_name),
         ))
         .finish())
+    }
 }
