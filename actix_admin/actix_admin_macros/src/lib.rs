@@ -12,7 +12,8 @@ use struct_fields::{
     get_field_for_primary_key, 
     get_primary_key_field_name,
     get_actix_admin_fields_select_list,
-    get_actix_admin_fields_is_option_list
+    get_actix_admin_fields_is_option_list,
+    get_fields_for_validate_model
 };
 
 mod selectlist_fields;
@@ -42,6 +43,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
     let fields_for_edit_model = get_fields_for_edit_model(&fields);
     let fields_for_from_model = get_fields_for_from_model(&fields);
     let field_for_primary_key = get_field_for_primary_key(&fields);
+    let fields_for_validate_model = get_fields_for_validate_model(&fields);
 
     let select_lists = get_select_lists(&fields);
 
@@ -75,7 +77,8 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                     #field_for_primary_key,
                     values: hashmap![
                         #(#fields_for_from_model),*
-                    ]
+                    ],
+                    errors: Vec::new()
                 }
             }
         }
@@ -99,8 +102,13 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
             }
 
             async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> ActixAdminModel {
-                let new_model = ActiveModel::from(model.clone());
-                let insert_operation = Entity::insert(new_model).exec(db).await;
+                let mut validation_errs = Entity::validate_model(&model);
+                model.errors.append(&mut validation_errs);
+
+                if !model.has_errors() {
+                    let new_model = ActiveModel::from(model.clone());
+                    let insert_operation = Entity::insert(new_model).exec(db).await;
+                }
 
                 model
             }
@@ -114,13 +122,17 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
             }
 
             async fn edit_entity(db: &DatabaseConnection, id: i32, mut model: ActixAdminModel) -> ActixAdminModel {
-                // TODO: separate primary key from other keys
-                let entity: Option<Model> = Entity::find_by_id(id).one(db).await.unwrap();
-                let mut entity: ActiveModel = entity.unwrap().into();
+                let mut validation_errs = Entity::validate_model(&model);
+                model.errors.append(&mut validation_errs);
 
-                #(#fields_for_edit_model);*;
-                
-                let entity: Model = entity.update(db).await.unwrap();
+                if !model.has_errors() {
+                    let entity: Option<Model> = Entity::find_by_id(id).one(db).await.unwrap();
+                    let mut entity: ActiveModel = entity.unwrap().into();
+
+                    #(#fields_for_edit_model);*;
+                    
+                    let entity: Model = entity.update(db).await.unwrap();
+                }
                 
                 model
             }
@@ -167,6 +179,17 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 }
 
                 (num_pages, model_entities)
+            }
+
+            
+            fn validate_model(model: &ActixAdminModel) -> Vec<ActixAdminError> {
+                let mut errors = Vec::<ActixAdminError>::new();
+                
+                #(#fields_for_validate_model);*;
+                
+                let mut custom_errors = Entity.validate();
+                errors.append(&mut custom_errors);
+                errors
             }
 
             fn get_fields() -> Vec<ActixAdminViewModelField> {

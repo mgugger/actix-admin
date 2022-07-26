@@ -3,6 +3,7 @@ use sea_orm::DatabaseConnection;
 use serde::{Serialize};
 use std::collections::HashMap;
 use crate::ActixAdminViewModelField;
+use crate::ActixAdminError;
 
 #[async_trait]
 pub trait ActixAdminModelTrait {
@@ -12,12 +13,19 @@ pub trait ActixAdminModelTrait {
         posts_per_page: usize,
     ) -> (usize, Vec<ActixAdminModel>);
     fn get_fields() -> Vec<ActixAdminViewModelField>;
+    fn validate_model(model: &ActixAdminModel) -> Vec<ActixAdminError>;
+    
+    // function to be overridable for custom error handling
+    fn validate(&self) -> Vec<ActixAdminError> {
+        return Vec::new()
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ActixAdminModel {
     pub primary_key: Option<String>,
     pub values: HashMap<String, String>,
+    pub errors: Vec<ActixAdminError>,
 }
 
 impl From<String> for ActixAdminModel {
@@ -32,17 +40,31 @@ impl From<String> for ActixAdminModel {
             );
         }
 
-        ActixAdminModel { primary_key: None, values: hashmap }
+        ActixAdminModel { primary_key: None, values: hashmap, errors: Vec::new() }
     }
 }
 
 impl ActixAdminModel {
-    pub fn get_value<T: std::str::FromStr>(&self, key: &str) -> Option<T> {
-        println!("{:?}", self.values);
-        let value = self.values.get(key).unwrap().to_string().parse::<T>();
-        match value {
-            Ok(val) => Some(val),
-            Err(_) => None, //panic!("key {} could not be parsed", key)
-        }
+    pub fn get_value<T: std::str::FromStr>(&self, key: &str) -> Result<Option<T>, ActixAdminError> {
+        let value = self.values.get(key);
+        let res: Result<Option<T>, ActixAdminError> = match value {
+            Some(val) => {
+                let parsed_val = val.parse::<T>();   
+                match parsed_val {
+                    Ok(val) => Ok(Some(val)),
+                    Err(_) => Err(ActixAdminError { 
+                        field_name: Some(key.to_string()), 
+                        error: "Invalid Value".to_string()
+                    })
+                }
+            },
+            _ => Ok(None)
+        };
+
+        res
+    }
+
+    pub fn has_errors(&self) -> bool {
+        return &self.errors.len() != &0
     }
 }

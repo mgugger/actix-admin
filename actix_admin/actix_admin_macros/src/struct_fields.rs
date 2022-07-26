@@ -208,6 +208,32 @@ pub fn get_fields_for_from_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
     .collect::<Vec<_>>()
 }
 
+pub fn get_fields_for_validate_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+    .iter()
+    // TODO: filter id attr based on struct attr or sea_orm primary_key attr
+    .filter(|model_field| !model_field.primary_key)
+    .map(|model_field| {
+        let ident_name = model_field.ident.to_string();
+        let ty = model_field.ty.to_owned();
+
+        match model_field.is_option() {
+            true => {
+                let inner_ty = model_field.inner_type.to_owned().unwrap();
+                quote! {
+                    model.get_value::<#inner_ty>(#ident_name).map_err(|err| errors.push(err)).ok();
+                }
+            },
+            false => {
+                quote! {
+                    model.get_value::<#ty>(#ident_name).map_err(|err| errors.push(err)).ok();
+                }
+            }
+        }
+    })
+    .collect::<Vec<_>>()
+}
+
 pub fn get_fields_for_create_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
     fields
     .iter()
@@ -222,12 +248,12 @@ pub fn get_fields_for_create_model(fields: &Vec<ModelField>) -> Vec<TokenStream>
             true => {
                 let inner_ty = model_field.inner_type.to_owned().unwrap();
                 quote! {
-                    #ident: Set(model.get_value::<#inner_ty>(#ident_name))
+                    #ident: Set(model.get_value::<#inner_ty>(#ident_name).unwrap())
                 }
             },
             false => {
                 quote! {
-                    #ident: Set(model.get_value::<#ty>(#ident_name).unwrap())
+                    #ident: Set(model.get_value::<#ty>(#ident_name).unwrap().unwrap())
                 }
             }
         }
@@ -249,12 +275,12 @@ pub fn get_fields_for_edit_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
             true => {
                 let inner_ty = model_field.inner_type.to_owned().unwrap();
                 quote! {
-                    entity.#ident = Set(model.get_value::<#inner_ty>(#ident_name))
+                    entity.#ident = Set(model.get_value::<#inner_ty>(#ident_name).unwrap())
                 }
             },
             false => {
                 quote! {
-                    entity.#ident = Set(model.get_value::<#ty>(#ident_name).unwrap())
+                    entity.#ident = Set(model.get_value::<#ty>(#ident_name).unwrap().unwrap())
                 }
             }
         }

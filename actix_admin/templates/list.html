@@ -24,7 +24,7 @@
             {%- endfor %}
             <td>
                 <a href="edit/{{ entity.primary_key }}">&#9998;</a>
-                <a hx-post="delete/{{ entity.primary_key }}">&#128465;</a>
+                <a href="#" hx-post="delete/{{ entity.primary_key }}">&#128465;</a>
             </td>
         </tr>
         {%- endfor %}
