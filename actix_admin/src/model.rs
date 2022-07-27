@@ -49,14 +49,12 @@ impl From<String> for ActixAdminModel {
 }
 
 impl ActixAdminModel {
-    pub fn get_value<T: std::str::FromStr>(&self, key: &str) -> Result<Option<T>, String> {
+    pub fn get_value<T: std::str::FromStr>(&self, key: &str, is_option_or_string: bool) -> Result<Option<T>, String> {
         let value = self.values.get(key);
-        println!("{:?}", key);
-        println!("{:?}", value);
 
         let res: Result<Option<T>, String> = match value {
             Some(val) => {
-                if val.is_empty() {
+                if val.is_empty() && is_option_or_string {
                     return Ok(None);
                 }
 
@@ -67,7 +65,12 @@ impl ActixAdminModel {
                     Err(_) => Err("Invalid Value".to_string()),
                 }
             }
-            _ => Ok(None),
+            _ => {
+                match is_option_or_string {
+                    true => Ok(None),
+                    false => Err("Invalid Value".to_string()) // a missing value in the form for a non-optional value
+                } 
+            } 
         };
 
         res

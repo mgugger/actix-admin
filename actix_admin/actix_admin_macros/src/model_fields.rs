@@ -1,6 +1,7 @@
 use syn::{
     Visibility, Type
 };
+use quote::ToTokens;
 
 pub struct ModelField {
     pub visibility: Visibility,
@@ -16,5 +17,14 @@ pub struct ModelField {
 impl ModelField {
     pub fn is_option(&self) -> bool { 
         self.inner_type.is_some()
+    }
+
+    pub fn is_string(&self) -> bool {
+        match &self.ty {
+            Type::Path(type_path) if type_path.clone().into_token_stream().to_string() == "String" => {
+                true
+            }
+            _ => false
+        }
     }
 }

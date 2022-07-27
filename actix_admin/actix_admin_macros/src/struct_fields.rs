@@ -1,10 +1,8 @@
-use proc_macro2::{TokenStream};
-use syn::{
-    Fields, DeriveInput, LitStr
-};
-use quote::quote;
 use crate::attributes::derive_attr;
-use crate::model_fields::{ ModelField };
+use crate::model_fields::ModelField;
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn::{DeriveInput, Fields, LitStr};
 
 pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::Vec<ModelField> {
     let ast: DeriveInput = syn::parse(input).unwrap();
@@ -22,21 +20,28 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
     fields
         .iter()
         .filter_map(|field| {
-            let actix_admin_attr = derive_attr::ActixAdmin::try_from_attributes(&field.attrs).unwrap_or_default();
-            
-            if field.ident.is_some()
-            {
+            let actix_admin_attr =
+                derive_attr::ActixAdmin::try_from_attributes(&field.attrs).unwrap_or_default();
+
+            if field.ident.is_some() {
                 let field_vis = field.vis.clone();
                 let field_ident = field.ident.as_ref().unwrap().clone();
                 let inner_type = extract_type_from_option(&field.ty);
                 let field_ty = field.ty.to_owned();
-                let is_primary_key = actix_admin_attr.clone().map_or(false, |attr| attr.primary_key.is_some());
-                let select_list = actix_admin_attr.clone().map_or("".to_string(), |attr| attr.select_list.map_or("".to_string(), 
-                    |attr_field| (LitStr::from(attr_field)).value()
-                ));
-                let html_input_type = actix_admin_attr.map_or("text".to_string(), |attr| attr.html_input_type.map_or("text".to_string(), 
-                    |attr_field| (LitStr::from(attr_field)).value()
-                ));
+                let is_primary_key = actix_admin_attr
+                    .clone()
+                    .map_or(false, |attr| attr.primary_key.is_some());
+                let select_list = actix_admin_attr.clone().map_or("".to_string(), |attr| {
+                    attr.select_list.map_or("".to_string(), |attr_field| {
+                        (LitStr::from(attr_field)).value()
+                    })
+                });
+                let html_input_type = actix_admin_attr.map_or("text".to_string(), |attr| {
+                    attr.html_input_type
+                        .map_or("text".to_string(), |attr_field| {
+                            (LitStr::from(attr_field)).value()
+                        })
+                });
 
                 let model_field = ModelField {
                     visibility: field_vis,
@@ -45,9 +50,8 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     inner_type: inner_type,
                     primary_key: is_primary_key,
                     html_input_type: html_input_type,
-                    select_list: select_list
+                    select_list: select_list,
                 };
-                
                 Some(model_field)
             } else {
                 None
@@ -156,13 +160,12 @@ pub fn get_actix_admin_fields_select_list(fields: &Vec<ModelField>) -> Vec<Token
         .collect::<Vec<_>>()
 }
 
-
 pub fn get_field_for_primary_key(fields: &Vec<ModelField>) -> TokenStream {
     let primary_key_model_field = fields
-    .iter()
-    // TODO: filter id attr based on struct attr or sea_orm primary_key attr
-    .find(|model_field| model_field.primary_key)
-    .expect("model must have a single primary key");
+        .iter()
+        // TODO: filter id attr based on struct attr or sea_orm primary_key attr
+        .find(|model_field| model_field.primary_key)
+        .expect("model must have a single primary key");
 
     let ident = primary_key_model_field.ident.to_owned();
 
@@ -173,60 +176,61 @@ pub fn get_field_for_primary_key(fields: &Vec<ModelField>) -> TokenStream {
 
 pub fn get_primary_key_field_name(fields: &Vec<ModelField>) -> String {
     let primary_key_model_field = fields
-    .iter()
-    // TODO: filter id attr based on struct attr or sea_orm primary_key attr
-    .find(|model_field| model_field.primary_key)
-    .expect("model must have a single primary key");
+        .iter()
+        // TODO: filter id attr based on struct attr or sea_orm primary_key attr
+        .find(|model_field| model_field.primary_key)
+        .expect("model must have a single primary key");
 
     primary_key_model_field.ident.to_string()
 }
 
 pub fn get_fields_for_from_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
     fields
-    .iter()
-    .filter(|model_field| !model_field.primary_key)
-    .map(|model_field| {
-        let ident_name = model_field.ident.to_string();
-        let ident = model_field.ident.to_owned();
+        .iter()
+        .filter(|model_field| !model_field.primary_key)
+        .map(|model_field| {
+            let ident_name = model_field.ident.to_string();
+            let ident = model_field.ident.to_owned();
 
-        match model_field.is_option() {
-        true => {
-            quote! {
-                #ident_name => match model.#ident {
-                    Some(val) => val.to_string(),
-                    None => "".to_owned()
+            match model_field.is_option() {
+                true => {
+                    quote! {
+                        #ident_name => match model.#ident {
+                            Some(val) => val.to_string(),
+                            None => "".to_owned()
+                        }
+                    }
+                }
+                false => {
+                    quote! {
+                        #ident_name => model.#ident.to_string()
+                    }
                 }
             }
-        },
-        false => {
-            quote! {
-                #ident_name => model.#ident.to_string()
-            }
-        }
-    }
-    })
-    .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>()
 }
 
 pub fn get_fields_for_validate_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
     fields
     .iter()
-    // TODO: filter id attr based on struct attr or sea_orm primary_key attr
     .filter(|model_field| !model_field.primary_key)
     .map(|model_field| {
         let ident_name = model_field.ident.to_string();
         let ty = model_field.ty.to_owned();
 
+        let is_option_or_string = model_field.is_option() || model_field.is_string();
+
         match model_field.is_option() {
             true => {
                 let inner_ty = model_field.inner_type.to_owned().unwrap();
                 quote! {
-                    model.get_value::<#inner_ty>(#ident_name).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok();
+                    model.get_value::<#inner_ty>(#ident_name, #is_option_or_string).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
                 }
             },
             false => {
                 quote! {
-                    model.get_value::<#ty>(#ident_name).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok();
+                    model.get_value::<#ty>(#ident_name, #is_option_or_string).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
                 }
             }
         }
@@ -236,54 +240,72 @@ pub fn get_fields_for_validate_model(fields: &Vec<ModelField>) -> Vec<TokenStrea
 
 pub fn get_fields_for_create_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
     fields
-    .iter()
-    // TODO: filter id attr based on struct attr or sea_orm primary_key attr
-    .filter(|model_field| !model_field.primary_key)
-    .map(|model_field| {
-        let ident_name = model_field.ident.to_string();
-        let ident = model_field.ident.to_owned();
-        let ty = model_field.ty.to_owned();
+        .iter()
+        // TODO: filter id attr based on struct attr or sea_orm primary_key attr
+        .filter(|model_field| !model_field.primary_key)
+        .map(|model_field| {
+            let ident_name = model_field.ident.to_string();
+            let ident = model_field.ident.to_owned();
+            let ty = model_field.ty.to_owned();
 
-        match model_field.is_option() {
-            true => {
-                let inner_ty = model_field.inner_type.to_owned().unwrap();
-                quote! {
-                    #ident: Set(model.get_value::<#inner_ty>(#ident_name).unwrap())
+            let is_option_or_string = model_field.is_option() || model_field.is_string();
+
+            match model_field.is_option() {
+                true => {
+                    let inner_ty = model_field.inner_type.to_owned().unwrap();
+                    quote! {
+                        #ident: Set(model.get_value::<#inner_ty>(#ident_name, #is_option_or_string).unwrap())
+                    }
                 }
-            },
-            false => {
-                quote! {
-                    #ident: Set(model.get_value::<#ty>(#ident_name).unwrap().unwrap())
+                // TODO: this fails for empty string as it returns None which then cannot be unwrapped
+                // Should do maybe typecheck and if it is string return "" instead of None
+                false => {
+                    if model_field.is_string() {
+                        quote! {
+                            #ident: Set(model.get_value::<#ty>(#ident_name, #is_option_or_string).unwrap().unwrap_or(String::new()))
+                        }
+                    } else {
+                        quote! {
+                            #ident: Set(model.get_value::<#ty>(#ident_name, #is_option_or_string).unwrap().unwrap())
+                        }
+                    }
                 }
             }
-        }
-    })
-    .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>()
 }
 
 pub fn get_fields_for_edit_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
     fields
-    .iter()
-    // TODO: filter id attr based on struct attr or sea_orm primary_key attr
-    .filter(|model_field| !model_field.primary_key)
-    .map(|model_field| {
-        let ident_name = model_field.ident.to_string();
-        let ident = model_field.ident.to_owned();
-        let ty = model_field.ty.to_owned();
-
-        match model_field.is_option() {
-            true => {
-                let inner_ty = model_field.inner_type.to_owned().unwrap();
-                quote! {
-                    entity.#ident = Set(model.get_value::<#inner_ty>(#ident_name).unwrap())
+        .iter()
+        // TODO: filter id attr based on struct attr or sea_orm primary_key attr
+        .filter(|model_field| !model_field.primary_key)
+        .map(|model_field| {
+            let ident_name = model_field.ident.to_string();
+            let ident = model_field.ident.to_owned();
+            let ty = model_field.ty.to_owned();
+            let is_option_or_string = model_field.is_option() || model_field.is_string();
+            
+            match model_field.is_option() {
+                true => {
+                    let inner_ty = model_field.inner_type.to_owned().unwrap();
+                    quote! {
+                        entity.#ident = Set(model.get_value::<#inner_ty>(#ident_name, #is_option_or_string).unwrap())
+                    }
                 }
-            },
-            false => {
-                quote! {
-                    entity.#ident = Set(model.get_value::<#ty>(#ident_name).unwrap().unwrap())
+                false => {
+                    if model_field.is_string() {
+                        quote! {
+                            entity.#ident = Set(model.get_value::<#ty>(#ident_name, #is_option_or_string).unwrap().unwrap_or(String::new()))
+                        }
+                    }
+                    else {
+                        quote! {
+                            entity.#ident = Set(model.get_value::<#ty>(#ident_name, #is_option_or_string).unwrap().unwrap())
+                        }
+                    }
                 }
             }
-        }
-    })
-    .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>()
 }

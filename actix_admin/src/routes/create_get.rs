@@ -28,7 +28,7 @@ pub async fn create_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     ctx.insert("model", &model);
 
     let body = TERA
-        .render("edit.html", &ctx)
+        .render("create_or_edit.html", &ctx)
         .map_err(|err| error::ErrorInternalServerError(err))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }

@@ -2,7 +2,6 @@ use lazy_static::lazy_static;
 use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
 use tera::{Tera};
-use serde::{Serialize};
 
 pub mod view_model;
 pub mod model;

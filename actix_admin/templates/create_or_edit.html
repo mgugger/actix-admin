@@ -2,11 +2,6 @@
 
 {% block content %}
 <article>
-    <div>
-        <ul>
-            {{ model.errors }}
-        </ul>
-    </div>
     <form method="post">
         <div>
             {% for model_field in view_model.fields -%}

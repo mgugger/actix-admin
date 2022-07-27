@@ -29,7 +29,7 @@ pub async fn edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     ctx.insert("list_link", &E::get_list_link(&entity_name));
 
     let body = TERA
-        .render("edit.html", &ctx)
+        .render("create_or_edit.html", &ctx)
         .map_err(|err| error::ErrorInternalServerError(err))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }

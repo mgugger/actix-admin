@@ -25,10 +25,9 @@ pub async fn create_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
         ctx.insert("select_lists", &E::get_select_lists(db).await);
         ctx.insert("list_link", &E::get_list_link(&entity_name));
         ctx.insert("model", &model);
-        println!("{:?}", model.errors);
 
         let body = TERA
-            .render("edit.html", &ctx)
+            .render("create_or_edit.html", &ctx)
             .map_err(|err| error::ErrorInternalServerError(err))?;
         Ok(HttpResponse::Ok().content_type("text/html").body(body))
     }
