@@ -2,58 +2,87 @@
 
 {% block content %}
 
+{% if not render_partial or render_partial == false %}
 <article>
     <div class="grid">
         <div>
-            <a href="create" role="button">&#43;</a>
+            <a href="create" role="button">Create</a>
+        </div>
+        <!--
+        <div>
+            <details role="list">
+                <summary aria-haspopup="listbox" role="button">
+                    With selected
+                </summary>
+                <ul role="listbox">
+                    <li><a>Delete</a></li>
+                </ul>
+            </details>
+        </div>-->
+        <div>
+            <input type="search" id="search" name="search" placeholder="Search" 
+                hx-get="/admin/{{ entity_name }}/list?render_partial=true&entities_per_page={{ entities_per_page }}&page={{ page }}"
+                hx-trigger="keyup changed delay:500ms, search" hx-target="#{{ entity_name }}table"
+                >
         </div>
     </div>
-    <table role="grid">
-        <thead>
-            <tr>
-                <th>{{ view_model.primary_key }}</th>
-                {% for model_field in view_model.fields -%}
-                <th>{{ model_field.field_name }}</th>
-                {%- endfor %}
-                <th>
-                    <!-- Edit Action -->
-                    <!-- Delete Action -->
-                </th>
-            </tr>
-        </thead>
-        <tbody hx-confirm="Are you sure?" hx-target="closest tr" hx-swap="outerHTML">
-            {% for entity in entities -%}
-            <tr>
-                <td>{{ entity.primary_key }}</td>
-                {% for model_field in view_model.fields -%}
-                <td>{{ entity.values | get(key=model_field.field_name) }}</td>
-                {%- endfor %}
-                <td>
-                    <a href="edit/{{ entity.primary_key }}">&#9998;</a>
-                    <a href="#" hx-post="delete/{{ entity.primary_key }}">&#128465;</a>
-                </td>
-            </tr>
-            {%- endfor %}
-        </tbody>
-        <tfoot>
-            <tr>
-                <td colspan="{{ view_model.fields | length + 2 }}">
-                    <a href="?page={{ page - 1 }}&entities_per_page={{ entities_per_page }}">&laquo;</a>
-                    {% for i in range(end=num_pages) %}
-                    <a href="?page={{ i + 1 }}&entities_per_page={{ entities_per_page }}">{{ i + 1 }}</a>
+    <figure id="{{ entity_name }}table">
+        {% endif %}
+        <table role="grid">
+            <thead>
+                <tr>
+                    <th>
+                        <!-- Select Checkbox -->
+                    </th>
+                    <th>{{ view_model.primary_key | title }}</th>
+                    {% for model_field in view_model.fields -%}
+                    <th>{{ model_field.field_name | split(pat="_") | join(sep=" ") | title }}</th>
                     {%- endfor %}
-                    <a href="?page={{ page + 1 }}&entities_per_page={{ entities_per_page }}">&raquo;</a>
-                </td>
-            </tr>
-        </tfoot>
-    </table>
+                    <th>
+                        <!-- Edit Action -->
+                        <!-- Delete Action -->
+                    </th>
+                </tr>
+            </thead>
+            <tbody hx-confirm="Are you sure?" hx-target="closest tr" hx-swap="outerHTML">
+                {% for entity in entities -%}
+                <tr>
+                    <td><input type="checkbox" id="entity{{ entity.primary_key }}" name="terms"></td>
+                    <td>{{ entity.primary_key }}</td>
+                    {% for model_field in view_model.fields -%}
+                    <td>{{ entity.values | get(key=model_field.field_name) }}</td>
+                    {%- endfor %}
+                    <td>
+                        <a href="edit/{{ entity.primary_key }}">&#9998;</a>
+                        <a href="#" hx-post="delete/{{ entity.primary_key }}">&#128465;</a>
+                    </td>
+                </tr>
+                {%- endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="{{ view_model.fields | length + 3 }}">
+                        <a href="?page={{ page - 1 }}&entities_per_page={{ entities_per_page }}">&laquo;</a>
+                        {% for i in range(end=num_pages) %}
+                        <a href="?page={{ i + 1 }}&entities_per_page={{ entities_per_page }}">{{ i + 1 }}</a>
+                        {%- endfor %}
+                        <a href="?page={{ page + 1 }}&entities_per_page={{ entities_per_page }}">&raquo;</a>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+        {% if not render_partial or render_partial == false %}
+    </figure>
     <div class="grid">
+        <div></div>
+        <div></div>
+        <div></div>
         <div>
             <form>
                 <label for="entities_per_page">Entities per Page
                     <select name="entities_per_page" onchange="this.form.submit()">
                         {% for a in [10,20,50,100,] %}
-                        <option {% if entities_per_page == a %}selected{% endif %} value="{{ a }}">{{ a }}</option>
+                        <option {% if entities_per_page==a %}selected{% endif %} value="{{ a }}">{{ a }}</option>
                         {% endfor %}
                     </select>
                 </label>
@@ -61,4 +90,5 @@
         </div>
     </div>
 </article>
+{% endif %}
 {% endblock content %}

@@ -18,7 +18,7 @@ pub async fn create_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     let actix_admin = data.get_actix_admin();
 
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
-    let mut model = ActixAdminModel::from(text);
+    let model = ActixAdminModel::from(text);
     
     let mut ctx = Context::new();
     ctx.insert("entity_names", &entity_names);

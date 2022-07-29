@@ -5,7 +5,7 @@
         </ul>
         <ul>
             {% for entity_name in entity_names -%}
-            <li><a href="/admin/{{ entity_name }}/list" class="secondary">{{ entity_name }}</a></li>
+            <li><a href="/admin/{{ entity_name }}/list" class="secondary">{{ entity_name | title }}</a></li>
             {%- endfor %}
         </ul>
     </nav>

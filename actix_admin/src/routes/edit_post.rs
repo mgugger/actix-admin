@@ -4,7 +4,6 @@ use tera::{Context};
 use crate::TERA;
 
 use crate::prelude::*;
-use super::edit_get::edit_get;
 
 pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     _req: HttpRequest,
