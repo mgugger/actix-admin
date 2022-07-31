@@ -10,9 +10,12 @@ mod list;
 pub use list::list;
 
 mod delete_post;
+mod delete_many_post;
 pub use delete_post::delete_post;
+pub use delete_many_post::delete_many_post;
 
 mod edit_get;
 mod edit_post;
 pub use edit_get::edit_get;
 pub use edit_post::edit_post;
+

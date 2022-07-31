@@ -52,6 +52,7 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     ctx.insert("render_partial", &render_partial);
     ctx.insert("num_pages", &num_pages);
     ctx.insert("view_model", &view_model);
+    ctx.insert("search", &search);
 
     let body = TERA
         .render("list.html", &ctx)
