@@ -13,7 +13,8 @@ use struct_fields::{
     get_primary_key_field_name,
     get_actix_admin_fields_select_list,
     get_actix_admin_fields_is_option_list,
-    get_fields_for_validate_model
+    get_fields_for_validate_model,
+    get_actix_admin_fields_searchable
 };
 
 mod selectlist_fields;
@@ -44,6 +45,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
     let fields_for_from_model = get_fields_for_from_model(&fields);
     let field_for_primary_key = get_field_for_primary_key(&fields);
     let fields_for_validate_model = get_fields_for_validate_model(&fields);
+    let fields_searchable = get_actix_admin_fields_searchable(&fields);
 
     let select_lists = get_select_lists(&fields);
 
@@ -96,8 +98,8 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
         #[async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
-            async fn list(db: &DatabaseConnection, page: usize, entities_per_page: usize) -> (usize, Vec<ActixAdminModel>) {
-                let entities = Entity::list_model(db, page, entities_per_page).await;
+            async fn list(db: &DatabaseConnection, page: usize, entities_per_page: usize, search: &String) -> (usize, Vec<ActixAdminModel>) {
+                let entities = Entity::list_model(db, page, entities_per_page, search).await;
                 entities
             }
 
@@ -163,9 +165,13 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
         #[async_trait]
         impl ActixAdminModelTrait for Entity {
-            async fn list_model(db: &DatabaseConnection, page: usize, posts_per_page: usize) -> (usize, Vec<ActixAdminModel>) {
+            async fn list_model(db: &DatabaseConnection, page: usize, posts_per_page: usize, search: &String) -> (usize, Vec<ActixAdminModel>) {
                 use sea_orm::{ query::* };
                 let paginator = Entity::find()
+                    .filter(
+                        Condition::any()
+                        #(#fields_searchable)*
+                    )
                     .order_by_asc(Column::Id)
                     .paginate(db, posts_per_page);
                 let num_pages = paginator.num_pages().await.ok().unwrap();

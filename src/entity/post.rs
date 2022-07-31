@@ -12,8 +12,10 @@ pub struct Model {
     #[serde(skip_deserializing)]
     #[actix_admin(primary_key)]
     pub id: i32,
+    #[actix_admin(searchable)]
     pub title: String,
     #[sea_orm(column_type = "Text")]
+    #[actix_admin(searchable)]
     pub text: String,
     #[actix_admin(select_list="Tea")]
     pub tea_mandatory: Tea,

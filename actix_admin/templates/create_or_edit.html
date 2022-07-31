@@ -8,8 +8,8 @@
             <label for="{{ model_field.field_name }}">
                 {{ model_field.field_name | split(pat="_") | join(sep=" ") | title }}
                 {% if model_field.select_list != "" %}
-                <select name="{{ model_field.field_name }}" 
-                    {% if model.errors | get(key=model_field.field_name, default="" ) !="" %} placeholder="Invalid" aria-invalid="true" {% endif %}>
+                <select name="{{ model_field.field_name }}" {% if model.errors | get(key=model_field.field_name,
+                    default="" ) !="" %} placeholder="Invalid" aria-invalid="true" {% endif %}>
                     {% if model_field.is_option %}
                     <option value=""></option>
                     {% else %}
@@ -17,24 +17,28 @@
                     {% endif %}
                     {% for select_list_item in select_lists[model_field.field_name] -%}
                     <option {% if select_list_item[0]==model.values | get(key=model_field.field_name, default="" ) %}
-                        selected {% endif %} value="{{ select_list_item[0] }}">{{ select_list_item[1] | split(pat="_") | join(sep=" ") | title }}</option>
+                        selected {% endif %} value="{{ select_list_item[0] }}">{{ select_list_item[1] | split(pat="_") |
+                        join(sep=" ") | title }}</option>
                     {%- endfor %}
                 </select>
             </label>
             {% else %}
             <input type="{{ model_field.html_input_type }}"
-                value="{{ model.values | get(key=model_field.field_name, default="") | split(pat="_") | join(sep=" ") | title }}"
-                name="{{ model_field.field_name }}" placeholder="{{ model_field.field_name }}"
-                aria-label="{{ model_field.field_name }}"
-                {% if model.errors | get(key=model_field.field_name, default="") != "" %}
-                placeholder="Invalid" aria-invalid="true"
-                {% endif %}
-            >
+                value="{{ model.values | get(key=model_field.field_name, default="") | split(pat=" _") | join(sep=" " )
+                | title }}" name="{{ model_field.field_name }}" placeholder="{{ model_field.field_name }}"
+                aria-label="{{ model_field.field_name }}" {% if model.errors | get(key=model_field.field_name,
+                default="" ) !="" %} placeholder="Invalid" aria-invalid="true" {% endif %}>
             {% endif %}
             </label>
             {%- endfor %}
-            <button type="submit">Save</button>
-            <a href="{{ list_link }}" role="button" class="secondary">Cancel</a>
+            <div class="grid">
+                <div>
+                    <button type="submit">Save</button>
+                </div>
+                <div>
+                    <a href="{{ list_link }}" role="button" class="secondary full-width">Cancel</a>
+                </div>
+            </div>
         </div>
     </form>
 </article>

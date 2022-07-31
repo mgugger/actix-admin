@@ -6,23 +6,21 @@
 <article>
     <div class="grid">
         <div>
-            <a href="create" role="button">Create</a>
-        </div>
-        <!--
-        <div>
             <details role="list">
                 <summary aria-haspopup="listbox" role="button">
-                    With selected
+                    Actions
                 </summary>
                 <ul role="listbox">
-                    <li><a>Delete</a></li>
+                    <li><a href="create">Create</a></li>
+                    <li><a>Delete Selected</a></li>
                 </ul>
             </details>
-        </div>-->
+        </div>
         <div>
             <input type="search" id="search" name="search" placeholder="Search" 
                 hx-get="/admin/{{ entity_name }}/list?render_partial=true&entities_per_page={{ entities_per_page }}&page={{ page }}"
                 hx-trigger="keyup changed delay:500ms, search" hx-target="#{{ entity_name }}table"
+                hx-indicator=".htmx-indicator"
                 >
         </div>
     </div>
@@ -32,7 +30,7 @@
             <thead>
                 <tr>
                     <th>
-                        <!-- Select Checkbox -->
+                        <div class="htmx-indicator">{% include "spinner.svg" %}</div>
                     </th>
                     <th>{{ view_model.primary_key | title }}</th>
                     {% for model_field in view_model.fields -%}

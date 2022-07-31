@@ -10,6 +10,7 @@ pub trait ActixAdminModelTrait {
         db: &DatabaseConnection,
         page: usize,
         posts_per_page: usize,
+        search: &String
     ) -> (usize, Vec<ActixAdminModel>);
     fn get_fields() -> Vec<ActixAdminViewModelField>;
     fn validate_model(model: &ActixAdminModel) -> HashMap<String, String>;

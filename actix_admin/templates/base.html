@@ -5,7 +5,7 @@
 
 {% else %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="utf-8">
@@ -15,11 +15,12 @@
     <script src="https://unpkg.com/htmx.org@1.7.0"></script>
 
     <style type="text/css">
+        .full-width { width: 100%; }
     </style>
 </head>
 
 <body>
-    <main class="container">
+    <main class="container-fluid">
         {% include "header.html" %}
         <div>
             {% block content %}

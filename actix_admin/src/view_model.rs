@@ -10,6 +10,7 @@ pub trait ActixAdminViewModelTrait {
         db: &DatabaseConnection,
         page: usize,
         entities_per_page: usize,
+        search: &String
     ) -> (usize, Vec<ActixAdminModel>);
     
     // TODO: Replace return value with proper Result Type containing Ok or Err

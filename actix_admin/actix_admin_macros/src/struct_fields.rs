@@ -1,8 +1,8 @@
 use crate::attributes::derive_attr;
 use crate::model_fields::ModelField;
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{DeriveInput, Fields, LitStr};
+use syn::{DeriveInput, Fields, LitStr, Ident};
 
 pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::Vec<ModelField> {
     let ast: DeriveInput = syn::parse(input).unwrap();
@@ -14,6 +14,10 @@ pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::V
         _ => panic!("FieldNames can only be derived for structs"),
     });
     fields
+}
+
+fn capitalize_first_letter(s: &str) -> String {
+    s[0..1].to_uppercase() + &s[1..]
 }
 
 pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
@@ -31,6 +35,9 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let is_primary_key = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.primary_key.is_some());
+                let is_searchable = actix_admin_attr
+                    .clone()
+                    .map_or(false, |attr| attr.searchable.is_some());
                 let select_list = actix_admin_attr.clone().map_or("".to_string(), |attr| {
                     attr.select_list.map_or("".to_string(), |attr_field| {
                         (LitStr::from(attr_field)).value()
@@ -51,6 +58,7 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     primary_key: is_primary_key,
                     html_input_type: html_input_type,
                     select_list: select_list,
+                    searchable: is_searchable
                 };
                 Some(model_field)
             } else {
@@ -141,6 +149,20 @@ pub fn get_actix_admin_fields_html_input(fields: &Vec<ModelField>) -> Vec<TokenS
 
             quote! {
                 #html_input_type
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
+pub fn get_actix_admin_fields_searchable(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+        .iter()
+        .filter(|model_field| model_field.searchable)
+        .map(|model_field| {
+            let column_name = format!("{}", capitalize_first_letter(&model_field.ident.to_string()));
+            let column_ident = Ident::new(&column_name, Span::call_site());
+            quote! {
+                .add(Column::#column_ident.contains(&search))
             }
         })
         .collect::<Vec<_>>()

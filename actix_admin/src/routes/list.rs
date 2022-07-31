@@ -35,9 +35,10 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
         .entities_per_page
         .unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
     let render_partial = params.render_partial.unwrap_or(false);
+    let search = params.search.clone().unwrap_or(String::new());
 
     let db = data.get_db();
-    let result: (usize, Vec<ActixAdminModel>) = E::list(db, page, entities_per_page).await;
+    let result: (usize, Vec<ActixAdminModel>) = E::list(db, page, entities_per_page, &search).await;
     let entities = result.1;
     let num_pages = result.0;
 
