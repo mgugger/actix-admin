@@ -33,7 +33,6 @@
                     <tr>
                         <th>
                             <input type="checkbox" onclick="checkAll(this)">
-                            <!-- <div class="htmx-indicator">{% include "spinner.svg" %}</div>-->
                         </th>
                         <th>{{ view_model.primary_key | title }}</th>
                         {% for model_field in view_model.fields -%}
@@ -80,7 +79,7 @@
         <div class="grid">
             <div></div>
             <div></div>
-            <div></div>
+            <div class="htmx-indicator">{% include "spinner.svg" %}</div>
             <div>
                 <form>
                     <input type="hidden" value="{{ search }}" name="search">
