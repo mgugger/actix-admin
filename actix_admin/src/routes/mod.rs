@@ -9,10 +9,8 @@ pub use index::index;
 mod list;
 pub use list::list;
 
-mod delete_post;
-mod delete_many_post;
-pub use delete_post::delete_post;
-pub use delete_many_post::delete_many_post;
+mod delete;
+pub use delete::{ delete, delete_many };
 
 mod edit_get;
 mod edit_post;

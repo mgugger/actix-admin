@@ -142,9 +142,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
             }
 
             async fn delete_entity(db: &DatabaseConnection, id: i32) -> bool {
-                // TODO: separate primary key from other keys
-                let entity = Entity::find_by_id(id).one(db).await.unwrap().unwrap();
-                let result = entity.delete(db).await;
+                let result = Entity::delete_by_id(id).exec(db).await;
 
                 match result {
                     Ok(_) => true,

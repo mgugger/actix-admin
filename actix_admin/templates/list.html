@@ -12,7 +12,7 @@
                 </summary>
                 <ul role="listbox">
                     <li><a href="create">Create</a></li>
-                    <li><a href="#" hx-post="delete_many">Delete Selected</a></li>
+                    <li><a href="#" hx-delete="delete">Delete Selected</a></li>
                 </ul>
             </details>
         </div>
@@ -32,7 +32,8 @@
                 <thead>
                     <tr>
                         <th>
-                            <div class="htmx-indicator">{% include "spinner.svg" %}</div>
+                            <input type="checkbox">
+                            <!-- <div class="htmx-indicator">{% include "spinner.svg" %}</div>-->
                         </th>
                         <th>{{ view_model.primary_key | title }}</th>
                         {% for model_field in view_model.fields -%}
@@ -54,7 +55,7 @@
                         {%- endfor %}
                         <td>
                             <a href="edit/{{ entity.primary_key }}">&#9998;</a>
-                            <a hx-post="delete/{{ entity.primary_key }}">&#128465;</a>
+                            <a hx-delete="delete/{{ entity.primary_key }}">&#128465;</a>
                         </td>
                     </tr>
                     {%- endfor %}

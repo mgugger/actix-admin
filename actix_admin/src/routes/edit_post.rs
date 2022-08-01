@@ -33,7 +33,7 @@ pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
     }
     else {
-    Ok(HttpResponse::Found()
+    Ok(HttpResponse::SeeOther()
         .append_header((
             header::LOCATION,
             format!("/admin/{}/list", view_model.entity_name),

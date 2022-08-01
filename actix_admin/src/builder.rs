@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::prelude::*;
 
-use crate::routes::{create_get, create_post, delete_post, delete_many_post, edit_get, edit_post, index, list};
+use crate::routes::{create_get, create_post, delete, delete_many, edit_get, edit_post, index, list};
 
 pub struct ActixAdminBuilder {
     pub scopes: Vec<actix_web::Scope>,
@@ -42,8 +42,8 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 .route("/create", web::post().to(create_post::<T, E>))
                 .route("/edit/{id}", web::get().to(edit_get::<T, E>))
                 .route("/edit/{id}", web::post().to(edit_post::<T, E>))
-                .route("/delete/{id}", web::post().to(delete_post::<T, E>))
-                .route("/delete_many", web::post().to(delete_many_post::<T, E>))
+                .route("/delete", web::delete().to(delete_many::<T, E>))
+                .route("/delete/{id}", web::delete().to(delete::<T, E>))
         );
 
         self.actix_admin.entity_names.push(E::get_entity_name());
