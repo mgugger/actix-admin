@@ -12,7 +12,7 @@
                 </summary>
                 <ul role="listbox">
                     <li><a href="create">Create</a></li>
-                    <li><a href="#" hx-delete="delete">Delete Selected</a></li>
+                    <li><a href="#" hx-confirm="Are you sure?" hx-delete="delete">Delete Selected</a></li>
                 </ul>
             </details>
         </div>
@@ -32,7 +32,7 @@
                 <thead>
                     <tr>
                         <th>
-                            <input type="checkbox">
+                            <input type="checkbox" onclick="checkAll(this)">
                             <!-- <div class="htmx-indicator">{% include "spinner.svg" %}</div>-->
                         </th>
                         <th>{{ view_model.primary_key | title }}</th>
@@ -48,7 +48,7 @@
                 <tbody hx-confirm="Are you sure?" hx-target="closest tr" hx-swap="outerHTML">
                     {% for entity in entities -%}
                     <tr>
-                        <td><input type="checkbox" name="ids" value="{{ entity.primary_key }}" name="terms"></td>
+                        <td><input type="checkbox" name="ids" value="{{ entity.primary_key }}"></td>
                         <td>{{ entity.primary_key }}</td>
                         {% for model_field in view_model.fields -%}
                         <td>{{ entity.values | get(key=model_field.field_name) }}</td>
