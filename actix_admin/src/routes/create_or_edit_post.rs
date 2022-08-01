@@ -11,12 +11,30 @@ pub async fn create_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     text: String,
 ) -> Result<HttpResponse, Error> {
     let db = &data.get_db();
+    let mut model = ActixAdminModel::from(text);
+    model = E::create_entity(db, model).await;
+
+    create_or_edit_post::<T, E>(&data, db, model).await
+}
+
+pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+    _req: HttpRequest,
+    data: web::Data<T>,
+    text: String,
+    id: web::Path<i32>
+) -> Result<HttpResponse, Error> {
+    let db = &data.get_db();
+    let mut model = ActixAdminModel::from(text);
+    model = E::edit_entity(db, id.into_inner(), model).await;
+
+    create_or_edit_post::<T, E>(&data, db, model).await
+}
+
+async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(data: &web::Data<T>, db: &sea_orm::DatabaseConnection, model: ActixAdminModel) -> Result<HttpResponse, Error> {
     let entity_name = E::get_entity_name();
     let entity_names = &data.get_actix_admin().entity_names;
     let actix_admin = data.get_actix_admin();
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
-    let mut model = ActixAdminModel::from(text);
-    model = E::create_entity(db, model).await;
 
     if model.has_errors() {
         let mut ctx = Context::new();
@@ -33,10 +51,10 @@ pub async fn create_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     }
     else {
         Ok(HttpResponse::SeeOther()
-        .append_header((
-            header::LOCATION,
-            format!("/admin/{}/list", view_model.entity_name),
-        ))
-        .finish())
-    }
+            .append_header((
+                header::LOCATION,
+                format!("/admin/{}/list", view_model.entity_name),
+            ))
+            .finish())
+        }
 }

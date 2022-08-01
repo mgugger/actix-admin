@@ -1,7 +1,8 @@
-mod create_get;
-mod create_post;
-pub use create_get::create_get;
-pub use create_post::create_post;
+mod create_or_edit_get;
+pub use create_or_edit_get::{create_get, edit_get};
+
+mod create_or_edit_post;
+pub use create_or_edit_post::{ create_post, edit_post };
 
 mod index;
 pub use index::index;
@@ -11,9 +12,3 @@ pub use list::list;
 
 mod delete;
 pub use delete::{ delete, delete_many };
-
-mod edit_get;
-mod edit_post;
-pub use edit_get::edit_get;
-pub use edit_post::edit_post;
-

@@ -5,6 +5,18 @@ use crate::prelude::*;
 
 use crate::TERA;
 
+pub async fn create_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+    _req: HttpRequest,
+    data: web::Data<T>,
+    _body: web::Payload,
+    text: String,
+) -> Result<HttpResponse, Error> {
+    let db = &data.get_db();
+    let model = ActixAdminModel::from(text);
+    
+    create_or_edit_get::<T, E>(&data, db, model).await
+}
+
 pub async fn edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     _req: HttpRequest,
     data: web::Data<T>,
@@ -12,6 +24,12 @@ pub async fn edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     id: web::Path<i32>
 ) -> Result<HttpResponse, Error> {
     let db = &data.get_db();
+    let model = E::get_entity(db, id.into_inner()).await;
+
+    create_or_edit_get::<T, E>(&data, db, model).await
+}
+
+async fn create_or_edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(data: &web::Data<T>, db: &sea_orm::DatabaseConnection, model: ActixAdminModel) -> Result<HttpResponse, Error>{
     let entity_name = E::get_entity_name();
     let entity_names = &data.get_actix_admin().entity_names;
 
@@ -19,14 +37,12 @@ pub async fn edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
 
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
 
-    let model = E::get_entity(db, id.into_inner()).await;
-
     let mut ctx = Context::new();
     ctx.insert("entity_names", &entity_names);
     ctx.insert("view_model", &view_model);
-    ctx.insert("model", &model);
     ctx.insert("select_lists", &E::get_select_lists(db).await);
     ctx.insert("list_link", &E::get_list_link(&entity_name));
+    ctx.insert("model", &model);
 
     let body = TERA
         .render("create_or_edit.html", &ctx)
