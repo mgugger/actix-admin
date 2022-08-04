@@ -2,29 +2,20 @@ use proc_macro;
 use quote::quote;
 
 mod struct_fields;
-use struct_fields::{ 
-    get_fields_for_tokenstream, 
-    get_fields_for_edit_model, 
-    get_fields_for_from_model, 
-    get_actix_admin_fields_html_input, 
-    get_fields_for_create_model, 
-    get_actix_admin_fields, 
-    get_field_for_primary_key, 
+use struct_fields::{
+    get_actix_admin_fields, get_actix_admin_fields_html_input,
+    get_actix_admin_fields_is_option_list, get_actix_admin_fields_searchable,
+    get_actix_admin_fields_select_list, get_actix_admin_fields_type_path_string,
+    get_field_for_primary_key, get_fields_for_create_model, get_fields_for_edit_model,
+    get_fields_for_from_model, get_fields_for_tokenstream, get_fields_for_validate_model,
     get_primary_key_field_name,
-    get_actix_admin_fields_select_list,
-    get_actix_admin_fields_is_option_list,
-    get_fields_for_validate_model,
-    get_actix_admin_fields_searchable
 };
 
 mod selectlist_fields;
-use selectlist_fields::{
-    get_select_list,
-    get_select_lists
-};
+use selectlist_fields::{get_select_list, get_select_lists};
 
-mod model_fields;
 mod attributes;
+mod model_fields;
 
 #[proc_macro_derive(DeriveActixAdminSelectList, attributes(actix_admin))]
 pub fn derive_actix_admin_select_list(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -46,6 +37,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
     let field_for_primary_key = get_field_for_primary_key(&fields);
     let fields_for_validate_model = get_fields_for_validate_model(&fields);
     let fields_searchable = get_actix_admin_fields_searchable(&fields);
+    let fields_type_path = get_actix_admin_fields_type_path_string(&fields);
 
     let select_lists = get_select_lists(&fields);
 
@@ -120,7 +112,6 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 // TODO: separate primary key from other keys
                 let entity = Entity::find_by_id(id).one(db).await.unwrap().unwrap();
                 let model = ActixAdminModel::from(entity);
-                
                 model
             }
 
@@ -134,10 +125,8 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                     let mut entity: ActiveModel = entity.unwrap().into();
 
                     #(#fields_for_edit_model);*;
-                    
                     let entity: Model = entity.update(db).await.unwrap();
                 }
-                
                 model
             }
 
@@ -187,12 +176,9 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 (num_pages, model_entities)
             }
 
-            
             fn validate_model(model: &ActixAdminModel) -> HashMap<String, String> {
                 let mut errors = HashMap::<String, String>::new();
-                
                 #(#fields_for_validate_model);*;
-                
                 //let mut custom_errors = Entity.validate();
                 //errors.append(&mut custom_errors);
                 errors
@@ -205,7 +191,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                         #(#field_names),*
                 ).split(",")
                 .collect::<Vec<_>>();
-                
+
                 let html_input_types = stringify!(
                     #(#field_html_input_type),*
                 ).split(",")
@@ -220,14 +206,19 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                     #(#is_option_list),*
                 ];
 
-                for (field_name, html_input_type, select_list, is_option_list) in izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists) {
-                        vec.push(ActixAdminViewModelField {
-                            field_name: field_name.replace('"', "").replace(' ', "").to_string(),
-                            html_input_type: html_input_type.replace('"', "").replace(' ', "").to_string(),
-                            select_list: select_list.replace('"', "").replace(' ', "").to_string(),
-                            is_option: is_option_list
-                        });
-                    }
+                let fields_type_paths = [
+                    #(#fields_type_path),*
+                ];
+
+                for (field_name, html_input_type, select_list, is_option_list, fields_type_path) in izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths) {
+                    vec.push(ActixAdminViewModelField {
+                        field_name: field_name.replace('"', "").replace(' ', "").to_string(),
+                        html_input_type: html_input_type.replace('"', "").replace(' ', "").to_string(),
+                        select_list: select_list.replace('"', "").replace(' ', "").to_string(),
+                        is_option: is_option_list,
+                        field_type: ActixAdminViewModelFieldType::from(fields_type_path)
+                    });
+                }
                 vec
             }
         }

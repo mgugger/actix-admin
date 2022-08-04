@@ -43,9 +43,9 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                         (LitStr::from(attr_field)).value()
                     })
                 });
-                let html_input_type = actix_admin_attr.map_or("text".to_string(), |attr| {
+                let html_input_type = actix_admin_attr.map_or("".to_string(), |attr| {
                     attr.html_input_type
-                        .map_or("text".to_string(), |attr_field| {
+                        .map_or("".to_string(), |attr_field| {
                             (LitStr::from(attr_field)).value()
                         })
                 });
@@ -135,6 +135,20 @@ pub fn get_actix_admin_fields_is_option_list(fields: &Vec<ModelField>) -> Vec<To
 
             quote! {
                 #is_option
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
+pub fn get_actix_admin_fields_type_path_string(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+        .iter()
+        .filter(|model_field| !model_field.primary_key)
+        .map(|model_field| {
+            let type_path_string = model_field.get_type_path_string();
+
+            quote! {
+                #type_path_string
             }
         })
         .collect::<Vec<_>>()

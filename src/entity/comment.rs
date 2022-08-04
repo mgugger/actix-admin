@@ -11,10 +11,11 @@ pub struct Model {
     pub id: i32,
     pub comment: String,
     #[sea_orm(column_type = "Text")]
+    #[actix_admin(html_input_type = "email")]
     pub user: String,
     #[sea_orm(column_type = "DateTime")]
-    #[actix_admin(html_input_type = "datetime-local")]
-    pub insert_date: DateTimeWithTimeZone
+    pub insert_date: DateTimeWithTimeZone,
+    pub is_visible: bool
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

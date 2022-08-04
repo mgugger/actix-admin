@@ -1,9 +1,9 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use actix_admin::prelude::*; 
-use std::str::FromStr;
 use std::fmt;
 use std::fmt::Display;
+use std::str::FromStr;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, DeriveActixAdminModel)]
 #[sea_orm(table_name = "post")]

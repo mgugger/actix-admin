@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use sea_orm::DatabaseConnection;
-use serde::{Serialize};
+use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use crate::ActixAdminModel;
+use std::convert::From;
 
 #[async_trait(?Send)]
 pub trait ActixAdminViewModelTrait {
@@ -34,10 +35,37 @@ pub struct ActixAdminViewModel {
     pub fields: Vec<ActixAdminViewModelField>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum ActixAdminViewModelFieldType {
+    Number,
+    Text,
+    TextArea,
+    Checkbox,
+    Date,
+    Time,
+    DateTime,
+    SelectList
+}
+
+impl From<&str> for ActixAdminViewModelFieldType {
+    fn from(input: &str) -> ActixAdminViewModelFieldType {
+        match input {
+            "i32" => ActixAdminViewModelFieldType::Number,
+            "i64" => ActixAdminViewModelFieldType::Number,
+            "usize" => ActixAdminViewModelFieldType::Number,
+            "String"  => ActixAdminViewModelFieldType::Text,
+            "bool"  => ActixAdminViewModelFieldType::Checkbox,
+            "DateTimeWithTimeZone" => ActixAdminViewModelFieldType::DateTime,
+            _      => ActixAdminViewModelFieldType::Text
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ActixAdminViewModelField {
     pub field_name: String,
     pub html_input_type: String,
     pub select_list: String,
-    pub is_option: bool
+    pub is_option: bool,
+    pub field_type: ActixAdminViewModelFieldType
 }

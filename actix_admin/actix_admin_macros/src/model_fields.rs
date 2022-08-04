@@ -28,4 +28,21 @@ impl ModelField {
             _ => false
         }
     }
+
+    pub fn get_type_path_string(&self) -> String {
+        let type_path_string: String;
+        if self.is_option() {
+            match &self.inner_type.clone().unwrap() {
+                Type::Path(type_path) => type_path_string = type_path.clone().into_token_stream().to_string(),
+                _ => panic!("not a type path")
+            }
+        } else {
+            match &self.ty {
+                Type::Path(type_path) => type_path_string = type_path.clone().into_token_stream().to_string(),
+                _ => panic!("not a type path")
+            }
+        }
+        
+        type_path_string
+    }
 }
