@@ -1,12 +1,32 @@
-<header>
-    <nav>
-        <ul>
-            <li><a href="/admin/">Actix Admin</a></li>
-        </ul>
-        <ul>
+    <nav class="navbar is-dark mb-4" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+          <a class="navbar-item" href="/admin/">
+            Actix Admin
+          </a>
+      
+          <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+          </a>
+        </div>
+      
+        <div id="navbarBasicExample" class="navbar-menu">
+          <div class="navbar-start">
             {% for entity_name in entity_names -%}
-            <li><a href="/admin/{{ entity_name }}/list" class="secondary">{{ entity_name | title }}</a></li>
+            <a href="/admin/{{ entity_name }}/list" class="navbar-item">{{ entity_name | title }}</a>
             {%- endfor %}
-        </ul>
-    </nav>
-</header>
+
+          </div>
+      
+          <div class="navbar-end">
+            <div class="navbar-item">
+              <div class="buttons">
+                <a class="button is-light">
+                  Log in
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>

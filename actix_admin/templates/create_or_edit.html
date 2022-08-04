@@ -1,15 +1,16 @@
 {% extends "base.html" %}
 
 {% block content %}
-<article>
-    <form method="post">
-        <div>
-            {% for model_field in view_model.fields -%}
-            <label for="{{ model_field.field_name }}">
-                {{ model_field.field_name | split(pat="_") | join(sep=" ") | title }}
-                {% if model_field.select_list != "" %}
-                <select name="{{ model_field.field_name }}" {% if model.errors | get(key=model_field.field_name,
-                    default="" ) !="" %} placeholder="Invalid" aria-invalid="true" {% endif %}>
+<form method="post">
+    {% for model_field in view_model.fields -%}
+    <div class="field">
+        <label for="{{ model_field.field_name }}">
+            {{ model_field.field_name | split(pat="_") | join(sep=" ") | title }}
+        </label>
+        {% if model_field.select_list != "" %}
+        <div class="control">
+            <div class="select {% if model.errors | get(key=model_field.field_name, default="" ) !="" %}is-danger{% endif %}">
+                <select name="{{ model_field.field_name }}">
                     {% if model_field.is_option %}
                     <option value=""></option>
                     {% else %}
@@ -21,25 +22,28 @@
                         join(sep=" ") | title }}</option>
                     {%- endfor %}
                 </select>
-            </label>
-            {% else %}
-            <input type="{{ model_field.html_input_type }}"
-                value="{{ model.values | get(key=model_field.field_name, default="") | split(pat=" _") | join(sep=" " )
-                | title }}" name="{{ model_field.field_name }}" placeholder="{{ model_field.field_name }}"
-                aria-label="{{ model_field.field_name }}" {% if model.errors | get(key=model_field.field_name,
-                default="" ) !="" %} placeholder="Invalid" aria-invalid="true" {% endif %}>
-            {% endif %}
-            </label>
-            {%- endfor %}
-            <div class="grid">
-                <div>
-                    <button type="submit">Save</button>
-                </div>
-                <div>
-                    <a href="{{ list_link }}" role="button" class="secondary full-width">Cancel</a>
-                </div>
             </div>
         </div>
-    </form>
-</article>
+        {% else %}
+        <div class="control">
+            <input class="input {% if model.errors | get(key=model_field.field_name,default="" ) !="" %}is-danger{% endif %}" 
+                type="{{ model_field.html_input_type }}"
+                value="{{ model.values | get(key=model_field.field_name, default="") | split(pat=" _") | join(sep=" " ) | title }}" 
+                name="{{ model_field.field_name }}" 
+                placeholder="{{ model_field.field_name }}"
+                aria-label="{{ model_field.field_name }}" 
+                >
+        </div>
+        {% endif %}
+    </div>
+    {%- endfor %}
+    <div class="field is-grouped">
+        <div class="control">
+            <button class="button is-link" type="submit">Save</button>
+        </div>
+        <div class="control">
+            <a class="button is-link is-light" href="{{ list_link }}">Cancel</a>
+        </div>
+    </div>
+</form>
 {% endblock content %}

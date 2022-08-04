@@ -9,14 +9,12 @@
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Actix Admin</title>
 
-    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css" integrity="sha512-1sCRPdkRXhBV2PBLUdRb4tMg1w2YPf37qatUFeS7zlBy7jJI8Lf4VHwWfZZfpXtYSLy85pkm9GaYVYMfw5BC1A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://unpkg.com/htmx.org@1.7.0"></script>
-
-    <style type="text/css">
-        .full-width { width: 100%; }
-    </style>
 
     <script>
         function checkAll(bx) {
@@ -31,13 +29,11 @@
 </head>
 
 <body>
-    <main class="container-fluid">
         {% include "header.html" %}
-        <div>
+        <div class="container is-fluid">
             {% block content %}
             {% endblock content %}
         </div>
-    </main>
 </body>
 
 </html>
