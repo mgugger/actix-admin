@@ -67,7 +67,6 @@ pub fn get_html_input_type<S: BuildHasher>(value: &tera::Value, _: &HashMap<Stri
     Ok(to_value(html_input_type).unwrap())
 }
 
-
 // AppDataTrait
 pub trait ActixAdminAppDataTrait {
     fn get_db(&self) -> &DatabaseConnection;

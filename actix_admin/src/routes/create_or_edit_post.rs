@@ -2,16 +2,17 @@ use actix_web::http::header;
 use actix_web::{web, error, Error, HttpRequest, HttpResponse};
 use tera::{Context};
 use crate::TERA;
+use actix_multipart::Multipart;
 
 use crate::prelude::*;
 
 pub async fn create_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     _req: HttpRequest,
     data: web::Data<T>,
-    text: String,
+    payload: Multipart,
 ) -> Result<HttpResponse, Error> {
     let db = &data.get_db();
-    let mut model = ActixAdminModel::from(text);
+    let mut model = ActixAdminModel::create_from_payload(payload).await.unwrap();
     model = E::create_entity(db, model).await;
 
     create_or_edit_post::<T, E>(&data, db, model).await
@@ -20,11 +21,11 @@ pub async fn create_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
 pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     _req: HttpRequest,
     data: web::Data<T>,
-    text: String,
+    payload: Multipart,
     id: web::Path<i32>
 ) -> Result<HttpResponse, Error> {
     let db = &data.get_db();
-    let mut model = ActixAdminModel::from(text);
+    let mut model = ActixAdminModel::create_from_payload(payload).await.unwrap();
     model = E::edit_entity(db, id.into_inner(), model).await;
 
     create_or_edit_post::<T, E>(&data, db, model).await
@@ -35,6 +36,7 @@ async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTr
     let entity_names = &data.get_actix_admin().entity_names;
     let actix_admin = data.get_actix_admin();
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
+    println!("{:?}", model);
 
     if model.has_errors() {
         let mut ctx = Context::new();

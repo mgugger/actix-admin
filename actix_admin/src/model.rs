@@ -3,6 +3,8 @@ use async_trait::async_trait;
 use sea_orm::DatabaseConnection;
 use serde::Serialize;
 use std::collections::HashMap;
+use actix_multipart:: {Multipart, MultipartError} ;
+use futures_util::stream::StreamExt as _;
 
 #[async_trait]
 pub trait ActixAdminModelTrait {
@@ -27,29 +29,41 @@ pub struct ActixAdminModel {
     pub errors: HashMap<String, String>,
 }
 
-impl From<String> for ActixAdminModel {
-    fn from(string: String) -> Self {
-        let mut hashmap = HashMap::new();
-        let key_values: Vec<&str> = string.split('&').collect();
-        for key_value in key_values {
-            if !key_value.is_empty() {
-                let mut iter = key_value.splitn(2, '=');
-                hashmap.insert(
-                    iter.next().unwrap().to_string(),
-                    iter.next().unwrap().to_string(),
-                );
-            }
-        }
-
+impl ActixAdminModel {
+    pub fn create_empty() -> ActixAdminModel {
         ActixAdminModel {
             primary_key: None,
-            values: hashmap,
+            values: HashMap::new(),
             errors: HashMap::new(),
         }
     }
-}
 
-impl ActixAdminModel {
+    pub async fn create_from_payload(mut payload: Multipart) -> Result<ActixAdminModel, MultipartError> {
+        let mut hashmap = HashMap::<String, String>::new();
+    
+        while let Some(item) = payload.next().await {
+            let mut field = item?;
+    
+            // TODO: how to handle binary chunks?
+            while let Some(chunk) = field.next().await {
+                //println!("-- CHUNK: \n{:?}", String::from_utf8(chunk.map_or(Vec::new(), |c| c.to_vec())));
+                let res_string = String::from_utf8(chunk.map_or(Vec::new(), |c| c.to_vec()));
+                if res_string.is_ok() {
+                    hashmap.insert(
+                        field.name().to_string(),
+                        res_string.unwrap()
+                    );
+                }
+            }
+        }
+
+        Ok(ActixAdminModel {
+            primary_key: None,
+            values: hashmap,
+            errors: HashMap::new(),
+        })
+    }
+
     pub fn get_value<T: std::str::FromStr>(&self, key: &str, is_option_or_string: bool) -> Result<Option<T>, String> {
         let value = self.values.get(key);
 
@@ -60,6 +74,7 @@ impl ActixAdminModel {
                 }
 
                 let parsed_val = val.parse::<T>();
+                println!("{:?}", val);
 
                 match parsed_val {
                     Ok(val) => Ok(Some(val)),

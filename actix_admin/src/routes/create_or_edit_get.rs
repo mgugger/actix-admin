@@ -9,10 +9,10 @@ pub async fn create_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     _req: HttpRequest,
     data: web::Data<T>,
     _body: web::Payload,
-    text: String,
+    _text: String,
 ) -> Result<HttpResponse, Error> {
     let db = &data.get_db();
-    let model = ActixAdminModel::from(text);
+    let model = ActixAdminModel::create_empty();
     
     create_or_edit_get::<T, E>(&data, db, model).await
 }
