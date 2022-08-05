@@ -264,6 +264,11 @@ pub fn get_fields_for_validate_model(fields: &Vec<ModelField>) -> Vec<TokenStrea
                     model.get_datetime(#ident_name, #is_option_or_string).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
                 }
             },
+            (_, "Date") => {
+                quote! {
+                    model.get_date(#ident_name, #is_option_or_string).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
+                }
+            },
             (_, "bool") => {
                 quote! {
                     model.get_bool(#ident_name, #is_option_or_string).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
@@ -311,6 +316,16 @@ pub fn get_fields_for_create_model(fields: &Vec<ModelField>) -> Vec<TokenStream>
                 (false , _, "DateTime") => {
                     quote! {
                         #ident: Set(model.get_datetime(#ident_name, #is_option_or_string).unwrap().unwrap())
+                    }
+                },
+                (true , _, "Date") => {
+                    quote! {
+                        #ident: Set(model.get_date(#ident_name, #is_option_or_string).unwrap())
+                    }
+                },
+                (false , _, "Date") => {
+                    quote! {
+                        #ident: Set(model.get_date(#ident_name, #is_option_or_string).unwrap().unwrap())
                     }
                 },
                 (_ , _, "bool") => {
@@ -371,6 +386,16 @@ pub fn get_fields_for_edit_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
                 (false , _, "DateTime") => {
                     quote! {
                         entity.#ident = Set(model.get_datetime(#ident_name, #is_option_or_string).unwrap().unwrap())
+                    }
+                },
+                (true , _, "Date") => {
+                    quote! {
+                        entity.#ident = Set(model.get_date(#ident_name, #is_option_or_string).unwrap())
+                    }
+                },
+                (false , _, "Date") => {
+                    quote! {
+                        entity.#ident = Set(model.get_date(#ident_name, #is_option_or_string).unwrap().unwrap())
                     }
                 },
                 (true, _, _) => {

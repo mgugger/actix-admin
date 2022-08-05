@@ -21,6 +21,7 @@ pub struct Model {
     pub tea_mandatory: Tea,
     #[actix_admin(select_list="Tea")]
     pub tea_optional: Option<Tea>,
+    pub insert_date: Date,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

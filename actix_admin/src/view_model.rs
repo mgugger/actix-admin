@@ -59,7 +59,6 @@ pub struct ActixAdminViewModelField {
 impl ActixAdminViewModelFieldType {
     pub fn get_field_type(type_path: &str, select_list: String) -> ActixAdminViewModelFieldType {
         if !select_list.is_empty() {
-            println!("field_type {} {}", type_path, select_list);
             return ActixAdminViewModelFieldType::SelectList;
         }
 

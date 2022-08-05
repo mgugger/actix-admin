@@ -7,8 +7,6 @@ use actix_multipart:: {Multipart, MultipartError} ;
 use futures_util::stream::StreamExt as _;
 use chrono::{NaiveDateTime, NaiveDate};
 use sea_orm::prelude::*;
-use std::str::FromStr;
-
 
 #[async_trait]
 pub trait ActixAdminModelTrait {
@@ -75,6 +73,10 @@ impl ActixAdminModel {
 
     pub fn get_datetime(&self, key: &str, is_option_or_string: bool) -> Result<Option<DateTime>, String> {
         self.get_value_by_closure(key, is_option_or_string, |val| NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M"))
+    }
+
+    pub fn get_date(&self, key: &str, is_option_or_string: bool) -> Result<Option<Date>, String> {
+        self.get_value_by_closure(key, is_option_or_string, |val| NaiveDate::parse_from_str(val, "%Y-%m-%d"))
     }
 
     pub fn get_bool(&self, key: &str, is_option_or_string: bool) -> Result<Option<bool>, String> {
