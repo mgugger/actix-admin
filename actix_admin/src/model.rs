@@ -5,6 +5,10 @@ use serde::Serialize;
 use std::collections::HashMap;
 use actix_multipart:: {Multipart, MultipartError} ;
 use futures_util::stream::StreamExt as _;
+use chrono::{NaiveDateTime, NaiveDate};
+use sea_orm::prelude::*;
+use std::str::FromStr;
+
 
 #[async_trait]
 pub trait ActixAdminModelTrait {
@@ -28,6 +32,7 @@ pub struct ActixAdminModel {
     pub values: HashMap<String, String>,
     pub errors: HashMap<String, String>,
 }
+
 
 impl ActixAdminModel {
     pub fn create_empty() -> ActixAdminModel {
@@ -65,6 +70,23 @@ impl ActixAdminModel {
     }
 
     pub fn get_value<T: std::str::FromStr>(&self, key: &str, is_option_or_string: bool) -> Result<Option<T>, String> {
+        self.get_value_by_closure(key, is_option_or_string, |val| val.parse::<T>())
+    }
+
+    pub fn get_datetime(&self, key: &str, is_option_or_string: bool) -> Result<Option<DateTime>, String> {
+        self.get_value_by_closure(key, is_option_or_string, |val| NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M"))
+    }
+
+    pub fn get_bool(&self, key: &str, is_option_or_string: bool) -> Result<Option<bool>, String> {
+        let val = self.get_value_by_closure(key, is_option_or_string, |val| if !val.is_empty() { Ok(true) } else { Ok(false) });
+        // not selected bool field equals to false and not to missing
+        match val {
+            Ok(val) => Ok(val),
+            Err(_) => Ok(Some(false))
+        }
+    }
+
+    fn get_value_by_closure<T: std::str::FromStr>(&self, key: &str, is_option_or_string: bool, f: impl Fn(&String) -> Result<T, <T as std::str::FromStr>::Err>) -> Result<Option<T>, String> {
         let value = self.values.get(key);
 
         let res: Result<Option<T>, String> = match value {
@@ -73,7 +95,7 @@ impl ActixAdminModel {
                     return Ok(None);
                 }
 
-                let parsed_val = val.parse::<T>();
+                let parsed_val = f(val);
                 println!("{:?}", val);
 
                 match parsed_val {

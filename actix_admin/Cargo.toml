@@ -7,6 +7,7 @@ edition = "2021"
 actix-web = "4.0.1"
 actix-multipart = "0.4.0"
 futures-util = "0.3.21"
+chrono = "0.4.20"
 tera = "1.16.0"
 actix_admin_macros = { path = "actix_admin_macros" }
 async-trait = "0.1.53"

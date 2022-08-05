@@ -211,12 +211,17 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 ];
 
                 for (field_name, html_input_type, select_list, is_option_list, fields_type_path) in izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths) {
+                    
+                    let select_list = select_list.replace('"', "").replace(' ', "").to_string();
+                    let field_name = field_name.replace('"', "").replace(' ', "").to_string();
+                    let html_input_type = html_input_type.replace('"', "").replace(' ', "").to_string();
+
                     vec.push(ActixAdminViewModelField {
-                        field_name: field_name.replace('"', "").replace(' ', "").to_string(),
-                        html_input_type: html_input_type.replace('"', "").replace(' ', "").to_string(),
-                        select_list: select_list.replace('"', "").replace(' ', "").to_string(),
+                        field_name: field_name,
+                        html_input_type: html_input_type,
+                        select_list: select_list.clone(),
                         is_option: is_option_list,
-                        field_type: ActixAdminViewModelFieldType::from(fields_type_path)
+                        field_type: ActixAdminViewModelFieldType::get_field_type(fields_type_path, select_list)
                     });
                 }
                 vec

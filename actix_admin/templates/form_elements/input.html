@@ -1,0 +1,8 @@
+<input 
+    class="{{ model_field | get_html_input_class }} {% if model.errors | get(key=model_field.field_name,default="" ) !="" %}is-danger{% endif %}" 
+    type="{{ model_field | get_html_input_type }}"
+    value="{{ model.values | get(key=model_field.field_name, default="") | split(pat=" _") | join(sep=" " ) | title }}" 
+    name="{{ model_field.field_name }}" 
+    placeholder="{{ model_field.field_name }}"
+    aria-label="{{ model_field.field_name }}" 
+>

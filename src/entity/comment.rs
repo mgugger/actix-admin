@@ -14,7 +14,7 @@ pub struct Model {
     #[actix_admin(html_input_type = "email")]
     pub user: String,
     #[sea_orm(column_type = "DateTime")]
-    pub insert_date: DateTimeWithTimeZone,
+    pub insert_date: DateTime,
     pub is_visible: bool
 }
 

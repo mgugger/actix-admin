@@ -47,20 +47,6 @@ pub enum ActixAdminViewModelFieldType {
     SelectList
 }
 
-impl From<&str> for ActixAdminViewModelFieldType {
-    fn from(input: &str) -> ActixAdminViewModelFieldType {
-        match input {
-            "i32" => ActixAdminViewModelFieldType::Number,
-            "i64" => ActixAdminViewModelFieldType::Number,
-            "usize" => ActixAdminViewModelFieldType::Number,
-            "String"  => ActixAdminViewModelFieldType::Text,
-            "bool"  => ActixAdminViewModelFieldType::Checkbox,
-            "DateTimeWithTimeZone" => ActixAdminViewModelFieldType::DateTime,
-            _      => ActixAdminViewModelFieldType::Text
-        }
-    }
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ActixAdminViewModelField {
     pub field_name: String,
@@ -68,4 +54,25 @@ pub struct ActixAdminViewModelField {
     pub select_list: String,
     pub is_option: bool,
     pub field_type: ActixAdminViewModelFieldType
+}
+
+impl ActixAdminViewModelFieldType {
+    pub fn get_field_type(type_path: &str, select_list: String) -> ActixAdminViewModelFieldType {
+        if !select_list.is_empty() {
+            println!("field_type {} {}", type_path, select_list);
+            return ActixAdminViewModelFieldType::SelectList;
+        }
+
+        match type_path {
+            "i32" => ActixAdminViewModelFieldType::Number,
+            "i64" => ActixAdminViewModelFieldType::Number,
+            "usize" => ActixAdminViewModelFieldType::Number,
+            "String"  => ActixAdminViewModelFieldType::Text,
+            "bool"  => ActixAdminViewModelFieldType::Checkbox,
+            "DateTimeWithTimeZone" => ActixAdminViewModelFieldType::DateTime,
+            "DateTime" => ActixAdminViewModelFieldType::DateTime,
+            "Date" => ActixAdminViewModelFieldType::Date,
+            _      => ActixAdminViewModelFieldType::Text
+        }
+    }
 }

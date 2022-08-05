@@ -1,0 +1,14 @@
+<div class="select {% if model.errors | get(key=model_field.field_name, default="" ) !="" %}is-danger{% endif %}">
+    <select name="{{ model_field.field_name }}">
+        {% if model_field.is_option %}
+        <option value=""></option>
+        {% else %}
+        <option value="" selected disabled>Select</option>
+        {% endif %}
+        {% for select_list_item in select_lists[model_field.field_name] -%}
+        <option {% if select_list_item[0]==model.values | get(key=model_field.field_name, default="" ) %} selected {%
+            endif %} value="{{ select_list_item[0] }}">{{ select_list_item[1] | split(pat="_") |
+            join(sep=" ") | title }}</option>
+        {%- endfor %}
+    </select>
+</div>
