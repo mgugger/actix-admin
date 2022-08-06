@@ -98,7 +98,6 @@ impl ActixAdminModel {
                 }
 
                 let parsed_val = f(val);
-                println!("{:?}", val);
 
                 match parsed_val {
                     Ok(val) => Ok(Some(val)),

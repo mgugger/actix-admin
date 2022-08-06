@@ -37,6 +37,7 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
     let field_for_primary_key = get_field_for_primary_key(&fields);
     let fields_for_validate_model = get_fields_for_validate_model(&fields);
     let fields_searchable = get_actix_admin_fields_searchable(&fields);
+    let has_searchable_fields = fields_searchable.len() > 0;
     let fields_type_path = get_actix_admin_fields_type_path_string(&fields);
 
     let select_lists = get_select_lists(&fields);
@@ -60,7 +61,8 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 ActixAdminViewModel {
                     primary_key: #name_primary_field_str.to_string(),
                     entity_name: entity.table_name().to_string(),
-                    fields: Entity::get_fields()
+                    fields: Entity::get_fields(),
+                    show_search: #has_searchable_fields
                 }
             }
         }

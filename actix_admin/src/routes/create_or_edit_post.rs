@@ -36,7 +36,6 @@ async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTr
     let entity_names = &data.get_actix_admin().entity_names;
     let actix_admin = data.get_actix_admin();
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
-    println!("{:?}", model);
 
     if model.has_errors() {
         let mut ctx = Context::new();

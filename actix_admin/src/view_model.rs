@@ -3,7 +3,6 @@ use sea_orm::DatabaseConnection;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use crate::ActixAdminModel;
-use std::convert::From;
 
 #[async_trait(?Send)]
 pub trait ActixAdminViewModelTrait {
@@ -33,6 +32,7 @@ pub struct ActixAdminViewModel {
     pub entity_name: String,
     pub primary_key: String,
     pub fields: Vec<ActixAdminViewModelField>,
+    pub show_search: bool
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

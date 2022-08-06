@@ -28,6 +28,7 @@
         </div>
     </div>
     <div class="column is-narrow">
+        {% if view_model.show_search %}
         <div class="field">
             <p class="control has-icons-left has-icons-right">
                 <input class="input is-rounded" type="search" id="search" value="{{ search }}" name="search"
@@ -40,6 +41,7 @@
                 </span>
             </p>
         </div>
+        {% endif %}
     </div>
     <div class="column is-narrow">
         <div>

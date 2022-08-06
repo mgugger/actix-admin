@@ -5,5 +5,5 @@
     name="{{ model_field.field_name }}" 
     placeholder="{{ model_field.field_name }}"
     aria-label="{{ model_field.field_name }}" 
-    {% if model.values | get(key=model_field.field_name) == "true" %}checked{% endif %}
+    {% if model.values | get(key=model_field.field_name, default="false") == "true" %}checked{% endif %}
 >
