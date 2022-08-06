@@ -3,6 +3,7 @@ use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
 use tera::{Tera, Result, to_value, try_get_value };
 use std::{ hash::BuildHasher};
+use actix_session::{Session};
 
 pub mod view_model;
 pub mod model;
@@ -14,7 +15,7 @@ pub mod prelude {
     pub use crate::model::{ ActixAdminModel, ActixAdminModelTrait};
     pub use crate::view_model::{ ActixAdminViewModel, ActixAdminViewModelTrait, ActixAdminViewModelField, ActixAdminViewModelFieldType };
     pub use actix_admin_macros::{ DeriveActixAdminModel, DeriveActixAdminSelectList };
-    pub use crate::{ ActixAdminAppDataTrait, ActixAdmin };
+    pub use crate::{ ActixAdminAppDataTrait, ActixAdmin, ActixAdminConfiguration };
     pub use crate::{ hashmap, ActixAdminSelectListTrait };
 }
 
@@ -91,9 +92,18 @@ pub trait ActixAdminSelectListTrait {
     fn get_key_value() -> Vec<(String, String)>;
 }
 
-// ActixAdminModel
+
+#[derive(Clone, Debug)]
+pub struct ActixAdminConfiguration {
+    pub enable_auth: bool,
+    pub user_is_logged_in: Option<fn(Session) -> bool>,
+    pub login_link: String,
+    pub logout_link: String
+}
+
 #[derive(Clone, Debug)]
 pub struct ActixAdmin {
     pub entity_names: Vec<String>,
     pub view_models: HashMap<String, ActixAdminViewModel>,
+    pub configuration: ActixAdminConfiguration,
 }

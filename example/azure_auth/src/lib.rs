@@ -20,13 +20,7 @@ use oauth2::{
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserInfo {
-    mail: String,
-    userPrincipalName: String,
-    displayName: String,
-    givenName: String,
-    surname: String,
-    id: String,
-    role: String
+    userPrincipalName: String
 }
 
 // AppDataTrait
@@ -68,7 +62,7 @@ impl AzureAuth {
     }
 
     pub fn create_scope<T: AppDataTrait + 'static>(self) -> actix_web::Scope {
-        let scope = web::scope("/auth")
+        let scope = web::scope("/azure-auth")
             .route("/login", web::get().to(login::<T>))
             .route("/logout", web::get().to(logout))
             .route("/auth", web::get().to(auth::<T>))
@@ -87,6 +81,9 @@ pub async fn login<T: AppDataTrait>(data: web::Data<T>) -> HttpResponse {
         .authorize_url(CsrfToken::new_random)
         // Set the desired scopes.
         .add_scope(Scope::new("openid".to_string()))
+        .add_scope(Scope::new("email".to_string()))
+        .add_scope(Scope::new("profile".to_string()))
+        .add_scope(Scope::new("offline_access".to_string()))
         // Set the PKCE code challenge, need to pass verifier to /auth.
         //.set_pkce_challenge(pkce_code_challenge)
         .url();
@@ -121,10 +118,11 @@ async fn read_user(api_base_url: &str, access_token: &AccessToken) -> UserInfo {
     .await
     .expect("Request failed");
 
-    let s: &str = match str::from_utf8(&resp.body) {
-        Ok(v) => v,
-        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-    };
+    // let s: &str = match str::from_utf8(&resp.body) {
+    //     Ok(v) => v,
+    //     Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+    // };
+    // println!("{:?}", s);
 
     serde_json::from_slice(&resp.body).unwrap()
 }

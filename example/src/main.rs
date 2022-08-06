@@ -40,9 +40,9 @@ impl AzureAuthAppDataTrait for AppState {
 async fn index(session: Session, data: web::Data<AppState>) -> HttpResponse {
     let login = session.get::<UserInfo>("user_info").unwrap();
     let web_auth_link = if login.is_some() {
-        "/auth/logout"
+        "azure-auth/logout"
     } else {
-        "/auth/login"
+        "azure-auth/login"
     };
 
     let mut ctx = Context::new();
@@ -55,7 +55,14 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     let post_view_model = ActixAdminViewModel::from(Post);
     let comment_view_model = ActixAdminViewModel::from(Comment);
 
-    let mut admin_builder = ActixAdminBuilder::new();
+    let configuration = ActixAdminConfiguration {
+        enable_auth: true,
+        user_is_logged_in: Some(|session: Session| -> bool { session.get::<UserInfo>("user_info").unwrap().is_some() }),
+        login_link: "/azure-auth/login".to_string(),
+        logout_link: "/azure-auth/logout".to_string()
+    };
+
+    let mut admin_builder = ActixAdminBuilder::new(configuration);
     admin_builder.add_entity::<AppState, Post>(&post_view_model);
     admin_builder.add_entity::<AppState, Comment>(&comment_view_model);
 
@@ -79,7 +86,7 @@ async fn main() {
         .get_oauth_client()
         // This example will be running its own server at 127.0.0.1:5000.
         .set_redirect_uri(
-            RedirectUrl::new("http://localhost:5000/auth".to_string())
+            RedirectUrl::new("http://localhost:5000/azure-auth/auth".to_string())
                 .expect("Invalid redirect URL"),
         );
 

@@ -1,32 +1,40 @@
-    <nav class="navbar is-dark mb-4" role="navigation" aria-label="main navigation">
-        <div class="navbar-brand">
-          <a class="navbar-item" href="/admin/">
-            Actix Admin
-          </a>
-      
-          <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
-            <span aria-hidden="true"></span>
-            <span aria-hidden="true"></span>
-            <span aria-hidden="true"></span>
-          </a>
-        </div>
-      
-        <div id="navbarBasicExample" class="navbar-menu">
-          <div class="navbar-start">
-            {% for entity_name in entity_names -%}
-            <a href="/admin/{{ entity_name }}/list" class="navbar-item">{{ entity_name | title }}</a>
-            {%- endfor %}
+<nav class="navbar is-dark mb-4" role="navigation" aria-label="main navigation">
+  <div class="navbar-brand">
+    <a class="navbar-item" href="/admin/">
+      Actix Admin
+    </a>
 
-          </div>
-      
-          <div class="navbar-end">
-            <div class="navbar-item">
-              <div class="buttons">
-                <a class="button is-light">
-                  Log in
-                </a>
-              </div>
-            </div>
-          </div>
+    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+    </a>
+  </div>
+
+  <div id="navbarBasicExample" class="navbar-menu">
+    <div class="navbar-start">
+      {% for entity_name in entity_names -%}
+      <a href="/admin/{{ entity_name }}/list" class="navbar-item">{{ entity_name | title }}</a>
+      {%- endfor %}
+
+    </div>
+
+    <div class="navbar-end">
+      <div class="navbar-item">
+        <div class="buttons">
+          {% if enable_auth %}
+          {% if user_is_logged_in %}
+          <a href="{{ logout_link }}" class="button is-light">
+            Log out
+          </a>
+          {% else %}
+          <a href="{{ login_link }}" class="button is-light">
+            Log in
+          </a>
+          {% endif %}
+          {% endif %}
         </div>
-      </nav>
+      </div>
+    </div>
+  </div>
+</nav>

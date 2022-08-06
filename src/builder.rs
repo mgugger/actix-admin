@@ -11,7 +11,7 @@ pub struct ActixAdminBuilder {
 }
 
 pub trait ActixAdminBuilderTrait {
-    fn new() -> Self;
+    fn new(configuration: ActixAdminConfiguration) -> Self;
     fn add_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         view_model: &ActixAdminViewModel,
@@ -21,11 +21,12 @@ pub trait ActixAdminBuilderTrait {
 }
 
 impl ActixAdminBuilderTrait for ActixAdminBuilder {
-    fn new() -> Self {
+    fn new(configuration: ActixAdminConfiguration) -> Self {
         ActixAdminBuilder {
             actix_admin: ActixAdmin {
                 entity_names: Vec::new(),
                 view_models: HashMap::new(),
+                configuration: configuration
             },
             scopes: Vec::new(),
         }

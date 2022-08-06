@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use actix_multipart:: {Multipart, MultipartError} ;
 use futures_util::stream::StreamExt as _;
 use chrono::{NaiveDateTime, NaiveDate};
-use sea_orm::prelude::*;
 
 #[async_trait]
 pub trait ActixAdminModelTrait {
