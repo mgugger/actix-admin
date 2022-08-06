@@ -1,12 +1,14 @@
 use actix_web::http::header;
 use actix_web::{web, error, Error, HttpRequest, HttpResponse};
 use tera::{Context};
+use actix_session::{Session};
 use crate::TERA;
 use actix_multipart::Multipart;
 
 use crate::prelude::*;
 
 pub async fn create_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+    session: Session,
     _req: HttpRequest,
     data: web::Data<T>,
     payload: Multipart,
@@ -15,10 +17,11 @@ pub async fn create_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     let mut model = ActixAdminModel::create_from_payload(payload).await.unwrap();
     model = E::create_entity(db, model).await;
 
-    create_or_edit_post::<T, E>(&data, db, model).await
+    create_or_edit_post::<T, E>(session, &data, db, model).await
 }
 
 pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+    session: Session,
     _req: HttpRequest,
     data: web::Data<T>,
     payload: Multipart,
@@ -28,14 +31,16 @@ pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     let mut model = ActixAdminModel::create_from_payload(payload).await.unwrap();
     model = E::edit_entity(db, id.into_inner(), model).await;
 
-    create_or_edit_post::<T, E>(&data, db, model).await
+    create_or_edit_post::<T, E>(session, &data, db, model).await
 }
 
-async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(data: &web::Data<T>, db: &sea_orm::DatabaseConnection, model: ActixAdminModel) -> Result<HttpResponse, Error> {
+async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(_session: Session, data: &web::Data<T>, db: &sea_orm::DatabaseConnection, model: ActixAdminModel) -> Result<HttpResponse, Error> {
     let entity_name = E::get_entity_name();
     let entity_names = &data.get_actix_admin().entity_names;
     let actix_admin = data.get_actix_admin();
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
+
+    // TODO: verify is user is logged in and can delete entity
 
     if model.has_errors() {
         let mut ctx = Context::new();

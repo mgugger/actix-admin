@@ -8,6 +8,8 @@ use crate::ActixAdminViewModelTrait;
 use crate::ActixAdminViewModel;
 use crate::ActixAdminModel;
 use crate::TERA;
+use actix_session::{Session};
+use super::add_auth_context;
 
 const DEFAULT_ENTITIES_PER_PAGE: usize = 10;
 
@@ -20,6 +22,7 @@ pub struct Params {
 }
 
 pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+    session: Session,
     req: HttpRequest,
     data: web::Data<T>,
 ) -> Result<HttpResponse, Error> {
@@ -53,6 +56,7 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     ctx.insert("num_pages", &num_pages);
     ctx.insert("view_model", &view_model);
     ctx.insert("search", &search);
+    add_auth_context(session, actix_admin, &mut ctx);
 
     let body = TERA
         .render("list.html", &ctx)

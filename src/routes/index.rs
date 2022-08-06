@@ -6,6 +6,8 @@ use crate::prelude::*;
 
 use crate::TERA;
 
+use super::add_auth_context;
+
 pub async fn index<T: ActixAdminAppDataTrait>(session: Session, data: web::Data<T>) -> Result<HttpResponse, Error> {
     let entity_names = &data.get_actix_admin().entity_names;
     let actix_admin = data.get_actix_admin();
@@ -13,15 +15,7 @@ pub async fn index<T: ActixAdminAppDataTrait>(session: Session, data: web::Data<
     let mut ctx = Context::new();
     ctx.insert("entity_names", &entity_names);
 
-    let enable_auth = &actix_admin.configuration.enable_auth;
-    ctx.insert("enable_auth", &enable_auth);
-    if *enable_auth {
-        println!("auth enabled");
-        let func = &actix_admin.configuration.user_is_logged_in.unwrap();
-        ctx.insert("user_is_logged_in", &func(session));
-        ctx.insert("login_link", &actix_admin.configuration.login_link);
-        ctx.insert("logout_link", &actix_admin.configuration.logout_link);
-    }
+    add_auth_context(session, actix_admin, &mut ctx);
 
     let body = TERA
         .render("index.html", &ctx)

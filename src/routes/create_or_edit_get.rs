@@ -1,11 +1,14 @@
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use tera::{Context};
-
+use actix_session::{Session};
 use crate::prelude::*;
 
 use crate::TERA;
+use super::add_auth_context;
+
 
 pub async fn create_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+    session: Session,
     _req: HttpRequest,
     data: web::Data<T>,
     _body: web::Payload,
@@ -14,10 +17,11 @@ pub async fn create_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     let db = &data.get_db();
     let model = ActixAdminModel::create_empty();
     
-    create_or_edit_get::<T, E>(&data, db, model).await
+    create_or_edit_get::<T, E>(session, &data, db, model).await
 }
 
 pub async fn edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+    session: Session,
     _req: HttpRequest,
     data: web::Data<T>,
     _text: String,
@@ -26,10 +30,10 @@ pub async fn edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     let db = &data.get_db();
     let model = E::get_entity(db, id.into_inner()).await;
 
-    create_or_edit_get::<T, E>(&data, db, model).await
+    create_or_edit_get::<T, E>(session, &data, db, model).await
 }
 
-async fn create_or_edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(data: &web::Data<T>, db: &sea_orm::DatabaseConnection, model: ActixAdminModel) -> Result<HttpResponse, Error>{
+async fn create_or_edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(session: Session, data: &web::Data<T>, db: &sea_orm::DatabaseConnection, model: ActixAdminModel) -> Result<HttpResponse, Error>{
     let entity_name = E::get_entity_name();
     let entity_names = &data.get_actix_admin().entity_names;
 
@@ -43,6 +47,9 @@ async fn create_or_edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTra
     ctx.insert("select_lists", &E::get_select_lists(db).await);
     ctx.insert("list_link", &E::get_list_link(&entity_name));
     ctx.insert("model", &model);
+
+    add_auth_context(session, actix_admin, &mut ctx);
+
 
     let body = TERA
         .render("create_or_edit.html", &ctx)

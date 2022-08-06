@@ -1,6 +1,6 @@
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web::http::header;
-
+use actix_session::{Session};
 use crate::prelude::*;
 
 pub async fn delete<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
@@ -18,6 +18,7 @@ pub async fn delete<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
 }
 
 pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+    session: Session,
     _req: HttpRequest,
     data: web::Data<T>,
     text: String,
@@ -30,6 +31,8 @@ pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
         .map(|id_str| id_str.replace("ids=", "").parse::<i32>().unwrap()
     ).collect();
     
+    // TODO: verify is user is logged in and can delete entity
+
     // TODO: implement delete_many
     for id in entity_ids {
         let _result = E::delete_entity(db, id).await;

@@ -12,3 +12,6 @@ pub use list::list;
 
 mod delete;
 pub use delete::{ delete, delete_many };
+
+mod helpers;
+pub use helpers::{ add_auth_context };
