@@ -49,7 +49,7 @@ async fn create_or_edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTra
     ctx.insert("model", &model);
 
     add_auth_context(session, actix_admin, &mut ctx);
-
+    // TODO: show 404 if user is not logged in but auth enabled
 
     let body = TERA
         .render("create_or_edit.html", &ctx)

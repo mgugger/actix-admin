@@ -56,6 +56,7 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     ctx.insert("num_pages", &num_pages);
     ctx.insert("view_model", &view_model);
     ctx.insert("search", &search);
+    // TODO: show 404 if user is not logged in but auth enabled
     add_auth_context(session, actix_admin, &mut ctx);
 
     let body = TERA

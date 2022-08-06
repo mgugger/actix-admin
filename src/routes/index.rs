@@ -16,6 +16,7 @@ pub async fn index<T: ActixAdminAppDataTrait>(session: Session, data: web::Data<
     ctx.insert("entity_names", &entity_names);
 
     add_auth_context(session, actix_admin, &mut ctx);
+    // TODO: show 404 if user is not logged in but auth enabled
 
     let body = TERA
         .render("index.html", &ctx)
