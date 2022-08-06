@@ -1,9 +1,7 @@
 [package]
-name = "actix-web-sample-app"
+name = "actix-admin-example"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 actix-web = "4.0.1"
@@ -25,5 +23,6 @@ serde_derive = "1.0.136"
 quote = "1.0"
 sea-orm = { version = "^0.9.1", features = [ "sqlx-sqlite", "runtime-actix-native-tls", "macros" ], default-features = true }
 syn = "1.0.91"
+
 actix_admin = { path = "../" }
-azure_auth = { path = "../azure_auth" }
+azure_auth = { path = "./azure_auth" }
