@@ -5,7 +5,7 @@ use std::fmt;
 use std::fmt::Display;
 use std::str::FromStr;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, DeriveActixAdminModel)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, DeriveActixAdmin, DeriveActixAdminViewModel, DeriveActixAdminModel, DeriveActixAdminViewModelAccess)]
 #[sea_orm(table_name = "post")]
 pub struct Model {
     #[sea_orm(primary_key)]

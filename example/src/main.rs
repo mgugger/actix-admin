@@ -14,7 +14,7 @@ use tera::{Context, Tera};
 mod entity;
 use entity::{Post, Comment};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AppState {
     pub oauth: BasicClient,
     pub tmpl: Tera,
@@ -57,7 +57,10 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
 
     let configuration = ActixAdminConfiguration {
         enable_auth: true,
-        user_is_logged_in: Some(|session: Session| -> bool { session.get::<UserInfo>("user_info").unwrap().is_some() }),
+        user_is_logged_in: Some(|session: &Session| -> bool { 
+             let user_info = session.get::<UserInfo>("user_info").unwrap();
+             user_info.is_some()
+        }),
         login_link: "/azure-auth/login".to_string(),
         logout_link: "/azure-auth/logout".to_string()
     };
@@ -112,10 +115,11 @@ async fn main() {
         actix_admin: actix_admin,
     };
 
+    let cookie_secret_key = Key::generate();
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(app_state.clone()))
-            .wrap(SessionMiddleware::new(CookieSessionStore::default(), Key::generate()))
+            .wrap(SessionMiddleware::new(CookieSessionStore::default(), cookie_secret_key.clone()))
             .route("/", web::get().to(index))
             .service(azure_auth.clone().create_scope::<AppState>())
             .service(

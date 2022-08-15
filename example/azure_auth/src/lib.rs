@@ -96,7 +96,7 @@ pub async fn login<T: AppDataTrait>(data: web::Data<T>) -> HttpResponse {
 pub async fn logout(session: Session) -> HttpResponse {
     session.remove("user_info");
     HttpResponse::Found()
-        .append_header((header::LOCATION, "/".to_string()))
+        .append_header((header::LOCATION, "/admin/".to_string()))
         .finish()
 }
 
@@ -155,5 +155,5 @@ pub async fn auth<T: AppDataTrait>(
 
     session.insert("user_info", &user_info).unwrap();
 
-    HttpResponse::Found().append_header(("location", "/")).finish()
+    HttpResponse::Found().append_header(("location", "/admin/")).finish()
 }
