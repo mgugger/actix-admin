@@ -3,6 +3,7 @@ use sea_orm::DatabaseConnection;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use crate::ActixAdminModel;
+use actix_session::{Session};
 
 #[async_trait(?Send)]
 pub trait ActixAdminViewModelTrait {
@@ -25,6 +26,10 @@ pub trait ActixAdminViewModelTrait {
     fn get_list_link(entity_name: &String) -> String {
         format!("/admin/{}/list", entity_name)
     }
+}
+
+pub trait ActixAdminViewModelAccessTrait {
+    fn user_can_access(session: &Session) -> bool;
 }
 
 #[derive(Clone, Debug, Serialize)]

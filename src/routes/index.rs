@@ -6,17 +6,15 @@ use crate::prelude::*;
 
 use crate::TERA;
 
-use super::add_auth_context;
+use super::{ add_auth_context };
 
 pub async fn index<T: ActixAdminAppDataTrait>(session: Session, data: web::Data<T>) -> Result<HttpResponse, Error> {
-    let entity_names = &data.get_actix_admin().entity_names;
     let actix_admin = data.get_actix_admin();
 
     let mut ctx = Context::new();
-    ctx.insert("entity_names", &entity_names);
+    ctx.insert("entity_names", &actix_admin.entity_names);
 
-    add_auth_context(session, actix_admin, &mut ctx);
-    // TODO: show 404 if user is not logged in but auth enabled
+    add_auth_context(&session, actix_admin, &mut ctx);
 
     let body = TERA
         .render("index.html", &ctx)

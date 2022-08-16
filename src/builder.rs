@@ -12,7 +12,7 @@ pub struct ActixAdminBuilder {
 
 pub trait ActixAdminBuilderTrait {
     fn new(configuration: ActixAdminConfiguration) -> Self;
-    fn add_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
+    fn add_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + ActixAdminViewModelAccessTrait + 'static>(
         &mut self,
         view_model: &ActixAdminViewModel,
     );
@@ -32,7 +32,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         }
     }
 
-    fn add_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
+    fn add_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + ActixAdminViewModelAccessTrait + 'static>(
         &mut self,
         view_model: &ActixAdminViewModel,
     ) {

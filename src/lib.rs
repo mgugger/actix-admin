@@ -13,8 +13,8 @@ pub mod builder;
 pub mod prelude {
     pub use crate::builder::{ ActixAdminBuilder, ActixAdminBuilderTrait};
     pub use crate::model::{ ActixAdminModel, ActixAdminModelTrait};
-    pub use crate::view_model::{ ActixAdminViewModel, ActixAdminViewModelTrait, ActixAdminViewModelField, ActixAdminViewModelFieldType };
-    pub use actix_admin_macros::{ DeriveActixAdminModel, DeriveActixAdminSelectList };
+    pub use crate::view_model::{ ActixAdminViewModel, ActixAdminViewModelTrait, ActixAdminViewModelAccessTrait, ActixAdminViewModelField, ActixAdminViewModelFieldType };
+    pub use actix_admin_macros::{ DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel, DeriveActixAdminSelectList, DeriveActixAdminViewModelAccess };
     pub use crate::{ ActixAdminAppDataTrait, ActixAdmin, ActixAdminConfiguration };
     pub use crate::{ hashmap, ActixAdminSelectListTrait };
 }
@@ -93,17 +93,17 @@ pub trait ActixAdminSelectListTrait {
 }
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ActixAdminConfiguration {
     pub enable_auth: bool,
-    pub user_is_logged_in: Option<fn(Session) -> bool>,
+    pub user_is_logged_in: Option<for<'a> fn(&'a Session) -> bool>,
     pub login_link: String,
     pub logout_link: String
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ActixAdmin {
     pub entity_names: Vec<String>,
     pub view_models: HashMap<String, ActixAdminViewModel>,
-    pub configuration: ActixAdminConfiguration,
+    pub configuration: ActixAdminConfiguration
 }

@@ -9,7 +9,7 @@ use crate::ActixAdminViewModel;
 use crate::ActixAdminModel;
 use crate::TERA;
 use actix_session::{Session};
-use super::add_auth_context;
+use super::{ add_auth_context, user_can_access_page, render_unauthorized};
 
 const DEFAULT_ENTITIES_PER_PAGE: usize = 10;
 
@@ -21,15 +21,23 @@ pub struct Params {
     search: Option<String>
 }
 
-pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait + ActixAdminViewModelAccessTrait>(
     session: Session,
     req: HttpRequest,
     data: web::Data<T>,
 ) -> Result<HttpResponse, Error> {
-    let entity_name = E::get_entity_name();
     let actix_admin = data.get_actix_admin();
+    let mut ctx = Context::new();
+    add_auth_context(&session, actix_admin, &mut ctx);
+
+    ctx.insert("entity_names", &actix_admin.entity_names);
+
+    if !user_can_access_page::<E>(&session, actix_admin) {
+        return render_unauthorized(&ctx);
+    }
+
+    let entity_name = E::get_entity_name();
     let view_model: &ActixAdminViewModel = actix_admin.view_models.get(&entity_name).unwrap();
-    let entity_names = &data.get_actix_admin().entity_names;
 
     let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
 
@@ -45,8 +53,6 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     let entities = result.1;
     let num_pages = result.0;
 
-    let mut ctx = Context::new();
-    ctx.insert("entity_names", &entity_names);
     ctx.insert("entity_name", &entity_name);
     ctx.insert("entities", &entities);
     ctx.insert("page", &page);
@@ -56,8 +62,6 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     ctx.insert("num_pages", &num_pages);
     ctx.insert("view_model", &view_model);
     ctx.insert("search", &search);
-    // TODO: show 404 if user is not logged in but auth enabled
-    add_auth_context(session, actix_admin, &mut ctx);
 
     let body = TERA
         .render("list.html", &ctx)

@@ -2,27 +2,43 @@ use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web::http::header;
 use actix_session::{Session};
 use crate::prelude::*;
+use tera::{Context};
+use super::{ user_can_access_page, render_unauthorized};
 
-pub async fn delete<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+pub async fn delete<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait + ActixAdminViewModelAccessTrait>(
+    session: Session,
     _req: HttpRequest,
     data: web::Data<T>,
     _text: String,
     id: web::Path<i32>
 ) -> Result<HttpResponse, Error> {
-    let db = &data.get_db();
+    let actix_admin = data.get_actix_admin();
+    if !user_can_access_page::<E>(&session, actix_admin) {
+        let mut ctx = Context::new();
+        ctx.insert("render_partial", &true);
+        return render_unauthorized(&ctx);
+    }
 
+    let db = &data.get_db();
     let _result = E::delete_entity(db, id.into_inner()).await;
 
     Ok(HttpResponse::Ok()
         .finish())
 }
 
-pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait + ActixAdminViewModelAccessTrait>(
     session: Session,
     _req: HttpRequest,
     data: web::Data<T>,
     text: String,
 ) -> Result<HttpResponse, Error> {
+    let actix_admin = data.get_actix_admin();
+    if !user_can_access_page::<E>(&session, actix_admin) {
+        let mut ctx = Context::new();
+        ctx.insert("render_partial", &true);
+        return render_unauthorized(&ctx);
+    }
+    
     let db = &data.get_db();
     let entity_name = E::get_entity_name();
     let entity_ids: Vec<i32> = text
@@ -31,8 +47,6 @@ pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
         .map(|id_str| id_str.replace("ids=", "").parse::<i32>().unwrap()
     ).collect();
     
-    // TODO: verify is user is logged in and can delete entity
-
     // TODO: implement delete_many
     for id in entity_ids {
         let _result = E::delete_entity(db, id).await;

@@ -22,31 +22,11 @@ pub fn derive_actix_admin_select_list(input: proc_macro::TokenStream) -> proc_ma
     get_select_list(input)
 }
 
-#[proc_macro_derive(DeriveActixAdminModel, attributes(actix_admin))]
-pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let fields = get_fields_for_tokenstream(input);
-
-    let field_names = get_actix_admin_fields(&fields);
-    let field_html_input_type = get_actix_admin_fields_html_input(&fields);
-    let field_select_list = get_actix_admin_fields_select_list(&fields);
-    let is_option_list = get_actix_admin_fields_is_option_list(&fields);
-    let name_primary_field_str = get_primary_key_field_name(&fields);
-    let fields_for_create_model = get_fields_for_create_model(&fields);
-    let fields_for_edit_model = get_fields_for_edit_model(&fields);
-    let fields_for_from_model = get_fields_for_from_model(&fields);
-    let field_for_primary_key = get_field_for_primary_key(&fields);
-    let fields_for_validate_model = get_fields_for_validate_model(&fields);
-    let fields_searchable = get_actix_admin_fields_searchable(&fields);
-    let has_searchable_fields = fields_searchable.len() > 0;
-    let fields_type_path = get_actix_admin_fields_type_path_string(&fields);
-
-    let select_lists = get_select_lists(&fields);
-
+#[proc_macro_derive(DeriveActixAdmin, attributes(actix_admin))]
+pub fn derive_actix_admin(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let expanded = quote! {
         use std::convert::From;
-        use std::iter::zip;
         use async_trait::async_trait;
-        use actix_web::{web, HttpResponse, HttpRequest, Error};
         use actix_admin::prelude::*;
         use sea_orm::ActiveValue::Set;
         use sea_orm::{ConnectOptions, DatabaseConnection};
@@ -54,8 +34,35 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         use std::collections::HashMap;
         use sea_orm::EntityTrait;
         use itertools::izip;
-        use quote::quote;
+        use actix_session::{Session};
+    };
+    proc_macro::TokenStream::from(expanded)
+}
 
+#[proc_macro_derive(DeriveActixAdminViewModelAccess, attributes(actix_admin))]
+pub fn derive_actix_admin_view_model_access(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let expanded = quote! {
+        impl ActixAdminViewModelAccessTrait for Entity {
+            fn user_can_access(session: &Session) -> bool {
+                true
+            }
+        }
+    };
+    proc_macro::TokenStream::from(expanded)
+}
+
+#[proc_macro_derive(DeriveActixAdminViewModel, attributes(actix_admin))]
+pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let fields = get_fields_for_tokenstream(input);
+
+    let name_primary_field_str = get_primary_key_field_name(&fields);
+    let fields_for_edit_model = get_fields_for_edit_model(&fields);
+    let fields_searchable = get_actix_admin_fields_searchable(&fields);
+    let has_searchable_fields = fields_searchable.len() > 0;
+
+    let select_lists = get_select_lists(&fields);
+
+    let expanded = quote! {
         impl From<Entity> for ActixAdminViewModel {
             fn from(entity: Entity) -> Self {
                 ActixAdminViewModel {
@@ -63,29 +70,6 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                     entity_name: entity.table_name().to_string(),
                     fields: Entity::get_fields(),
                     show_search: #has_searchable_fields
-                }
-            }
-        }
-
-        impl From<Model> for ActixAdminModel {
-            fn from(model: Model) -> Self {
-                ActixAdminModel {
-                    #field_for_primary_key,
-                    values: hashmap![
-                        #(#fields_for_from_model),*
-                    ],
-                    errors: HashMap::new()
-                }
-            }
-        }
-
-        impl From<ActixAdminModel> for ActiveModel {
-            fn from(model: ActixAdminModel) -> Self {
-                ActiveModel
-                {
-                    #(#fields_for_create_model),*
-                    ,
-                    ..Default::default()
                 }
             }
         }
@@ -149,6 +133,49 @@ pub fn derive_crud_fns(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
             fn get_entity_name() -> String {
                 Entity.table_name().to_string()
+            }
+        }
+    };
+
+    proc_macro::TokenStream::from(expanded)
+}
+
+#[proc_macro_derive(DeriveActixAdminModel, attributes(actix_admin))]
+pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let fields = get_fields_for_tokenstream(input);
+
+    let field_names = get_actix_admin_fields(&fields);
+    let field_html_input_type = get_actix_admin_fields_html_input(&fields);
+    let field_select_list = get_actix_admin_fields_select_list(&fields);
+    let is_option_list = get_actix_admin_fields_is_option_list(&fields);
+    let fields_for_create_model = get_fields_for_create_model(&fields);
+    let fields_for_from_model = get_fields_for_from_model(&fields);
+    let field_for_primary_key = get_field_for_primary_key(&fields);
+    let fields_for_validate_model = get_fields_for_validate_model(&fields);
+    let fields_searchable = get_actix_admin_fields_searchable(&fields);
+    let fields_type_path = get_actix_admin_fields_type_path_string(&fields);
+
+    let expanded = quote! {
+        impl From<Model> for ActixAdminModel {
+            fn from(model: Model) -> Self {
+                ActixAdminModel {
+                    #field_for_primary_key,
+                    values: hashmap![
+                        #(#fields_for_from_model),*
+                    ],
+                    errors: HashMap::new()
+                }
+            }
+        }
+
+        impl From<ActixAdminModel> for ActiveModel {
+            fn from(model: ActixAdminModel) -> Self {
+                ActiveModel
+                {
+                    #(#fields_for_create_model),*
+                    ,
+                    ..Default::default()
+                }
             }
         }
 
