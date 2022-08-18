@@ -5,7 +5,7 @@ use crate::prelude::*;
 use tera::{Context};
 use super::{ user_can_access_page, render_unauthorized};
 
-pub async fn delete<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait + ActixAdminViewModelAccessTrait>(
+pub async fn delete<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     session: Session,
     _req: HttpRequest,
     data: web::Data<T>,
@@ -13,7 +13,11 @@ pub async fn delete<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait + Act
     id: web::Path<i32>
 ) -> Result<HttpResponse, Error> {
     let actix_admin = data.get_actix_admin();
-    if !user_can_access_page::<E>(&session, actix_admin) {
+    let entity_name = E::get_entity_name();
+
+    let view_model = actix_admin.view_models.get(&entity_name).unwrap();
+
+    if !user_can_access_page(&session, actix_admin, view_model) {
         let mut ctx = Context::new();
         ctx.insert("render_partial", &true);
         return render_unauthorized(&ctx);
@@ -26,14 +30,18 @@ pub async fn delete<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait + Act
         .finish())
 }
 
-pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait + ActixAdminViewModelAccessTrait>(
+pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     session: Session,
     _req: HttpRequest,
     data: web::Data<T>,
     text: String,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = data.get_actix_admin();
-    if !user_can_access_page::<E>(&session, actix_admin) {
+    let entity_name = E::get_entity_name();
+
+    let view_model = actix_admin.view_models.get(&entity_name).unwrap();
+
+    if !user_can_access_page(&session, actix_admin, view_model) {
         let mut ctx = Context::new();
         ctx.insert("render_partial", &true);
         return render_unauthorized(&ctx);

@@ -17,16 +17,15 @@ pub fn add_auth_context(session: &Session, actix_admin: &ActixAdmin, ctx: &mut C
     }
 }
 
-pub fn user_can_access_page<E: ActixAdminViewModelAccessTrait>(session: &Session, actix_admin: &ActixAdmin) -> bool {
+pub fn user_can_access_page(session: &Session, actix_admin: &ActixAdmin, view_model: &ActixAdminViewModel) -> bool {
     let auth_is_enabled = &actix_admin.configuration.enable_auth;
     let user_is_logged_in = &actix_admin.configuration.user_is_logged_in;
-    let user_can_access_viewmodel = E::user_can_access(session);
+    let user_can_access_view_model = &view_model.user_can_access;
 
-    match (auth_is_enabled, user_can_access_viewmodel, user_is_logged_in) {
-        (true, true, Some(auth_func)) => auth_func(session),
-        (true, false, _) => false,
-        (true, _, None) => false,
-        (false, _, _) => true
+    match (auth_is_enabled, user_is_logged_in, user_can_access_view_model) {
+        (true, Some(auth_func), Some(view_model_access_func)) => auth_func(session) && view_model_access_func(session),
+        (true, Some(auth_func), _) => auth_func(session),
+        (_, _, _) => !auth_is_enabled,
     }
 }
 

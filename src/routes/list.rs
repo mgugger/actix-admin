@@ -1,7 +1,6 @@
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use serde::{Deserialize};
 use tera::{Context};
-
 use crate::prelude::*;
 
 use crate::ActixAdminViewModelTrait;
@@ -21,23 +20,23 @@ pub struct Params {
     search: Option<String>
 }
 
-pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait + ActixAdminViewModelAccessTrait>(
+pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     session: Session,
     req: HttpRequest,
     data: web::Data<T>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = data.get_actix_admin();
+    let entity_name = E::get_entity_name();
+    let view_model: &ActixAdminViewModel = actix_admin.view_models.get(&entity_name).unwrap();
+    
     let mut ctx = Context::new();
     add_auth_context(&session, actix_admin, &mut ctx);
 
     ctx.insert("entity_names", &actix_admin.entity_names);
 
-    if !user_can_access_page::<E>(&session, actix_admin) {
+    if !user_can_access_page(&session, actix_admin, view_model) {
         return render_unauthorized(&ctx);
     }
-
-    let entity_name = E::get_entity_name();
-    let view_model: &ActixAdminViewModel = actix_admin.view_models.get(&entity_name).unwrap();
 
     let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
 
@@ -60,7 +59,7 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait + Actix
     ctx.insert("entities_per_page", &entities_per_page);
     ctx.insert("render_partial", &render_partial);
     ctx.insert("num_pages", &num_pages);
-    ctx.insert("view_model", &view_model);
+    ctx.insert("view_model", &ActixAdminViewModelSerializable::from(view_model.clone()));
     ctx.insert("search", &search);
 
     let body = TERA

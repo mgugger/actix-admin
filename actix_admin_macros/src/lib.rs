@@ -39,18 +39,6 @@ pub fn derive_actix_admin(_input: proc_macro::TokenStream) -> proc_macro::TokenS
     proc_macro::TokenStream::from(expanded)
 }
 
-#[proc_macro_derive(DeriveActixAdminViewModelAccess, attributes(actix_admin))]
-pub fn derive_actix_admin_view_model_access(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let expanded = quote! {
-        impl ActixAdminViewModelAccessTrait for Entity {
-            fn user_can_access(session: &Session) -> bool {
-                true
-            }
-        }
-    };
-    proc_macro::TokenStream::from(expanded)
-}
-
 #[proc_macro_derive(DeriveActixAdminViewModel, attributes(actix_admin))]
 pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let fields = get_fields_for_tokenstream(input);
@@ -69,7 +57,8 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                     primary_key: #name_primary_field_str.to_string(),
                     entity_name: entity.table_name().to_string(),
                     fields: Entity::get_fields(),
-                    show_search: #has_searchable_fields
+                    show_search: #has_searchable_fields,
+                    user_can_access: None
                 }
             }
         }

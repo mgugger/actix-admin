@@ -4,6 +4,7 @@ use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use crate::ActixAdminModel;
 use actix_session::{Session};
+use std::convert::From;
 
 #[async_trait(?Send)]
 pub trait ActixAdminViewModelTrait {
@@ -28,17 +29,35 @@ pub trait ActixAdminViewModelTrait {
     }
 }
 
-pub trait ActixAdminViewModelAccessTrait {
-    fn user_can_access(session: &Session) -> bool;
+#[derive(Clone)]
+pub struct ActixAdminViewModel {
+    pub entity_name: String,
+    pub primary_key: String,
+    pub fields: Vec<ActixAdminViewModelField>,
+    pub show_search: bool,
+    pub user_can_access: Option<fn(&Session) -> bool>
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct ActixAdminViewModel {
+pub struct ActixAdminViewModelSerializable {
     pub entity_name: String,
     pub primary_key: String,
     pub fields: Vec<ActixAdminViewModelField>,
     pub show_search: bool
 }
+
+// TODO: better alternative to serialize only specific fields for ActixAdminViewModel
+impl From<ActixAdminViewModel> for ActixAdminViewModelSerializable {
+    fn from(entity: ActixAdminViewModel) -> Self {
+        ActixAdminViewModelSerializable {
+            entity_name: entity.entity_name,
+            primary_key: entity.primary_key,
+            fields: entity.fields,
+            show_search: entity.show_search
+        }
+    }
+}
+
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ActixAdminViewModelFieldType {

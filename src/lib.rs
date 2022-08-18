@@ -13,8 +13,8 @@ pub mod builder;
 pub mod prelude {
     pub use crate::builder::{ ActixAdminBuilder, ActixAdminBuilderTrait};
     pub use crate::model::{ ActixAdminModel, ActixAdminModelTrait};
-    pub use crate::view_model::{ ActixAdminViewModel, ActixAdminViewModelTrait, ActixAdminViewModelAccessTrait, ActixAdminViewModelField, ActixAdminViewModelFieldType };
-    pub use actix_admin_macros::{ DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel, DeriveActixAdminSelectList, DeriveActixAdminViewModelAccess };
+    pub use crate::view_model::{ ActixAdminViewModel, ActixAdminViewModelTrait, ActixAdminViewModelField, ActixAdminViewModelSerializable, ActixAdminViewModelFieldType };
+    pub use actix_admin_macros::{ DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel, DeriveActixAdminSelectList };
     pub use crate::{ ActixAdminAppDataTrait, ActixAdmin, ActixAdminConfiguration };
     pub use crate::{ hashmap, ActixAdminSelectListTrait };
 }
