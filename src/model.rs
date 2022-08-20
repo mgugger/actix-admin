@@ -16,9 +16,9 @@ pub trait ActixAdminModelTrait {
         search: &String
     ) -> (usize, Vec<ActixAdminModel>);
     fn get_fields() -> Vec<ActixAdminViewModelField>;
-    fn validate_model(model: &ActixAdminModel) -> HashMap<String, String>;
+    fn validate_model(model: &mut ActixAdminModel);
     // function to be overridable for custom error handling
-    fn validate(&self) -> HashMap<String, String> {
+    fn validate(_model: &ActixAdminModel) -> HashMap<String, String> {
         return HashMap::new();
     }
 }
@@ -28,6 +28,7 @@ pub struct ActixAdminModel {
     pub primary_key: Option<String>,
     pub values: HashMap<String, String>,
     pub errors: HashMap<String, String>,
+    pub custom_errors: HashMap<String, String>
 }
 
 
@@ -37,6 +38,7 @@ impl ActixAdminModel {
             primary_key: None,
             values: HashMap::new(),
             errors: HashMap::new(),
+            custom_errors: HashMap::new(),
         }
     }
 
@@ -63,6 +65,7 @@ impl ActixAdminModel {
             primary_key: None,
             values: hashmap,
             errors: HashMap::new(),
+            custom_errors: HashMap::new(),
         })
     }
 

@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use tera::{Tera, Result, to_value, try_get_value };
 use std::{ hash::BuildHasher};
 use actix_session::{Session};
+use async_trait::async_trait;
 
 pub mod view_model;
 pub mod model;
@@ -14,7 +15,7 @@ pub mod prelude {
     pub use crate::builder::{ ActixAdminBuilder, ActixAdminBuilderTrait};
     pub use crate::model::{ ActixAdminModel, ActixAdminModelTrait};
     pub use crate::view_model::{ ActixAdminViewModel, ActixAdminViewModelTrait, ActixAdminViewModelField, ActixAdminViewModelSerializable, ActixAdminViewModelFieldType };
-    pub use actix_admin_macros::{ DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel, DeriveActixAdminSelectList };
+    pub use actix_admin_macros::{ DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel, DeriveActixAdminEnumSelectList, DeriveActixAdminModelSelectList };
     pub use crate::{ ActixAdminAppDataTrait, ActixAdmin, ActixAdminConfiguration };
     pub use crate::{ hashmap, ActixAdminSelectListTrait };
 }
@@ -88,8 +89,9 @@ pub trait ActixAdminAppDataTrait {
 }
 
 // SelectListTrait
+#[async_trait]
 pub trait ActixAdminSelectListTrait {
-    fn get_key_value() -> Vec<(String, String)>;
+    async fn get_key_value(db: &DatabaseConnection) -> Vec<(String, String)>;
 }
 
 

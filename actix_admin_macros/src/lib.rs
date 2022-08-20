@@ -12,14 +12,19 @@ use struct_fields::{
 };
 
 mod selectlist_fields;
-use selectlist_fields::{get_select_list, get_select_lists};
+use selectlist_fields::{get_select_list_from_enum, get_select_list_from_model, get_select_lists};
 
 mod attributes;
 mod model_fields;
 
-#[proc_macro_derive(DeriveActixAdminSelectList, attributes(actix_admin))]
-pub fn derive_actix_admin_select_list(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    get_select_list(input)
+#[proc_macro_derive(DeriveActixAdminEnumSelectList, attributes(actix_admin))]
+pub fn derive_actix_admin_enum_select_list(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    get_select_list_from_enum(input)
+}
+
+#[proc_macro_derive(DeriveActixAdminModelSelectList, attributes(actix_admin))]
+pub fn derive_actix_admin_model_select_list(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    get_select_list_from_model(input)
 }
 
 #[proc_macro_derive(DeriveActixAdmin, attributes(actix_admin))]
@@ -70,15 +75,16 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 entities
             }
 
-            async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> ActixAdminModel {
-                let mut validation_errs = Entity::validate_model(&model);
-                //model.errors.append(&mut validation_errs);
-                model.errors = validation_errs;
+            fn validate_entity(model: &mut ActixAdminModel) {
+                Entity::validate_model(model);
+                
+                let custom_errors = Entity::validate(&model);
+                model.custom_errors = custom_errors;
+            } 
 
-                if !model.has_errors() {
-                    let new_model = ActiveModel::from(model.clone());
-                    let insert_operation = Entity::insert(new_model).exec(db).await;
-                }
+            async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> ActixAdminModel {
+                let new_model = ActiveModel::from(model.clone());
+                let insert_operation = Entity::insert(new_model).exec(db).await;
 
                 model
             }
@@ -91,17 +97,12 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
             }
 
             async fn edit_entity(db: &DatabaseConnection, id: i32, mut model: ActixAdminModel) -> ActixAdminModel {
-                let mut validation_errs = Entity::validate_model(&model);
-                //model.errors.append(&mut validation_errs);
-                model.errors=validation_errs;
+                let entity: Option<Model> = Entity::find_by_id(id).one(db).await.unwrap();
+                let mut entity: ActiveModel = entity.unwrap().into();
 
-                if !model.has_errors() {
-                    let entity: Option<Model> = Entity::find_by_id(id).one(db).await.unwrap();
-                    let mut entity: ActiveModel = entity.unwrap().into();
+                #(#fields_for_edit_model);*;
+                let entity: Model = entity.update(db).await.unwrap();
 
-                    #(#fields_for_edit_model);*;
-                    let entity: Model = entity.update(db).await.unwrap();
-                }
                 model
             }
 
@@ -152,7 +153,8 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     values: hashmap![
                         #(#fields_for_from_model),*
                     ],
-                    errors: HashMap::new()
+                    errors: HashMap::new(),
+                    custom_errors: HashMap::new(),
                 }
             }
         }
@@ -194,12 +196,11 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                 (num_pages, model_entities)
             }
 
-            fn validate_model(model: &ActixAdminModel) -> HashMap<String, String> {
+            fn validate_model(model: &mut ActixAdminModel) {
                 let mut errors = HashMap::<String, String>::new();
                 #(#fields_for_validate_model);*;
-                //let mut custom_errors = Entity.validate();
-                //errors.append(&mut custom_errors);
-                errors
+
+                model.errors = errors;
             }
 
             fn get_fields() -> Vec<ActixAdminViewModelField> {

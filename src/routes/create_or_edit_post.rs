@@ -37,7 +37,8 @@ async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTr
     }
     
     let db = &data.get_db();
-    let model = ActixAdminModel::create_from_payload(payload).await.unwrap();
+    let mut model = ActixAdminModel::create_from_payload(payload).await.unwrap();
+    E::validate_entity(&mut model);
 
     if model.has_errors() {
         let mut ctx = Context::new();
