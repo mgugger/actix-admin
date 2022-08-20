@@ -56,7 +56,7 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     let comment_view_model = ActixAdminViewModel::from(Comment);
 
     let configuration = ActixAdminConfiguration {
-        enable_auth: true,
+        enable_auth: false,
         user_is_logged_in: Some(|session: &Session| -> bool { 
              let user_info = session.get::<UserInfo>("user_info").unwrap();
              user_info.is_some()
