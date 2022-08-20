@@ -75,3 +75,5 @@ impl Display for Tea {
         }
     }
 }
+
+impl ActixAdminModelValidationTrait<ActiveModel> for Entity {}

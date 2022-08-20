@@ -77,9 +77,12 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
 
             fn validate_entity(model: &mut ActixAdminModel) {
                 Entity::validate_model(model);
-                
-                let custom_errors = Entity::validate(&model);
-                model.custom_errors = custom_errors;
+
+                if !model.has_errors() {
+                    let active_model = ActiveModel::from(model.clone());
+                    let custom_errors = Entity::validate(&active_model);
+                    model.custom_errors = custom_errors;
+                }
             } 
 
             async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> ActixAdminModel {

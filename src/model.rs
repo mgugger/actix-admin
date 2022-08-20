@@ -17,8 +17,10 @@ pub trait ActixAdminModelTrait {
     ) -> (usize, Vec<ActixAdminModel>);
     fn get_fields() -> Vec<ActixAdminViewModelField>;
     fn validate_model(model: &mut ActixAdminModel);
-    // function to be overridable for custom error handling
-    fn validate(_model: &ActixAdminModel) -> HashMap<String, String> {
+}
+
+pub trait ActixAdminModelValidationTrait<T> {
+    fn validate(_model: &T) -> HashMap<String, String> {
         return HashMap::new();
     }
 }

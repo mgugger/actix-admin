@@ -39,3 +39,13 @@ impl Related<super::post::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+impl ActixAdminModelValidationTrait<ActiveModel> for Entity {
+    fn validate(model: &ActiveModel) -> HashMap<String, String> {
+        let mut errors = HashMap::new();
+        if model.my_decimal.clone().unwrap() < Decimal::from(100 as i16) {
+            errors.insert("my_decimal".to_string(), "Must be larger than 100".to_string());
+        }
+        errors
+    }
+}
