@@ -45,6 +45,7 @@ lazy_static! {
 pub fn get_html_input_class<S: BuildHasher>(value: &tera::Value, _: &HashMap<String, tera::Value, S>) -> Result<tera::Value> {
     let field = try_get_value!("get_html_input_class", "value", ActixAdminViewModelField, value);
     let html_input_type = match field.field_type {
+        ActixAdminViewModelFieldType::TextArea => "textarea",
         ActixAdminViewModelFieldType::Checkbox => "checkbox",
         _ => "input"
     };

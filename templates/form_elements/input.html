@@ -1,13 +1,34 @@
+{% if model_field.field_type == "TextArea" %}
+<textarea
+    class="{{ model_field | get_html_input_class }} 
+        {% if model.errors | length > 0 or model.custom_errors | length > 0 %}
+            {% if 
+                model.errors | get(key=model_field.field_name, default="" ) !="" 
+                or 
+                model.custom_errors | get(key=model_field.field_name, default="" ) !="" 
+            %}is-danger{% else %}is-success{% endif %}
+        {% endif %}
+        "
+    type="{{ model_field | get_html_input_type }}"
+    name="{{ model_field.field_name }}" 
+    placeholder="{{ model_field.field_name }}"
+    aria-label="{{ model_field.field_name }}" 
+>{{ model.values | get(key=model_field.field_name, default="") }}</textarea>
+{% else %}
 <input 
     class="{{ model_field | get_html_input_class }} 
-        {% if 
-            model.errors | get(key=model_field.field_name, default="" ) !="" 
-            or 
-            model.custom_errors | get(key=model_field.field_name, default="" ) !="" 
-        %}is-danger{% endif %}"
+        {% if model.errors | length > 0 or model.custom_errors | length > 0 %}
+            {% if 
+                model.errors | get(key=model_field.field_name, default="" ) !="" 
+                or 
+                model.custom_errors | get(key=model_field.field_name, default="" ) !="" 
+            %}is-danger{% else %}is-success{% endif %}
+        {% endif %}
+        "
     type="{{ model_field | get_html_input_type }}"
     value="{{ model.values | get(key=model_field.field_name, default="") }}" 
     name="{{ model_field.field_name }}" 
     placeholder="{{ model_field.field_name }}"
     aria-label="{{ model_field.field_name }}" 
 >
+{% endif %}

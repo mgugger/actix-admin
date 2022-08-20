@@ -2,14 +2,7 @@ use proc_macro;
 use quote::quote;
 
 mod struct_fields;
-use struct_fields::{
-    get_actix_admin_fields, get_actix_admin_fields_html_input,
-    get_actix_admin_fields_is_option_list, get_actix_admin_fields_searchable,
-    get_actix_admin_fields_select_list, get_actix_admin_fields_type_path_string,
-    get_field_for_primary_key, get_fields_for_create_model, get_fields_for_edit_model,
-    get_fields_for_from_model, get_fields_for_tokenstream, get_fields_for_validate_model,
-    get_primary_key_field_name,
-};
+use struct_fields::*;
 
 mod selectlist_fields;
 use selectlist_fields::{get_select_list_from_enum, get_select_list_from_model, get_select_lists};
@@ -147,6 +140,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let fields_for_validate_model = get_fields_for_validate_model(&fields);
     let fields_searchable = get_actix_admin_fields_searchable(&fields);
     let fields_type_path = get_actix_admin_fields_type_path_string(&fields);
+    let fields_textarea = get_actix_admin_fields_textarea(&fields);
 
     let expanded = quote! {
         impl From<Model> for ActixAdminModel {
@@ -232,7 +226,11 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     #(#fields_type_path),*
                 ];
 
-                for (field_name, html_input_type, select_list, is_option_list, fields_type_path) in izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths) {
+                let fields_textareas = [
+                    #(#fields_textarea),*
+                ];
+
+                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea) in izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas) {
                     
                     let select_list = select_list.replace('"', "").replace(' ', "").to_string();
                     let field_name = field_name.replace('"', "").replace(' ', "").to_string();
@@ -243,7 +241,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                         html_input_type: html_input_type,
                         select_list: select_list.clone(),
                         is_option: is_option_list,
-                        field_type: ActixAdminViewModelFieldType::get_field_type(fields_type_path, select_list)
+                        field_type: ActixAdminViewModelFieldType::get_field_type(fields_type_path, select_list, is_textarea)
                     });
                 }
                 vec

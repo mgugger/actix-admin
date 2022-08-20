@@ -38,6 +38,9 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let is_searchable = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.searchable.is_some());
+                let is_textarea = actix_admin_attr
+                    .clone()
+                    .map_or(false, |attr| attr.textarea.is_some());
                 let select_list = actix_admin_attr.clone().map_or("".to_string(), |attr| {
                     attr.select_list.map_or("".to_string(), |attr_field| {
                         (LitStr::from(attr_field)).value()
@@ -58,7 +61,8 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     primary_key: is_primary_key,
                     html_input_type: html_input_type,
                     select_list: select_list,
-                    searchable: is_searchable
+                    searchable: is_searchable,
+                    textarea: is_textarea
                 };
                 Some(model_field)
             } else {
@@ -163,6 +167,20 @@ pub fn get_actix_admin_fields_html_input(fields: &Vec<ModelField>) -> Vec<TokenS
 
             quote! {
                 #html_input_type
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
+pub fn get_actix_admin_fields_textarea(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+        .iter()
+        .filter(|model_field| !model_field.primary_key)
+        .map(|model_field| {
+            let is_textarea = model_field.textarea;
+
+            quote! {
+                #is_textarea
             }
         })
         .collect::<Vec<_>>()

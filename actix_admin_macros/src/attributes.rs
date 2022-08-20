@@ -13,7 +13,8 @@ pub mod derive_attr {
         pub primary_key: Option<()>,
         pub html_input_type: Option<syn::LitStr>,
         pub select_list: Option<syn::LitStr>,
-        pub searchable: Option<()>
+        pub searchable: Option<()>,
+        pub textarea: Option<()>
         //pub inner_type: Option<syn::Type>,
 
         // Anything that implements `syn::parse::Parse` is supported.

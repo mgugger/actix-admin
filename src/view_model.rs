@@ -82,9 +82,12 @@ pub struct ActixAdminViewModelField {
 }
 
 impl ActixAdminViewModelFieldType {
-    pub fn get_field_type(type_path: &str, select_list: String) -> ActixAdminViewModelFieldType {
+    pub fn get_field_type(type_path: &str, select_list: String, is_textarea: bool) -> ActixAdminViewModelFieldType {
         if !select_list.is_empty() {
             return ActixAdminViewModelFieldType::SelectList;
+        }
+        if is_textarea {
+            return ActixAdminViewModelFieldType::TextArea;
         }
 
         match type_path {

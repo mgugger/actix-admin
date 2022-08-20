@@ -1,10 +1,11 @@
-<div class="select 
-    {% if 
-    model.errors | get(key=model_field.field_name, default="" ) !="" 
-    or 
-    model.custom_errors | get(key=model_field.field_name, default="" ) !="" 
-    %}is-danger{% endif %}"
-    >
+<div class="select
+    {% if model.errors | length > 0 or model.custom_errors | length > 0 %}
+        {% if 
+        model.errors | get(key=model_field.field_name, default="" ) !="" 
+        or 
+        model.custom_errors | get(key=model_field.field_name, default="" ) !="" 
+        %}is-danger{% else %}is-success{% endif %}
+    {% endif %}">
     <select name="{{ model_field.field_name }}">
         {% if model_field.is_option %}
         <option value=""></option>

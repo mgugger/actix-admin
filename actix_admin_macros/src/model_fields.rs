@@ -12,7 +12,8 @@ pub struct ModelField {
     pub primary_key: bool,
     pub html_input_type: String,
     pub select_list: String,
-    pub searchable: bool
+    pub searchable: bool,
+    pub textarea: bool
 }
 
 impl ModelField {
