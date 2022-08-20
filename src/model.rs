@@ -118,6 +118,6 @@ impl ActixAdminModel {
     }
 
     pub fn has_errors(&self) -> bool {
-        return &self.errors.len() != &0;
+        return (&self.errors.len() + &self.custom_errors.len()) != 0 as usize;
     }
 }
