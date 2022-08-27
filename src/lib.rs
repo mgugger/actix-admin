@@ -100,8 +100,8 @@ pub trait ActixAdminSelectListTrait {
 pub struct ActixAdminConfiguration {
     pub enable_auth: bool,
     pub user_is_logged_in: Option<for<'a> fn(&'a Session) -> bool>,
-    pub login_link: String,
-    pub logout_link: String
+    pub login_link: Option<String>,
+    pub logout_link: Option<String>
 }
 
 #[derive(Clone)]

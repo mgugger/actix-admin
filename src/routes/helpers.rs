@@ -12,8 +12,8 @@ pub fn add_auth_context(session: &Session, actix_admin: &ActixAdmin, ctx: &mut C
     if *enable_auth {
         let func = &actix_admin.configuration.user_is_logged_in.unwrap();
         ctx.insert("user_is_logged_in", &func(session));
-        ctx.insert("login_link", &actix_admin.configuration.login_link);
-        ctx.insert("logout_link", &actix_admin.configuration.logout_link);
+        ctx.insert("login_link", &actix_admin.configuration.login_link.as_ref().unwrap_or(&String::new()));
+        ctx.insert("logout_link", &actix_admin.configuration.logout_link.as_ref().unwrap_or(&String::new()));
     }
 }
 

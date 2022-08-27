@@ -61,8 +61,8 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
              let user_info = session.get::<UserInfo>("user_info").unwrap();
              user_info.is_some()
         }),
-        login_link: "/azure-auth/login".to_string(),
-        logout_link: "/azure-auth/logout".to_string()
+        login_link: Some("/azure-auth/login".to_string()),
+        logout_link: Some("/azure-auth/logout".to_string()
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
