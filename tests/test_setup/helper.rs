@@ -48,7 +48,7 @@ pub fn create_actix_admin_builder() -> ActixAdminBuilder {
     admin_builder.add_entity::<AppState, Comment>(&comment_view_model);
 
     admin_builder.add_custom_handler_for_entity::<AppState, Comment>(
-        "/create_comment_from_plaintext", 
+        "/create_post_from_plaintext", 
         web::post().to(create_post_from_plaintext::<AppState, Comment>));
 
     admin_builder.add_custom_handler_for_entity::<AppState, Post>(
@@ -60,7 +60,7 @@ pub fn create_actix_admin_builder() -> ActixAdminBuilder {
         web::post().to(edit_post_from_plaintext::<AppState, Post>));
 
     admin_builder.add_custom_handler_for_entity::<AppState, Comment>(
-        "/edit_comment_from_plaintext/{id}", 
+        "/edit_post_from_plaintext/{id}", 
         web::post().to(edit_post_from_plaintext::<AppState, Comment>));
 
     admin_builder

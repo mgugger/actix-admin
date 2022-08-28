@@ -85,8 +85,8 @@ impl From<String> for ActixAdminModel {
             if !key_value.is_empty() {
                 let mut iter = key_value.splitn(2, '=');
                 hashmap.insert(
-                    iter.next().unwrap().to_string(),
-                    iter.next().unwrap().to_string(),
+                    iter.next().unwrap().to_string().replace("%3A", ":"),
+                    iter.next().unwrap().to_string().replace("%3A", ":"),
                 );
             }
         }
