@@ -19,3 +19,4 @@ database.db-wal
 *.secret
 *.env
 example/.env
+.vscode
