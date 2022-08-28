@@ -7,6 +7,7 @@ use azure_auth::{AppDataTrait as AzureAuthAppDataTrait, AzureAuth, UserInfo};
 use oauth2::basic::BasicClient;
 use oauth2::RedirectUrl;
 use sea_orm::{ConnectOptions, DatabaseConnection};
+use actix_web::http::header::ContentType;
 use std::env;
 use std::time::Duration;
 use tera::{Context, Tera};
@@ -37,6 +38,19 @@ impl AzureAuthAppDataTrait for AppState {
     }
 }
 
+async fn custom_handler<
+    T: ActixAdminAppDataTrait,
+    E: ActixAdminViewModelTrait,
+>(
+    _session: Session,
+    _data: web::Data<T>,
+    _text: String
+) -> HttpResponse {
+    HttpResponse::Ok()
+        .content_type(ContentType::plaintext())
+        .body("data")
+}
+
 async fn index(session: Session, data: web::Data<AppState>) -> HttpResponse {
     let login = session.get::<UserInfo>("user_info").unwrap();
     let web_auth_link = if login.is_some() {
@@ -62,12 +76,16 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
              user_info.is_some()
         }),
         login_link: Some("/azure-auth/login".to_string()),
-        logout_link: Some("/azure-auth/logout".to_string()
+        logout_link: Some("/azure-auth/logout".to_string())
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
     admin_builder.add_entity::<AppState, Post>(&post_view_model);
     admin_builder.add_entity::<AppState, Comment>(&comment_view_model);
+    admin_builder.add_custom_handler_for_entity::<AppState, Comment>(
+        "/custom_handler", 
+        web::get().to(custom_handler::<AppState, Comment>)
+    );
 
     admin_builder
 }

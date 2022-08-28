@@ -1,41 +1,36 @@
 mod test_setup;
-use test_setup::helper::{AppState, create_tables_and_get_connection, create_actix_admin_builder};
+use test_setup::helper::{create_actix_admin_builder, create_tables_and_get_connection, AppState};
 
 #[cfg(test)]
 mod tests {
     extern crate serde_derive;
 
+    use actix_admin::prelude::*;
+    use actix_web::http::header::ContentType;
     use actix_web::test;
     use actix_web::{middleware, web, App};
 
-    use actix_admin::prelude::*;
-
     #[actix_web::test]
-    async fn admin_index_get() {
-        test_get_is_success("/admin/").await
+    async fn comment_create_post() {
+        test_post_is_success("/admin/comment/create_post_from_plaintext").await
+    }
+    
+    #[actix_web::test]
+    async fn post_create_post() {
+        test_post_is_success("/admin/post/create_post_from_plaintext").await
     }
 
     #[actix_web::test]
-    async fn post_list_get() {
-        test_get_is_success("/admin/post/list").await
+    async fn post_edit_post() {
+        test_post_is_success("/admin/post/edit_post_from_plaintext").await
     }
 
     #[actix_web::test]
-    async fn comment_list_get() {
-        test_get_is_success("/admin/comment/list").await
+    async fn comment_edit_post() {
+        test_post_is_success("/admin/comment/edit_post_from_plaintext").await
     }
 
-    #[actix_web::test]
-    async fn post_create_get() {
-        test_get_is_success("/admin/post/create").await
-    }
-
-    #[actix_web::test]
-    async fn comment_create_get() {
-        test_get_is_success("/admin/comment/create").await
-    }
-
-    async fn test_get_is_success(url: &str) {
+    async fn test_post_is_success(url: &str) {
         let conn = super::create_tables_and_get_connection().await;
 
         let actix_admin_builder = super::create_actix_admin_builder();
@@ -54,7 +49,8 @@ mod tests {
         )
         .await;
 
-        let req = test::TestRequest::get()
+        let req = test::TestRequest::post()
+            .insert_header(ContentType::form_url_encoded())
             .uri(url)
             .to_request();
         let resp = test::call_service(&app, req).await;

@@ -18,6 +18,7 @@ pub mod prelude {
     pub use actix_admin_macros::{ DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel, DeriveActixAdminEnumSelectList, DeriveActixAdminModelSelectList };
     pub use crate::{ ActixAdminAppDataTrait, ActixAdmin, ActixAdminConfiguration };
     pub use crate::{ hashmap, ActixAdminSelectListTrait };
+    pub use crate::routes::{ create_or_edit_post };
 }
 
 use crate::prelude::*; 

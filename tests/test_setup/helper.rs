@@ -1,5 +1,9 @@
 use sea_orm::{ConnectOptions, DatabaseConnection};
 use actix_admin::prelude::*;
+use actix_web::Error;
+use actix_session::Session;
+use actix_web::HttpResponse;
+use actix_web::{web};
 
 use super::{Post, Comment, create_tables};
 
@@ -43,5 +47,47 @@ pub fn create_actix_admin_builder() -> ActixAdminBuilder {
     admin_builder.add_entity::<AppState, Post>(&post_view_model);
     admin_builder.add_entity::<AppState, Comment>(&comment_view_model);
 
+    admin_builder.add_custom_handler_for_entity::<AppState, Comment>(
+        "/create_comment_from_plaintext", 
+        web::post().to(create_post_from_plaintext::<AppState, Comment>));
+
+    admin_builder.add_custom_handler_for_entity::<AppState, Post>(
+        "/create_post_from_plaintext", 
+        web::post().to(create_post_from_plaintext::<AppState, Post>));
+
+    admin_builder.add_custom_handler_for_entity::<AppState, Post>(
+        "/edit_post_from_plaintext/{id}", 
+        web::post().to(edit_post_from_plaintext::<AppState, Post>));
+
+    admin_builder.add_custom_handler_for_entity::<AppState, Comment>(
+        "/edit_comment_from_plaintext/{id}", 
+        web::post().to(edit_post_from_plaintext::<AppState, Comment>));
+
     admin_builder
+}
+
+async fn create_post_from_plaintext<
+    T: ActixAdminAppDataTrait,
+    E: ActixAdminViewModelTrait,
+>(
+    session: Session,
+    data: web::Data<T>,
+    text: String,
+) -> Result<HttpResponse, Error> {
+    let model = ActixAdminModel::from(text);
+    create_or_edit_post::<T, E>(&session, &data, model, None).await
+}
+
+async fn edit_post_from_plaintext<
+    T: ActixAdminAppDataTrait,
+    E: ActixAdminViewModelTrait,
+>(
+    session: Session,
+    data: web::Data<T>,
+    text: String,
+    id: web::Path<i32>,
+) -> Result<HttpResponse, Error> {
+    println!("ok");
+    let model = ActixAdminModel::from(text);
+    create_or_edit_post::<T, E>(&session, &data, model, Some(id.into_inner())).await
 }

@@ -2,7 +2,7 @@ mod create_or_edit_get;
 pub use create_or_edit_get::{create_get, edit_get};
 
 mod create_or_edit_post;
-pub use create_or_edit_post::{ create_post, edit_post };
+pub use create_or_edit_post::{ create_post, edit_post, create_or_edit_post };
 
 mod index;
 pub use index::index;
