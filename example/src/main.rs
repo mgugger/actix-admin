@@ -7,10 +7,10 @@ use azure_auth::{AppDataTrait as AzureAuthAppDataTrait, AzureAuth, UserInfo};
 use oauth2::basic::BasicClient;
 use oauth2::RedirectUrl;
 use sea_orm::{ConnectOptions, DatabaseConnection};
-use actix_web::http::header::ContentType;
 use std::env;
 use std::time::Duration;
 use tera::{Context, Tera};
+use actix_web::Error;
 
 mod entity;
 use entity::{Post, Comment};
@@ -32,6 +32,16 @@ impl ActixAdminAppDataTrait for AppState {
     }
 }
 
+trait AppDataTrait {
+    fn get_tmpl(&self) -> &Tera;
+}
+
+impl AppDataTrait for AppState {
+    fn get_tmpl(&self) -> &Tera {
+        &self.tmpl
+    }
+}
+
 impl AzureAuthAppDataTrait for AppState {
     fn get_oauth(&self) -> &BasicClient {
         &self.oauth
@@ -39,17 +49,40 @@ impl AzureAuthAppDataTrait for AppState {
 }
 
 async fn custom_handler<
-    T: ActixAdminAppDataTrait,
+    T: ActixAdminAppDataTrait + AppDataTrait,
     E: ActixAdminViewModelTrait,
 >(
-    _session: Session,
-    _data: web::Data<T>,
+    session: Session,
+    data: web::Data<T>,
     _text: String
-) -> HttpResponse {
-    HttpResponse::Ok()
-        .content_type(ContentType::plaintext())
-        .body("data")
+) -> Result<HttpResponse, Error> {
+    
+    let mut ctx = Context::new();
+    ctx.extend(get_admin_ctx(session, &data));
+
+    let body = data.get_tmpl()
+    .render("custom_handler.html", &ctx).unwrap();
+    
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
+
+async fn custom_index<
+    T: ActixAdminAppDataTrait + AppDataTrait
+>(
+    session: Session,
+    data: web::Data<T>,
+    _text: String
+) -> Result<HttpResponse, Error> {
+    
+    let mut ctx = Context::new();
+    ctx.extend(get_admin_ctx(session, &data));
+
+    let body = data.get_tmpl()
+    .render("custom_index.html", &ctx).unwrap();
+    
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+}
+
 
 async fn index(session: Session, data: web::Data<AppState>) -> HttpResponse {
     let login = session.get::<UserInfo>("user_info").unwrap();
@@ -82,6 +115,9 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     let mut admin_builder = ActixAdminBuilder::new(configuration);
     admin_builder.add_entity::<AppState, Post>(&post_view_model);
     admin_builder.add_entity::<AppState, Comment>(&comment_view_model);
+    admin_builder.add_custom_handler_for_index::<AppState>(
+        web::get().to(custom_index::<AppState>)
+    );
     admin_builder.add_custom_handler_for_entity::<AppState, Comment>(
         "/custom_handler", 
         web::get().to(custom_handler::<AppState, Comment>)
@@ -111,7 +147,9 @@ async fn main() {
                 .expect("Invalid redirect URL"),
         );
 
-    let tera = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
+    let mut tera = Tera::parse(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
+    tera.extend(&TERA).unwrap();
+    let _tera_res = tera.build_inheritance_chains();
 
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
     let mut opt = ConnectOptions::new(db_url);

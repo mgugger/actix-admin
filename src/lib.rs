@@ -18,7 +18,8 @@ pub mod prelude {
     pub use actix_admin_macros::{ DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel, DeriveActixAdminEnumSelectList, DeriveActixAdminModelSelectList };
     pub use crate::{ ActixAdminAppDataTrait, ActixAdmin, ActixAdminConfiguration };
     pub use crate::{ hashmap, ActixAdminSelectListTrait };
-    pub use crate::routes::{ create_or_edit_post };
+    pub use crate::routes::{ create_or_edit_post, get_admin_ctx };
+    pub use crate::{ TERA };
 }
 
 use crate::prelude::*; 
@@ -34,7 +35,7 @@ macro_rules! hashmap {
 
 // globals
 lazy_static! {
-    static ref TERA: Tera = {
+    pub static ref TERA: Tera = {
        let mut tera = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
        tera.register_filter("get_html_input_type", get_html_input_type);
        tera.register_filter("get_html_input_class", get_html_input_class);

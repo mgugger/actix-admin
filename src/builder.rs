@@ -8,6 +8,7 @@ use crate::routes::{create_get, create_post, delete, delete_many, edit_get, edit
 pub struct ActixAdminBuilder {
     pub scopes: HashMap<String, actix_web::Scope>,
     pub actix_admin: ActixAdmin,
+    pub custom_index: Option<Route>
 }
 
 pub trait ActixAdminBuilderTrait {
@@ -19,6 +20,10 @@ pub trait ActixAdminBuilderTrait {
     fn add_custom_handler_for_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         path: &str,
+        route: Route
+    );
+    fn add_custom_handler_for_index<T: ActixAdminAppDataTrait + 'static>(
+        &mut self,
         route: Route
     );
     fn get_scope<T: ActixAdminAppDataTrait + 'static>(self) -> actix_web::Scope;
@@ -34,6 +39,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 configuration: configuration
             },
             scopes: HashMap::new(),
+            custom_index: None
         }
     }
 
@@ -56,6 +62,13 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         self.actix_admin.entity_names.push(E::get_entity_name());
         let key = E::get_entity_name();
         self.actix_admin.view_models.insert(key, view_model.clone());
+    }
+
+    fn add_custom_handler_for_index<T: ActixAdminAppDataTrait + 'static>(
+        &mut self,
+        route: Route
+    ) {
+        self.custom_index = Some(route);
     }
 
     fn add_custom_handler_for_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
@@ -83,7 +96,11 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
     }
 
     fn get_scope<T: ActixAdminAppDataTrait + 'static>(mut self) -> actix_web::Scope {
-        let mut admin_scope = web::scope("/admin").route("/", web::get().to(index::<T>));
+        let index_handler = match self.custom_index {
+            Some(handler) => handler,
+            _ => web::get().to(index::<T>)
+        };
+        let mut admin_scope = web::scope("/admin").route("/", index_handler);
         for entity_name in self.actix_admin.entity_names {
             let scope = self.scopes.remove(&entity_name).unwrap();
             admin_scope = admin_scope.service(scope);
