@@ -84,7 +84,7 @@ impl ActixAdminModel {
     }
 
     pub fn get_bool(&self, key: &str, is_option_or_string: bool) -> Result<Option<bool>, String> {
-        let val = self.get_value_by_closure(key, is_option_or_string, |val| if !val.is_empty() { Ok(true) } else { Ok(false) });
+        let val = self.get_value_by_closure(key, is_option_or_string, |val| if !val.is_empty() && (val == "true" || val == "yes") { Ok(true) } else { Ok(false) });
         // not selected bool field equals to false and not to missing
         match val {
             Ok(val) => Ok(val),
