@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 use actix_admin::prelude::*;
 use super::Post;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, 
+   DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel
+)]
 #[sea_orm(table_name = "comment")]
 pub struct Model {
     #[sea_orm(primary_key)]

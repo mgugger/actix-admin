@@ -5,12 +5,14 @@ use crate::prelude::*;
 
 use crate::routes::{create_get, create_post, delete, delete_many, edit_get, edit_post, index, list};
 
+/// Represents a builder entity which helps generating the ActixAdmin configuration
 pub struct ActixAdminBuilder {
     pub scopes: HashMap<String, actix_web::Scope>,
     pub actix_admin: ActixAdmin,
     pub custom_index: Option<Route>
 }
 
+/// The trait to work with ActixAdminBuilder
 pub trait ActixAdminBuilderTrait {
     fn new(configuration: ActixAdminConfiguration) -> Self;
     fn add_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
