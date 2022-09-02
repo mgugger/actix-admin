@@ -129,12 +129,26 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
 #[actix_rt::main]
 async fn main() {
     dotenv::dotenv().ok();
-    let oauth2_client_id =
-        env::var("OAUTH2_CLIENT_ID").expect("Missing the OAUTH2_CLIENT_ID environment variable.");
-    let oauth2_client_secret = env::var("OAUTH2_CLIENT_SECRET")
-        .expect("Missing the OAUTH2_CLIENT_SECRET environment variable.");
-    let oauth2_server =
-        env::var("OAUTH2_SERVER").expect("Missing the OAUTH2_SERVER environment variable.");
+
+    let actix_admin = create_actix_admin_builder().get_actix_admin();
+
+    let oauth2_client_id;
+    let oauth2_client_secret;
+    let oauth2_server;
+
+    match actix_admin.configuration.enable_auth {
+        true => {
+            oauth2_client_id = env::var("OAUTH2_CLIENT_ID").expect("Missing the OAUTH2_CLIENT_ID environment variable.");
+            oauth2_client_secret = env::var("OAUTH2_CLIENT_SECRET").expect("Missing the OAUTH2_CLIENT_SECRET environment variable.");
+            oauth2_server= env::var("OAUTH2_SERVER").expect("Missing the OAUTH2_SERVER environment variable.");
+        },
+        false => {
+            oauth2_client_id = String::new();
+            oauth2_client_secret = String::new();
+            oauth2_server = String::new();
+        }
+    }
+        
     let azure_auth = AzureAuth::new(&oauth2_server, &oauth2_client_id, &oauth2_client_secret);
 
     // Set up the config for the OAuth2 process.
@@ -151,7 +165,7 @@ async fn main() {
     tera.extend(&TERA).unwrap();
     let _tera_res = tera.build_inheritance_chains();
 
-    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
+    let db_url = "sqlite::memory:".to_string();
     let mut opt = ConnectOptions::new(db_url);
     opt.max_connections(100)
         .min_connections(5)
@@ -162,8 +176,6 @@ async fn main() {
     let conn = sea_orm::Database::connect(opt).await.unwrap();
     let _ = entity::create_post_table(&conn).await;
 
-    let actix_admin = create_actix_admin_builder().get_actix_admin();
-    
     let app_state = AppState {
         oauth: client,
         tmpl: tera,
