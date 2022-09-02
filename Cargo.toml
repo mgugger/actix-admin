@@ -1,5 +1,5 @@
 [package]
-name = "actix_admin"
+name = "actix-admin"
 description = "An admin interface for actix-web"
 license = "MIT OR Apache-2.0"
 version = "0.1.0"
@@ -26,7 +26,7 @@ itertools = "0.10.3"
 serde = "1.0.136"
 serde_derive = "1.0.136"
 sea-orm = { version = "^0.9.1", features = [], default-features = false }
-actix_admin_macros = { version = "0.1.0", path = "actix_admin_macros" }
+actix-admin-macros = { version = "0.1.0", path = "actix_admin_macros" }
 
 [dev-dependencies]
 sea-orm = { version = "^0.9.1", features = [ "sqlx-sqlite", "runtime-actix-native-tls", "macros" ], default-features = true }
