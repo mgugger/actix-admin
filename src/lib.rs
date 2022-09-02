@@ -1,11 +1,11 @@
 //! # Actix Admin
 //!
-//! The actix-admin crate creates admin interface similar to other admin interfaces (such as flask-admin in python).
+//! The actix-admin crate aims at creating a web admin interface similar to other admin interfaces (such as [flask-admin](https://github.com/flask-admin/flask-admin) in python).
 //! 
 //! ## Getting Started
 //! 
 //! * See the [example](https://github.com/mgugger/actix-admin/tree/main/example).
-//! * See the step by [step tutorial](TODO) 
+//! * See the step by [step tutorial](https://github.com/mgugger/actix-admin/tree/main/example/StepbyStep.md) 
 //! 
 //! ## Features
 //! 1. Async, builds on [sea-orm](https://crates.io/crates/sea-orm) for the database backend
@@ -16,6 +16,8 @@
 //! 6. Supports a custom index view
 //! 
 //! ## Screenshot
+//! 
+//! <img src="https://raw.githubusercontent.com/mgugger/actix-admin/main/static/Screenshot.png"/>
 //! 
 //! ## Quick overview
 //! 
