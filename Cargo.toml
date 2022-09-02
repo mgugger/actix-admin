@@ -2,6 +2,14 @@
 name = "actix_admin"
 version = "0.1.0"
 edition = "2021"
+exclude = [
+    "example/*",
+    "actix_admin_macros/*",
+    "tests/*",
+    "README.md",
+    "static/*",
+    "azure_auth/*",
+]
 
 [dependencies]
 actix-web = "4.0.1"
