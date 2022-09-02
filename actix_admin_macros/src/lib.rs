@@ -1,3 +1,7 @@
+//! # Actix Admin Macros
+//!
+//! Macros used by the actix-admin crate
+
 use proc_macro;
 use quote::quote;
 
