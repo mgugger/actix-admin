@@ -86,13 +86,17 @@
                 {% for entity in entities -%}
                 <tr>
                     <td><input type="checkbox" name="ids" value="{{ entity.primary_key }}"></td>
-                    <td>{{ entity.primary_key }}</td>
+                    <td>
+                        <a href="show/{{ entity.primary_key }}">
+                            <i class="fa-solid fa-magnifying-glass"></i> {{ entity.primary_key }} 
+                        </a>
+                    </td>
                     {% for model_field in view_model.fields -%}
-                        {% if model_field.field_type == "Checkbox" %}
-                            <td>{{ entity.values | get(key=model_field.field_name) | get_icon | safe }}</td>
-                        {% else %}
-                            <td>{{ entity.values | get(key=model_field.field_name) }}</td>
-                        {% endif %}
+                    {% if model_field.field_type == "Checkbox" %}
+                    <td>{{ entity.values | get(key=model_field.field_name) | get_icon | safe }}</td>
+                    {% else %}
+                    <td>{{ entity.values | get(key=model_field.field_name) }}</td>
+                    {% endif %}
                     {%- endfor %}
                     <td>
                         <a href="edit/{{ entity.primary_key }}"><i class="fa-solid fa-pen-to-square"></i></a>

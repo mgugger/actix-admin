@@ -10,6 +10,9 @@ pub use index::{ index, get_admin_ctx };
 mod list;
 pub use list::list;
 
+mod show;
+pub use show::show;
+
 mod delete;
 pub use delete::{ delete, delete_many };
 

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% for model_field in view_model.fields -%}
+<div class="columns">
+    <div class="column">
+        <p class="title is-5">{{ model_field.field_name | split(pat="_") | join(sep=" ") | title }}</p>
+        <p>
+            {% if model_field.field_type == "Checkbox" %}
+            <td>{{ model.values | get(key=model_field.field_name) | get_icon | safe }}</td>
+            {% else %}
+            <td>{{ model.values | get(key=model_field.field_name) }}</td>
+            {% endif %}
+        </p>
+    </div>
+</div>
+{%- endfor %}
+<div class="columns">
+    <div class="column">
+        <div class="field is-grouped">
+            <div class="control">
+                <a class="button is-link is-light" href="{{ list_link }}">Back</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock content %}
