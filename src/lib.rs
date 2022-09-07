@@ -22,20 +22,25 @@
 //! ## Quick overview
 //! 
 //! ### Required dependencies
-//! ```
 //! itertools = "0.10.3"
 //! sea-orm = { version = "^0.9.1", features = [ "sqlx-sqlite", "runtime-actix-native-tls", "macros" ], default-features = true }
 //! actix_admin = { version = "^0.1.0" }
-//! ```
 //! 
-//! ### Derive Macros
+//! ### See inlined steps
 //! ```
 //! use sea_orm::entity::prelude::*;
 //! use serde::{Deserialize, Serialize};
 //! use actix_admin::prelude::*;
-//! use super::Post;
+//! use actix_web::web;
+//! use actix_web::App;
+//! use actix_web::HttpServer;
+//! use sea_orm::entity::prelude::*;
+//! use sea_orm::entity::prelude::*;
+//! use actix_admin::prelude::*;
+//! // 1. Import ActixAdmin
+//! use actix_admin::prelude::*;
 //! 
-//! // Use DeriveActixAmin* Macros to implement the traits for the model
+//! // 2. Use DeriveActixAmin* Macros to implement the traits for the model
 //! #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, 
 //!     DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel
 //! )]
@@ -47,15 +52,20 @@
 //!     pub id: i32,
 //!     pub comment: String
 //! }
-//! ```
+//! impl ActixAdminModelValidationTrait<ActiveModel> for Entity {}
+//! impl ActiveModelBehavior for ActiveModel {}
 //! 
-//! ### Add actix-admin to the AppState
-//! ```
+//! #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+//! pub enum Relation { }
+//! 
+//! // 3. Add actix-admin to the AppState
+//! #[derive(Clone)]
 //! pub struct AppState {
 //!  pub db: DatabaseConnection,
 //!  pub actix_admin: ActixAdmin,
 //! }
 //! 
+//! // 4. Implement the ActixAdminAppDataTrait for the AppState
 //! impl ActixAdminAppDataTrait for AppState {
 //!     fn get_db(&self) -> &DatabaseConnection {
 //!         &self.db
@@ -65,12 +75,10 @@
 //!         &self.actix_admin
 //!     }
 //! }
-//! ```
-//! 
-//! ### Actix Admin Builder
-//! ```
+//!
+//! // 5. Setup the actix admin configuration
 //! pub fn create_actix_admin_builder() -> ActixAdminBuilder {
-//! let comment_view_model = ActixAdminViewModel::from(Comment);
+//! let comment_view_model = ActixAdminViewModel::from(Entity);
 //!
 //! let configuration = ActixAdminConfiguration {
 //!    enable_auth: false,
@@ -80,35 +88,30 @@
 //! };
 //!
 //! let mut admin_builder = ActixAdminBuilder::new(configuration);
-//! admin_builder.add_entity::<AppState, Comment>(&comment_view_model);
+//! admin_builder.add_entity::<AppState, Entity>(&comment_view_model);
 //!
 //! admin_builder
 //! }
-//! ```
 //! 
-//! ### Add to the actix app
-//! ```
+//! // 6. Add to the actix app
 //! let actix_admin = create_actix_admin_builder().get_actix_admin();
-//! 
-//! let app_state = AppState {
-//!     db: conn,
-//!     actix_admin: actix_admin,
-//! };
+//! //let opt = ConnectOptions::new("sqlite::memory:".to_owned());
+//! //let conn = sea_orm::Database::connect(opt).unwrap();
+//! //let app_state = AppState {
+//! //    db: conn,
+//! //    actix_admin: actix_admin,
+//! //};
 //! 
 //! HttpServer::new(move || {
 //!     App::new()
-//!         .app_data(web::Data::new(app_state.clone()))
-//!         .wrap(SessionMiddleware::new(CookieSessionStore::default(), cookie_secret_key.clone()))
-//!         .route("/", web::get().to(index))
-//!         .service(azure_auth.clone().create_scope::<AppState>())
+//!         //.app_data(web::Data::new(app_state.clone()))
 //!         .service(
 //!             create_actix_admin_builder().get_scope::<AppState>()
 //!         )
-//!         .wrap(middleware::Logger::default())
-//! })
+//! });
 //! ```
 //! 
-//! ### Access
+//! ## Access
 //! The admin interface will be available under /admin/.
 
 use lazy_static::lazy_static;
