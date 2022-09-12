@@ -224,7 +224,7 @@ pub struct ActixAdminConfiguration {
 
 #[derive(Clone)]
 pub struct ActixAdmin {
-    pub entity_names: Vec<String>,
+    pub entity_names: HashMap<String, Vec<String>>,
     pub view_models: HashMap<String, ActixAdminViewModel>,
     pub configuration: ActixAdminConfiguration
 }

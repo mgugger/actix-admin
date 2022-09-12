@@ -113,14 +113,17 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
-    admin_builder.add_entity::<AppState, Post>(&post_view_model);
-    admin_builder.add_entity::<AppState, Comment>(&comment_view_model);
     admin_builder.add_custom_handler_for_index::<AppState>(
         web::get().to(custom_index::<AppState>)
     );
-    admin_builder.add_custom_handler_for_entity::<AppState, Comment>(
+    admin_builder.add_entity::<AppState, Post>(&post_view_model);
+
+    let some_category = "Some Category";
+    admin_builder.add_entity_to_category::<AppState, Comment>(&comment_view_model, some_category);
+    admin_builder.add_custom_handler_for_entity_in_category::<AppState, Comment>(
         "/custom_handler", 
-        web::get().to(custom_handler::<AppState, Comment>)
+        web::get().to(custom_handler::<AppState, Comment>),
+        some_category
     );
 
     admin_builder

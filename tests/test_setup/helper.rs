@@ -87,7 +87,6 @@ async fn edit_post_from_plaintext<
     text: String,
     id: web::Path<i32>,
 ) -> Result<HttpResponse, Error> {
-    println!("ok");
     let model = ActixAdminModel::from(text);
     create_or_edit_post::<T, E>(&session, &data, model, Some(id.into_inner())).await
 }
