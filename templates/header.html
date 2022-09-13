@@ -15,8 +15,8 @@
     <div class="navbar-start">
       {% for category, entities in entity_names %}
         {% if category == "" %}
-          {% for entity_name in entities %}
-            <a href="/admin/{{ entity_name }}/list" class="navbar-item">{{ entity_name | title }}</a>
+          {% for name in entities %}
+            <a href="/admin/{{ name }}/list" class="navbar-item {% if entity_name and entity_name == name %}is-active{% endif %}">{{ name | title }}</a>
           {%- endfor %}
         {% else %}
           <div class="navbar-item has-dropdown is-hoverable">
@@ -24,8 +24,8 @@
               {{ category }}
             </a>
             <div class="navbar-dropdown">
-          {% for entity_name in entities %}
-            <a href="/admin/{{ entity_name }}/list" class="navbar-item">{{ entity_name | title }}</a>
+          {% for name in entities %}
+            <a href="/admin/{{ name }}/list" class="navbar-item {% if entity_name and entity_name == name %}is-active{% endif %}">{{ name | title }}</a>
           {%- endfor %}
             </div>
           </div>
