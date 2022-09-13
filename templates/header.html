@@ -20,7 +20,7 @@
           {%- endfor %}
         {% else %}
           <div class="navbar-item has-dropdown is-hoverable">
-            <a class="navbar-link">
+            <a class="navbar-link {% if entity_name and entity_name in entities %}is-active{% endif %}">
               {{ category }}
             </a>
             <div class="navbar-dropdown">
