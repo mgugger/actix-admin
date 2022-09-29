@@ -1,6 +1,6 @@
 use actix_web::{ web, Route };
 use std::collections::HashMap;
-use crate::prelude::*;
+use crate::{prelude::*, ActixAdminMenuElement};
 
 use crate::routes::{create_get, create_post, delete, delete_many, edit_get, edit_post, index, list, show};
 
@@ -25,11 +25,13 @@ pub trait ActixAdminBuilderTrait {
     );
     fn add_custom_handler_for_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
         &mut self,
+        menu_element_name: &str,
         path: &str,
         route: Route
     );
     fn add_custom_handler_for_entity_in_category<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
         &mut self,
+        menu_element_name: &str,
         path: &str,
         route: Route,
         category_name: &str
@@ -81,11 +83,18 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         );
 
         let category = self.actix_admin.entity_names.get_mut(category_name);
+        let menu_element = ActixAdminMenuElement {
+            name: E::get_entity_name(),
+            link: E::get_entity_name(),
+            is_custom_handler: false
+        };
         match category {
-            Some(entity_list) => entity_list.push(E::get_entity_name()),
+            Some(entity_list) => {
+                entity_list.push(menu_element)
+            },
             None => {
                 let mut entity_list = Vec::new();
-                entity_list.push(E::get_entity_name());
+                entity_list.push(menu_element);
                 self.actix_admin.entity_names.insert(category_name.to_string(), entity_list);
             }
         }
@@ -103,54 +112,61 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
 
     fn add_custom_handler_for_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
         &mut self,
+        menu_element_name: &str,
         path: &str,
         route: Route
     ) {
-        let _ = &self.add_custom_handler_for_entity_in_category::<T,E>(path, route, "");
+        let _ = &self.add_custom_handler_for_entity_in_category::<T,E>(menu_element_name ,path, route, "");
     }
 
     fn add_custom_handler_for_entity_in_category<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
         &mut self,
+        menu_element_name: &str,
         path: &str,
         route: Route,
         category_name: &str
     ) {
+        let menu_element = ActixAdminMenuElement {
+            name: menu_element_name.to_string(),
+            link: format!("{}{}", E::get_entity_name(), path),
+            is_custom_handler: true
+        };
+
         let existing_scope = self.scopes.remove(&E::get_entity_name());
+
         match existing_scope {
             Some(scope) => {
                 let existing_scope = scope.route(path, route);
-                self.scopes.insert(E::get_entity_name(), existing_scope);
+                self.scopes.insert(menu_element.link.to_string(), existing_scope);
             },
             _ => {
                 let new_scope = 
                     web::scope(&format!("/{}", E::get_entity_name()))
                     .route(path, route); 
-                self.scopes.insert(E::get_entity_name(), new_scope);
+                self.scopes.insert(menu_element.link.to_string(), new_scope);
             }
         }        
 
         let category = self.actix_admin.entity_names.get_mut(category_name);
         match category {
             Some(entity_list) => {
-                if !entity_list.contains(&E::get_entity_name()) {
-                    entity_list.push(E::get_entity_name());
+                if !entity_list.contains(&menu_element) {
+                    entity_list.push(menu_element);
                 }
             }
             _ => (),
         }
     }
 
-    fn get_scope<T: ActixAdminAppDataTrait + 'static>(mut self) -> actix_web::Scope {
+    fn get_scope<T: ActixAdminAppDataTrait + 'static>(self) -> actix_web::Scope {
         let index_handler = match self.custom_index {
             Some(handler) => handler,
             _ => web::get().to(index::<T>)
         };
         let mut admin_scope = web::scope("/admin").route("/", index_handler);
-        let entities = self.actix_admin.entity_names.into_iter().map(|(_k, v)| v).flatten();
-        
-        for entity_name in entities {
-            let scope = self.scopes.remove(&entity_name).unwrap();
-            admin_scope = admin_scope.service(scope);
+
+        for (_entity, scope) in self.scopes {
+            admin_scope = admin_scope.service(scope);   
         }
 
         admin_scope

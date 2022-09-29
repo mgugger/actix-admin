@@ -116,6 +116,7 @@
 
 use lazy_static::lazy_static;
 use sea_orm::DatabaseConnection;
+use serde::Serialize;
 use std::collections::HashMap;
 use tera::{Tera, Result, to_value, try_get_value };
 use std::{ hash::BuildHasher};
@@ -224,7 +225,14 @@ pub struct ActixAdminConfiguration {
 
 #[derive(Clone)]
 pub struct ActixAdmin {
-    pub entity_names: HashMap<String, Vec<String>>,
+    pub entity_names: HashMap<String, Vec<ActixAdminMenuElement>>,
     pub view_models: HashMap<String, ActixAdminViewModel>,
     pub configuration: ActixAdminConfiguration
+}
+
+#[derive(PartialEq, Eq, Clone, Serialize)]
+pub struct ActixAdminMenuElement {
+    pub name: String,
+    pub link: String,
+    pub is_custom_handler: bool
 }
