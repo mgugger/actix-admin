@@ -32,3 +32,11 @@ pub async fn index<T: ActixAdminAppDataTrait>(session: Session, data: web::Data<
         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
+
+pub async fn not_found() -> Result<HttpResponse, Error> {
+    let body = TERA
+        .render("not_found.html", &Context::new())
+        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
+    Ok(HttpResponse::NotFound().content_type("text/html").body(body))
+}
+

@@ -5,7 +5,7 @@ mod create_or_edit_post;
 pub use create_or_edit_post::{ create_post, edit_post, create_or_edit_post };
 
 mod index;
-pub use index::{ index, get_admin_ctx };
+pub use index::{ index, not_found, get_admin_ctx };
 
 mod list;
 pub use list::list;

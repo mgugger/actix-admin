@@ -2,7 +2,7 @@ use actix_web::{ web, Route };
 use std::collections::HashMap;
 use crate::{prelude::*, ActixAdminMenuElement};
 
-use crate::routes::{create_get, create_post, delete, delete_many, edit_get, edit_post, index, list, show};
+use crate::routes::{create_get, create_post, not_found, delete, delete_many, edit_get, edit_post, index, list, show};
 
 /// Represents a builder entity which helps generating the ActixAdmin configuration
 pub struct ActixAdminBuilder {
@@ -80,6 +80,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 .route("/delete", web::delete().to(delete_many::<T, E>))
                 .route("/delete/{id}", web::delete().to(delete::<T, E>))
                 .route("/show/{id}", web::get().to(show::<T, E>))
+                .default_service(web::to(not_found))
         );
 
         let category = self.actix_admin.entity_names.get_mut(category_name);
@@ -163,7 +164,9 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
             Some(handler) => handler,
             _ => web::get().to(index::<T>)
         };
-        let mut admin_scope = web::scope("/admin").route("/", index_handler);
+        let mut admin_scope = web::scope("/admin")
+            .route("/", index_handler)
+            .default_service(web::to(not_found));
 
         for (_entity, scope) in self.scopes {
             admin_scope = admin_scope.service(scope);   
