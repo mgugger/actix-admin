@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<form hx-boost="true" hx-indicator="#loading" hx-encoding="multipart/form-data" method="post" enctype="multipart/form-data">
+<form hx-boost="true" hx-indicator="#loading" hx-push-url="true" hx-encoding="multipart/form-data" method="post" enctype="multipart/form-data">
     {% for model_field in view_model.fields -%}
     <div class="field">
         <label class="{{ model_field | get_html_input_type }}" for="{{ model_field.field_name }}">

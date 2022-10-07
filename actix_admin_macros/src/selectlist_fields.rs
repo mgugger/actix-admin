@@ -12,15 +12,15 @@ pub fn get_select_list_from_model(_input: proc_macro::TokenStream) -> proc_macro
     let expanded = quote! {
         #[async_trait]
         impl ActixAdminSelectListTrait for Entity {
-            async fn get_key_value(db: &DatabaseConnection) -> Vec<(String, String)> {
-                let entities = Entity::find().order_by_asc(Column::Id).all(db).await;
+            async fn get_key_value(db: &DatabaseConnection) -> Result<Vec<(String, String)>, ActixAdminError> {
+                let entities = Entity::find().order_by_asc(Column::Id).all(db).await?;
                 let mut key_value = Vec::new();
             
-                for entity in entities.unwrap() {
+                for entity in entities {
                     key_value.push((entity.id.to_string(),  entity.to_string()));
                 };
                 key_value.sort_by(|a, b| a.1.cmp(&b.1));
-                key_value
+                Ok(key_value)
             }
         }
     };
@@ -35,12 +35,12 @@ pub fn get_select_list_from_enum(input: proc_macro::TokenStream) -> proc_macro::
     let expanded = quote! {
         #[async_trait]
         impl ActixAdminSelectListTrait for #ty {
-            async fn get_key_value(db: &DatabaseConnection) -> Vec<(String, String)> {
+            async fn get_key_value(db: &DatabaseConnection) -> Result<Vec<(String, String)>, ActixAdminError> {
                 let mut fields = Vec::new();
                 for field in #ty::iter() {
                     fields.push((field.to_string(), field.to_string()));
                 }
-                fields
+                Ok(fields)
             }
         }
     };
@@ -56,7 +56,7 @@ pub fn get_select_lists(fields: &Vec<ModelField>) -> Vec<proc_macro2::TokenStrea
         let ident_name = model_field.ident.to_string();
         let select_list_ident = Ident::new(&(model_field.select_list), Span::call_site());
         quote! {
-            #ident_name => #select_list_ident::get_key_value(db).await
+            #ident_name => #select_list_ident::get_key_value(db).await?
         }
     })
     .collect::<Vec<_>>()

@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use crate::ActixAdminModel;
 use actix_session::{Session};
 use std::convert::From;
+use crate::ActixAdminError;
 
 #[async_trait(?Send)]
 pub trait ActixAdminViewModelTrait {
@@ -13,14 +14,14 @@ pub trait ActixAdminViewModelTrait {
         page: usize,
         entities_per_page: usize,
         search: &String
-    ) -> (usize, Vec<ActixAdminModel>);
+    ) -> Result<(usize, Vec<ActixAdminModel>), ActixAdminError>;
     
     // TODO: Replace return value with proper Result Type containing Ok or Err
-    async fn create_entity(db: &DatabaseConnection, model: ActixAdminModel) -> ActixAdminModel;
-    async fn delete_entity(db: &DatabaseConnection, id: i32) -> bool;
-    async fn get_entity(db: &DatabaseConnection, id: i32) -> ActixAdminModel;
-    async fn edit_entity(db: &DatabaseConnection, id: i32, model: ActixAdminModel) -> ActixAdminModel;
-    async fn get_select_lists(db: &DatabaseConnection) -> HashMap<String, Vec<(String, String)>>;
+    async fn create_entity(db: &DatabaseConnection, model: ActixAdminModel) -> Result<ActixAdminModel, ActixAdminError>;
+    async fn delete_entity(db: &DatabaseConnection, id: i32) -> Result<bool, ActixAdminError>;
+    async fn get_entity(db: &DatabaseConnection, id: i32) -> Result<ActixAdminModel, ActixAdminError>;
+    async fn edit_entity(db: &DatabaseConnection, id: i32, model: ActixAdminModel) -> Result<ActixAdminModel, ActixAdminError>;
+    async fn get_select_lists(db: &DatabaseConnection) -> Result<HashMap<String, Vec<(String, String)>>, ActixAdminError>;
     fn validate_entity(model: &mut ActixAdminModel);
 
     fn get_entity_name() -> String;

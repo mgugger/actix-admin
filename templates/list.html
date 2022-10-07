@@ -6,7 +6,7 @@
 <div class="columns">
     <div class="column">
         <div class="buttons">
-            <a class="button is-primary" href="create">Create</a>
+            <a class="button is-primary" href="create" hx-boost="true" hx-indicator="#loading">Create</a>
 
             <div hx-include="#checked-rows" hx-target="#{{ entity_name }}table" class="dropdown is-hoverable">
                 <div class="dropdown-trigger">
@@ -20,7 +20,7 @@
                 <div class="dropdown-menu" id="dropdown-menu4">
                     <div class="dropdown-content">
                         <div class="dropdown-item">
-                            <a href="#" hx-confirm="Are you sure?" hx-delete="delete">Delete</a>
+                            <a href="#" hx-indicator="#loading" hx-confirm="Are you sure?" hx-delete="delete">Delete</a>
                         </div>
                     </div>
                 </div>
@@ -45,7 +45,7 @@
     </div>
     <div class="column is-narrow">
         <div>
-            <form>
+            <form hx-boost="true" hx-indicator="#loading">
                 <input type="hidden" value="{{ search }}" name="search">
                 <div class="select">
                     <div class="control has-icons-left has-icons-right">
@@ -82,7 +82,7 @@
                     </th>
                 </tr>
             </thead>
-            <tbody hx-confirm="Are you sure?" hx-target="closest tr" hx-swap="outerHTML">
+            <tbody hx-confirm="Are you sure?" hx-target="closest tr" hx-indicator="#loading" hx-swap="outerHTML">
                 {% for entity in entities -%}
                 <tr>
                     <td><input type="checkbox" name="ids" value="{{ entity.primary_key }}"></td>

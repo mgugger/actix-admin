@@ -67,7 +67,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
 
         #[async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
-            async fn list(db: &DatabaseConnection, page: usize, entities_per_page: usize, search: &String) -> (usize, Vec<ActixAdminModel>) {
+            async fn list(db: &DatabaseConnection, page: usize, entities_per_page: usize, search: &String) -> Result<(usize, Vec<ActixAdminModel>), ActixAdminError> {
                 let entities = Entity::list_model(db, page, entities_per_page, search).await;
                 entities
             }
@@ -82,43 +82,51 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 }
             } 
 
-            async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> ActixAdminModel {
+            async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> Result<ActixAdminModel, ActixAdminError> {
                 let new_model = ActiveModel::from(model.clone());
-                let insert_operation = Entity::insert(new_model).exec(db).await;
+                let insert_operation = Entity::insert(new_model).exec(db).await?;
+                
+                model.primary_key = Some(insert_operation.last_insert_id.to_string());
 
-                model
+                Ok(model)
             }
 
-            async fn get_entity(db: &DatabaseConnection, id: i32) -> ActixAdminModel {
+            async fn get_entity(db: &DatabaseConnection, id: i32) -> Result<ActixAdminModel, ActixAdminError> {
                 // TODO: separate primary key from other keys
-                let entity = Entity::find_by_id(id).one(db).await.unwrap().unwrap();
-                let model = ActixAdminModel::from(entity);
-                model
-            }
-
-            async fn edit_entity(db: &DatabaseConnection, id: i32, mut model: ActixAdminModel) -> ActixAdminModel {
-                let entity: Option<Model> = Entity::find_by_id(id).one(db).await.unwrap();
-                let mut entity: ActiveModel = entity.unwrap().into();
-
-                #(#fields_for_edit_model);*;
-                let entity: Model = entity.update(db).await.unwrap();
-
-                model
-            }
-
-            async fn delete_entity(db: &DatabaseConnection, id: i32) -> bool {
-                let result = Entity::delete_by_id(id).exec(db).await;
-
-                match result {
-                    Ok(_) => true,
-                    Err(_) => false
+                let entity = Entity::find_by_id(id).one(db).await?;
+                match entity {
+                    Some(e) => Ok(ActixAdminModel::from(e)),
+                    _ => Err(ActixAdminError::EntityDoesNotExistError)
                 }
             }
 
-            async fn get_select_lists(db: &DatabaseConnection) -> HashMap<String, Vec<(String, String)>> {
-                hashmap![
+            async fn edit_entity(db: &DatabaseConnection, id: i32, mut model: ActixAdminModel) -> Result<ActixAdminModel, ActixAdminError> {
+                let entity: Option<Model> = Entity::find_by_id(id).one(db).await?;
+
+                match entity {
+                    Some(e) => {
+                        let mut entity: ActiveModel = e.into();
+                        #(#fields_for_edit_model);*;
+                        let entity: Model = entity.update(db).await?;    
+                        Ok(model)        
+                    },
+                    _ => Err(ActixAdminError::EntityDoesNotExistError)
+                }
+            }
+
+            async fn delete_entity(db: &DatabaseConnection, id: i32) -> Result<bool, ActixAdminError> {
+                let result = Entity::delete_by_id(id).exec(db).await;
+
+                match result {
+                    Ok(_) => Ok(true),
+                    Err(_) => Err(ActixAdminError::DeleteError)
+                }
+            }
+
+            async fn get_select_lists(db: &DatabaseConnection) -> Result<HashMap<String, Vec<(String, String)>>, ActixAdminError> {
+                Ok(hashmap![
                     #(#select_lists),*
-                ]
+                ])
             }
 
             fn get_entity_name() -> String {
@@ -173,7 +181,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
 
         #[async_trait]
         impl ActixAdminModelTrait for Entity {
-            async fn list_model(db: &DatabaseConnection, page: usize, posts_per_page: usize, search: &String) -> (usize, Vec<ActixAdminModel>) {
+            async fn list_model(db: &DatabaseConnection, page: usize, posts_per_page: usize, search: &String) -> Result<(usize, Vec<ActixAdminModel>), ActixAdminError> {
                 use sea_orm::{ query::* };
                 let paginator = Entity::find()
                     .filter(
@@ -182,11 +190,10 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     )
                     .order_by_asc(Column::Id)
                     .paginate(db, posts_per_page);
-                let num_pages = paginator.num_pages().await.ok().unwrap();
+                let num_pages = paginator.num_pages().await?;
                 let entities = paginator
                     .fetch_page(page - 1)
-                    .await
-                    .expect("could not retrieve entities");
+                    .await?;
                 let mut model_entities = Vec::new();
                 for entity in entities {
                     model_entities.push(
@@ -194,7 +201,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     );
                 }
 
-                (num_pages, model_entities)
+                Ok((num_pages, model_entities))
             }
 
             fn validate_model(model: &mut ActixAdminModel) {

@@ -79,7 +79,7 @@ async fn create_post_from_plaintext<
     text: String,
 ) -> Result<HttpResponse, Error> {
     let model = ActixAdminModel::from(text);
-    create_or_edit_post::<T, E>(&session, &data, model, None).await
+    create_or_edit_post::<T, E>(&session, &data, Ok(model), None).await
 }
 
 async fn edit_post_from_plaintext<
@@ -92,5 +92,5 @@ async fn edit_post_from_plaintext<
     id: web::Path<i32>,
 ) -> Result<HttpResponse, Error> {
     let model = ActixAdminModel::from(text);
-    create_or_edit_post::<T, E>(&session, &data, model, Some(id.into_inner())).await
+    create_or_edit_post::<T, E>(&session, &data, Ok(model), Some(id.into_inner())).await
 }

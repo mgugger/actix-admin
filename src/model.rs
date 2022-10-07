@@ -1,4 +1,4 @@
-use crate::ActixAdminViewModelField;
+use crate::{ ActixAdminViewModelField, ActixAdminError};
 use async_trait::async_trait;
 use sea_orm::DatabaseConnection;
 use serde::Serialize;
@@ -14,7 +14,7 @@ pub trait ActixAdminModelTrait {
         page: usize,
         posts_per_page: usize,
         search: &String
-    ) -> (usize, Vec<ActixAdminModel>);
+    ) -> Result<(usize, Vec<ActixAdminModel>), ActixAdminError>;
     fn get_fields() -> Vec<ActixAdminViewModelField>;
     fn validate_model(model: &mut ActixAdminModel);
 }

@@ -24,10 +24,12 @@ pub async fn delete<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     }
 
     let db = &data.get_db();
-    let _result = E::delete_entity(db, id.into_inner()).await;
+    let result = E::delete_entity(db, id.into_inner()).await;
 
-    Ok(HttpResponse::Ok()
-        .finish())
+    match result {
+        Ok(_) => Ok(HttpResponse::Ok().finish()),
+        Err(_) => Ok(HttpResponse::InternalServerError().finish())
+    }   
 }
 
 pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
@@ -40,6 +42,7 @@ pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     let entity_name = E::get_entity_name();
 
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
+    let mut errors: Vec<crate::ActixAdminError> = Vec::new();
 
     if !user_can_access_page(&session, actix_admin, view_model) {
         let mut ctx = Context::new();
@@ -57,13 +60,24 @@ pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     
     // TODO: implement delete_many
     for id in entity_ids {
-        let _result = E::delete_entity(db, id).await;
+        let result = E::delete_entity(db, id).await;
+        match result {
+            Err(e) => errors.push(e),
+            _ => {}
+        }
     }
-    
-    Ok(HttpResponse::SeeOther()
-    .append_header((
-        header::LOCATION,
-        format!("/admin/{}/list?render_partial=true", entity_name),
-    ))
-    .finish())
+
+    match errors.is_empty() {
+        true => {
+            Ok(HttpResponse::SeeOther()
+            .append_header((
+                header::LOCATION,
+                format!("/admin/{}/list?render_partial=true", entity_name),
+            ))
+            .finish())
+        },
+        false => {
+            Ok(HttpResponse::InternalServerError().finish())
+        }
+    }
 }

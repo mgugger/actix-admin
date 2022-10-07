@@ -122,6 +122,12 @@ use tera::{Tera, Result, to_value, try_get_value };
 use std::{ hash::BuildHasher};
 use actix_session::{Session};
 use async_trait::async_trait;
+use derive_more::{Display, Error};
+use actix_web::{
+    error,
+    http::{header::ContentType, StatusCode},
+    HttpResponse,
+};
 
 pub mod view_model;
 pub mod model;
@@ -133,7 +139,7 @@ pub mod prelude {
     pub use crate::model::{ ActixAdminModel, ActixAdminModelValidationTrait, ActixAdminModelTrait};
     pub use crate::view_model::{ ActixAdminViewModel, ActixAdminViewModelTrait, ActixAdminViewModelField, ActixAdminViewModelSerializable, ActixAdminViewModelFieldType };
     pub use actix_admin_macros::{ DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel, DeriveActixAdminEnumSelectList, DeriveActixAdminModelSelectList };
-    pub use crate::{ ActixAdminAppDataTrait, ActixAdmin, ActixAdminConfiguration };
+    pub use crate::{ ActixAdminError, ActixAdminAppDataTrait, ActixAdmin, ActixAdminConfiguration };
     pub use crate::{ hashmap, ActixAdminSelectListTrait };
     pub use crate::routes::{ create_or_edit_post, get_admin_ctx };
     pub use crate::{ TERA };
@@ -211,7 +217,7 @@ pub trait ActixAdminAppDataTrait {
 // SelectListTrait
 #[async_trait]
 pub trait ActixAdminSelectListTrait {
-    async fn get_key_value(db: &DatabaseConnection) -> Vec<(String, String)>;
+    async fn get_key_value(db: &DatabaseConnection) -> core::result::Result<Vec<(String, String)>, ActixAdminError>;
 }
 
 
@@ -235,4 +241,76 @@ pub struct ActixAdminMenuElement {
     pub name: String,
     pub link: String,
     pub is_custom_handler: bool
+}
+
+// Errors
+#[derive(Debug, Display, Error)]
+pub enum ActixAdminError {
+    #[display(fmt = "Internal error")]
+    InternalError,
+
+    #[display(fmt = "Form has validation errors")]
+    ValidationErrors,
+
+    #[display(fmt = "Could not list entities")]
+    ListError,
+
+    #[display(fmt = "Could not create entity")]
+    CreateError,
+
+    #[display(fmt = "Could not delete entity")]
+    DeleteError,
+
+    #[display(fmt = "Could not edit entity")]
+    EditError,
+
+    #[display(fmt = "Database error")]
+    DatabaseError,
+
+    #[display(fmt = "Entity does not exist")]
+    EntityDoesNotExistError
+}
+
+
+
+impl error::ResponseError for ActixAdminError {
+    fn error_response(&self) -> HttpResponse {
+        HttpResponse::build(self.status_code())
+            .insert_header(ContentType::html())
+            .body(self.to_string())
+    }
+
+    fn status_code(&self) -> StatusCode {
+        match *self {
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
+impl std::convert::From<sea_orm::DbErr> for ActixAdminError {
+    fn from(_err: sea_orm::DbErr) -> ActixAdminError {
+        ActixAdminError::DatabaseError
+    }
+}
+
+// Notifications
+#[derive(Debug, Display, Serialize)]
+pub enum ActixAdminNotificationType {
+    #[display(fmt = "is-danger")]
+    Danger,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ActixAdminNotification {
+    css_class: String,
+    message: String
+}
+
+impl std::convert::From<ActixAdminError> for ActixAdminNotification {
+    fn from(e: ActixAdminError) -> ActixAdminNotification {
+        ActixAdminNotification {
+            css_class: ActixAdminNotificationType::Danger.to_string(),
+            message: e.to_string()
+        }
+    }
 }
