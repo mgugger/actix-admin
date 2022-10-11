@@ -41,7 +41,7 @@
     htmx.on("htmx:responseError", function () {
         document.getElementById("notifications").insertAdjacentHTML(
             "afterend",
-                "<div class=\"notification mb-4 is-light is-danger\"><button class=\"delete\" onclick=\"this.parentElement.remove()\"></button>An Error occurred</div>");
+            "<div class=\"notification mb-4 is-light is-danger\"><button class=\"delete\" onclick=\"this.parentElement.remove()\"></button>An Error occurred</div>");
     })
 </script>
 
@@ -58,5 +58,24 @@
         align-items: center;
         z-index: 6;
         pointer-events: none
+    }
+
+    .fade-in {
+        opacity: 1;
+        animation-name: fadeInOpacity;
+        animation-iteration-count: 1;
+        animation-timing-function: ease-in;
+        animation-duration: 0.2s;
+    }
+
+
+    @keyframes fadeInOpacity {
+        0% {
+            opacity: 0;
+        }
+
+        100% {
+            opacity: 1;
+        }
     }
 </style>

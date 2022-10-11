@@ -113,10 +113,12 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
-    admin_builder.add_custom_handler_for_index::<AppState>(
-        web::get().to(custom_index::<AppState>)
-    );
+    // admin_builder.add_custom_handler_for_index::<AppState>(
+    //     web::get().to(custom_index::<AppState>)
+    // );
     admin_builder.add_entity::<AppState, Post>(&post_view_model);
+    admin_builder.add_custom_handler("Custom Route in Menu", "/custom_route_in_menu", web::get().to(custom_index::<AppState>), true);
+    admin_builder.add_custom_handler("Custom Route not in Menu", "/custom_route_not_in_menu", web::get().to(custom_index::<AppState>), false);
 
     let some_category = "Some Category";
     admin_builder.add_entity_to_category::<AppState, Comment>(&comment_view_model, some_category);
@@ -124,7 +126,8 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
         "My custom handler",
         "/custom_handler", 
         web::get().to(custom_handler::<AppState, Comment>),
-        some_category
+        some_category,
+        true
     );
 
     admin_builder

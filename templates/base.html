@@ -20,15 +20,17 @@
         <div id="notifications">
             {% if notifications %}
             {% for notification in notifications -%}
-                <div class="notification mb-4 is-light {{ notification.css_class }}">
-                    <button class="delete" onclick="this.parentElement.remove()"></button>
+            <div class="notification mb-4 is-light {{ notification.css_class }}">
+                <button class="delete" onclick="this.parentElement.remove()"></button>
                 {{ notification.message }}
             </div>
             {% endfor %}
             {% endif %}
         </div>
-        {% block content %}
-        {% endblock content %}
+        <div class="fade-in">
+            {% block content %}
+            {% endblock content %}
+        </div>
     </div>
 </body>
 

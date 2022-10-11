@@ -4,16 +4,16 @@
  
  ## Getting Started
  
- * See the [example](https://github.com/mgugger/actix-admin/tree/main/example).
+ * See the [example](https://github.com/mgugger/actix-admin/tree/main/example) and run with ```cargo run```.
  * See the step by [step tutorial](https://github.com/mgugger/actix-admin/tree/main/example/StepbyStep.md) 
- 
+
  ## Features
- 1. Async, builds on [sea-orm](https://crates.io/crates/sea-orm) for the database backend
- 2. Macros, generate the required implementations for models automatically
- 3. Authentication, optionally pass authentication handler to implement authentication for views
+ 1. Async: Builds on [sea-orm](https://crates.io/crates/sea-orm) for the database backend
+ 2. Macros: Generate the required implementations for models automatically
+ 3. Authentication: optionally pass authentication handler to implement authentication for views
  4. Supports custom validation rules
  5. Searchable attributes can be specified
- 6. Supports a custom index view
+ 6. Supports custom views which are added to the Navbar
  
  ## Screenshot
  
