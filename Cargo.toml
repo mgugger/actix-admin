@@ -27,7 +27,7 @@ itertools = "0.10.3"
 serde = "1.0.136"
 serde_derive = "1.0.136"
 sea-orm = { version = "^0.9.1", features = [], default-features = false }
-actix-admin-macros = { version = "0.1.0", path = "actix_admin_macros" }
+actix-admin-macros = { version = "0.2.0", path = "actix_admin_macros" }
 derive_more = "0.99.17"
 
 [dev-dependencies]
