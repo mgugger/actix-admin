@@ -10,6 +10,5 @@ github_username:  mgugger
 
 # Build settings
 markdown: kramdown
-theme: minima
 plugins:
 - jekyll-remote-theme
