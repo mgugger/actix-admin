@@ -143,6 +143,9 @@ pub mod prelude {
     pub use crate::{ hashmap, ActixAdminSelectListTrait };
     pub use crate::routes::{ create_or_edit_post, get_admin_ctx };
     pub use crate::{ TERA };
+    pub use itertools::izip;
+    pub use lazy_static::lazy_static;
+    pub use async_trait::async_trait;
 }
 
 use crate::prelude::*; 

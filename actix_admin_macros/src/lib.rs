@@ -28,16 +28,17 @@ pub fn derive_actix_admin_model_select_list(input: proc_macro::TokenStream) -> p
 pub fn derive_actix_admin(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let expanded = quote! {
         use std::convert::From;
-        use async_trait::async_trait;
         use actix_admin::prelude::*;
-        use sea_orm::ActiveValue::Set;
-        use sea_orm::{ConnectOptions, DatabaseConnection};
-        use sea_orm::{entity::*, query::*};
+        use sea_orm::{
+            ActiveValue::Set, 
+            ConnectOptions, 
+            DatabaseConnection, 
+            entity::*, 
+            query::*,
+            EntityTrait
+        };
         use std::collections::HashMap;
-        use sea_orm::EntityTrait;
-        use itertools::izip;
         use actix_session::{Session};
-        use lazy_static::lazy_static;
     };
     proc_macro::TokenStream::from(expanded)
 }
@@ -66,7 +67,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
             }
         }
 
-        #[async_trait(?Send)]
+        #[actix_admin::prelude::async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
             async fn list(db: &DatabaseConnection, page: usize, entities_per_page: usize, search: &String) -> Result<(usize, Vec<ActixAdminModel>), ActixAdminError> {
                 let entities = Entity::list_model(db, page, entities_per_page, search).await;
@@ -156,7 +157,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let fields_textarea = get_actix_admin_fields_textarea(&fields);
 
     let expanded = quote! {
-        lazy_static! {
+        actix_admin::prelude::lazy_static! {
             pub static ref ACTIX_ADMIN_VIEWMODEL_FIELDS: Vec<ActixAdminViewModelField> = {
                 let mut vec = Vec::new();
             
@@ -187,7 +188,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     #(#fields_textarea),*
                 ];
 
-                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea) in izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas) {
+                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea) in actix_admin::prelude::izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas) {
                     
                     let select_list = select_list.replace('"', "").replace(' ', "").to_string();
                     let field_name = field_name.replace('"', "").replace(' ', "").to_string();
@@ -229,7 +230,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
             }
         }
 
-        #[async_trait]
+        #[actix_admin::prelude::async_trait]
         impl ActixAdminModelTrait for Entity {
             async fn list_model(db: &DatabaseConnection, page: usize, posts_per_page: usize, search: &String) -> Result<(usize, Vec<ActixAdminModel>), ActixAdminError> {
                 use sea_orm::{ query::* };
