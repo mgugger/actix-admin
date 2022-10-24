@@ -12,4 +12,4 @@ github_username:  mgugger
 markdown: kramdown
 theme: minima
 plugins:
-  #- jekyll-feed
+- jekyll-remote-theme
