@@ -15,7 +15,7 @@ pub trait ActixAdminModelTrait {
         posts_per_page: usize,
         search: &String
     ) -> Result<(usize, Vec<ActixAdminModel>), ActixAdminError>;
-    fn get_fields() -> Vec<ActixAdminViewModelField>;
+    fn get_fields() -> &'static[ActixAdminViewModelField];
     fn validate_model(model: &mut ActixAdminModel);
 }
 

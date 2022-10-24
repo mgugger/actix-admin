@@ -35,7 +35,7 @@ pub trait ActixAdminViewModelTrait {
 pub struct ActixAdminViewModel {
     pub entity_name: String,
     pub primary_key: String,
-    pub fields: Vec<ActixAdminViewModelField>,
+    pub fields: &'static[ActixAdminViewModelField],
     pub show_search: bool,
     pub user_can_access: Option<fn(&Session) -> bool>
 }
@@ -44,7 +44,7 @@ pub struct ActixAdminViewModel {
 pub struct ActixAdminViewModelSerializable {
     pub entity_name: String,
     pub primary_key: String,
-    pub fields: Vec<ActixAdminViewModelField>,
+    pub fields: &'static [ActixAdminViewModelField],
     pub show_search: bool
 }
 

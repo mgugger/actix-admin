@@ -37,6 +37,7 @@ pub fn derive_actix_admin(_input: proc_macro::TokenStream) -> proc_macro::TokenS
         use sea_orm::EntityTrait;
         use itertools::izip;
         use actix_session::{Session};
+        use lazy_static::lazy_static;
     };
     proc_macro::TokenStream::from(expanded)
 }
@@ -155,6 +156,55 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let fields_textarea = get_actix_admin_fields_textarea(&fields);
 
     let expanded = quote! {
+        lazy_static! {
+            pub static ref ACTIX_ADMIN_VIEWMODEL_FIELDS: Vec<ActixAdminViewModelField> = {
+                let mut vec = Vec::new();
+            
+                let field_names = stringify!(
+                        #(#field_names),*
+                ).split(",")
+                .collect::<Vec<_>>();
+
+                let html_input_types = stringify!(
+                    #(#field_html_input_type),*
+                ).split(",")
+                .collect::<Vec<_>>();
+
+                let field_select_lists = stringify!(
+                    #(#field_select_list),*
+                ).split(",")
+                .collect::<Vec<_>>();
+
+                let is_option_lists = [
+                    #(#is_option_list),*
+                ];
+
+                let fields_type_paths = [
+                    #(#fields_type_path),*
+                ];
+
+                let fields_textareas = [
+                    #(#fields_textarea),*
+                ];
+
+                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea) in izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas) {
+                    
+                    let select_list = select_list.replace('"', "").replace(' ', "").to_string();
+                    let field_name = field_name.replace('"', "").replace(' ', "").to_string();
+                    let html_input_type = html_input_type.replace('"', "").replace(' ', "").to_string();
+
+                    vec.push(ActixAdminViewModelField {
+                        field_name: field_name,
+                        html_input_type: html_input_type,
+                        select_list: select_list.clone(),
+                        is_option: is_option_list,
+                        field_type: ActixAdminViewModelFieldType::get_field_type(fields_type_path, select_list, is_textarea)
+                    });
+                }
+                vec
+            };
+        }
+
         impl From<Model> for ActixAdminModel {
             fn from(model: Model) -> Self {
                 ActixAdminModel {
@@ -211,51 +261,8 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                 model.errors = errors;
             }
 
-            fn get_fields() -> Vec<ActixAdminViewModelField> {
-                let mut vec = Vec::new();
-                
-                let field_names = stringify!(
-                        #(#field_names),*
-                ).split(",")
-                .collect::<Vec<_>>();
-
-                let html_input_types = stringify!(
-                    #(#field_html_input_type),*
-                ).split(",")
-                .collect::<Vec<_>>();
-
-                let field_select_lists = stringify!(
-                    #(#field_select_list),*
-                ).split(",")
-                .collect::<Vec<_>>();
-
-                let is_option_lists = [
-                    #(#is_option_list),*
-                ];
-
-                let fields_type_paths = [
-                    #(#fields_type_path),*
-                ];
-
-                let fields_textareas = [
-                    #(#fields_textarea),*
-                ];
-
-                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea) in izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas) {
-                    
-                    let select_list = select_list.replace('"', "").replace(' ', "").to_string();
-                    let field_name = field_name.replace('"', "").replace(' ', "").to_string();
-                    let html_input_type = html_input_type.replace('"', "").replace(' ', "").to_string();
-
-                    vec.push(ActixAdminViewModelField {
-                        field_name: field_name,
-                        html_input_type: html_input_type,
-                        select_list: select_list.clone(),
-                        is_option: is_option_list,
-                        field_type: ActixAdminViewModelFieldType::get_field_type(fields_type_path, select_list, is_textarea)
-                    });
-                }
-                vec
+            fn get_fields() -> &'static[ActixAdminViewModelField] {
+                ACTIX_ADMIN_VIEWMODEL_FIELDS.as_slice()
             }
         }
     };
