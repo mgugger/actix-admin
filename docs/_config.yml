@@ -1,0 +1,15 @@
+title: Actix-Admin
+remote_theme: just-the-docs/just-the-docs
+#email: your-email@example.com
+description: >-
+  Actix-Admin Documentation
+baseurl: ""
+url: ""
+#twitter_username: jekyllrb
+github_username:  mgugger
+
+# Build settings
+markdown: kramdown
+theme: minima
+plugins:
+  #- jekyll-feed
