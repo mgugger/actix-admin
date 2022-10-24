@@ -1,5 +1,5 @@
 ---
-
+layout: default
 ---
 
 ## Getting Started

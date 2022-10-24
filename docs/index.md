@@ -1,5 +1,5 @@
 ---
-layout: home
+layout: default
 list_title: ' '
 ---
 
@@ -12,6 +12,10 @@ The actix-admin crate aims at creating a web admin interface similar to other ad
 4. Supports custom validation rules
 5. Searchable attributes can be specified
 6. Supports custom views which are added to the Navbar
+
+## Example
+
+Check the [example](https://github.com/mgugger/actix-admin/tree/main/example) and run with ```cargo run```. The admin interface is accessible under ```localhost:5000/admin/```.
 
 ## Screenshot
 
