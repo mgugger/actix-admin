@@ -15,17 +15,17 @@ exclude = [
 ]
 
 [dependencies]
-actix-web = "4.0.1"
-actix-session = { version = "0.7.1", features = [] }
-actix-multipart = "0.4.0"
+actix-web = "^4.0.1"
+actix-session = { version = "^0.7.1", features = [] }
+actix-multipart = "^0.4.0"
 futures-util = "0.3.21"
 chrono = "0.4.20"
-tera = "1.16.0"
-async-trait = "0.1.53"
-lazy_static = "1.4.0"
-itertools = "0.10.3"
-serde = "1.0.136"
-serde_derive = "1.0.136"
+tera = "^1.16.0"
+async-trait = "^0.1.53"
+lazy_static = "^1.4.0"
+itertools = "^0.10.3"
+serde = "^1.0.136"
+serde_derive = "^1.0.136"
 sea-orm = { version = "^0.9.1", features = [], default-features = false }
 actix-admin-macros = { version = "0.2.0", path = "actix_admin_macros" }
 derive_more = "0.99.17"

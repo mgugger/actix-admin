@@ -4,8 +4,7 @@ layout: default
 
 ## Getting Started
 
-* See the [example](https://github.com/mgugger/actix-admin/tree/main/example) and run with ```cargo run```.
-* See the step by [step tutorial](https://github.com/mgugger/actix-admin/tree/main/example/StepbyStep.md) 
+* See the [basic example](https://github.com/mgugger/actix-admin/tree/main/examples/basic) and run with ```cargo run```.
 
 ## Quick overview
 
@@ -15,21 +14,14 @@ sea-orm = { version = "^0.9.1", features = [ "sqlx-sqlite", "runtime-actix-nativ
 actix_admin = { version = "^0.2.0" }
 ```
 
-### See inlined steps
+### Steps
+1. Import ActixAdmin in the main.rs and your database models:
 ```rust
-use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
 use actix_admin::prelude::*;
-use actix_web::web;
-use actix_web::App;
-use actix_web::HttpServer;
-use sea_orm::entity::prelude::*;
-use sea_orm::entity::prelude::*;
-use actix_admin::prelude::*;
-// 1. Import ActixAdmin
-use actix_admin::prelude::*;
+```
 
-// 2. Use DeriveActixAmin* Macros to implement the traits for the model
+2. Use the DeriveActixAdminMacros on the Database models to implement required traits:
+```rust
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, 
     DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel
 )]
@@ -41,20 +33,19 @@ pub struct Model {
     pub id: i32,
     pub comment: String
 }
-impl ActixAdminModelValidationTrait<ActiveModel> for Entity {}
-impl ActiveModelBehavior for ActiveModel {}
+```
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation { }
-
-// 3. Add actix-admin to the AppState
+3. Add ActixAdmin to the actix admin app state
+```rust
 #[derive(Clone)]
     pub struct AppState {
     pub db: DatabaseConnection,
     pub actix_admin: ActixAdmin,
 }
+```
 
-// 4. Implement the ActixAdminAppDataTrait for the AppState
+4. Implement the ActixAdminAppDataTrait for the AppState
+```rust
 impl ActixAdminAppDataTrait for AppState {
     fn get_db(&self) -> &DatabaseConnection {
         &self.db
@@ -64,8 +55,10 @@ impl ActixAdminAppDataTrait for AppState {
         &self.actix_admin
     }
 }
+```
 
-// 5. Setup the actix admin configuration
+5. Setup the actix admin configuration and add database models to it in main.rs
+```rust
 pub fn create_actix_admin_builder() -> ActixAdminBuilder {
     let comment_view_model = ActixAdminViewModel::from(Entity);
 
@@ -81,21 +74,25 @@ pub fn create_actix_admin_builder() -> ActixAdminBuilder {
 
     admin_builder
 }
+```
 
-// 6. Add to the actix app
-let actix_admin = create_actix_admin_builder().get_actix_admin();
+6. Add to the actix app in main.rs
+```rust
 let opt = ConnectOptions::new("sqlite::memory:".to_owned());
 let conn = sea_orm::Database::connect(opt).unwrap();
-let app_state = AppState {
-    db: conn,
-    actix_admin: actix_admin,
-};
 
 HttpServer::new(move || {
+    let actix_admin_builder = create_actix_admin_builder();
+
+    let app_state = AppState {
+        db: conn.clone(),
+        actix_admin: actix_admin_builder.get_actix_admin(),
+    };
+
     App::new()
-        //.app_data(web::Data::new(app_state.clone()))
+        .app_data(web::Data::new(app_state.clone()))
         .service(
-            create_actix_admin_builder().get_scope::<AppState>()
+            actix_admin_builder.get_scope::<AppState>()
         )
 });
 ```

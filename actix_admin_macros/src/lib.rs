@@ -38,7 +38,6 @@ pub fn derive_actix_admin(_input: proc_macro::TokenStream) -> proc_macro::TokenS
             EntityTrait
         };
         use std::collections::HashMap;
-        use actix_session::{Session};
     };
     proc_macro::TokenStream::from(expanded)
 }

@@ -103,7 +103,7 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     let comment_view_model = ActixAdminViewModel::from(Comment);
 
     let configuration = ActixAdminConfiguration {
-        enable_auth: false,
+        enable_auth: true,
         user_is_logged_in: Some(|session: &Session| -> bool { 
              let user_info = session.get::<UserInfo>("user_info").unwrap();
              user_info.is_some()
@@ -137,24 +137,9 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
 async fn main() {
     dotenv::dotenv().ok();
 
-    let actix_admin = create_actix_admin_builder().get_actix_admin();
-
-    let oauth2_client_id;
-    let oauth2_client_secret;
-    let oauth2_server;
-
-    match actix_admin.configuration.enable_auth {
-        true => {
-            oauth2_client_id = env::var("OAUTH2_CLIENT_ID").expect("Missing the OAUTH2_CLIENT_ID environment variable.");
-            oauth2_client_secret = env::var("OAUTH2_CLIENT_SECRET").expect("Missing the OAUTH2_CLIENT_SECRET environment variable.");
-            oauth2_server= env::var("OAUTH2_SERVER").expect("Missing the OAUTH2_SERVER environment variable.");
-        },
-        false => {
-            oauth2_client_id = String::new();
-            oauth2_client_secret = String::new();
-            oauth2_server = String::new();
-        }
-    }
+    let oauth2_client_id = env::var("OAUTH2_CLIENT_ID").expect("Missing the OAUTH2_CLIENT_ID environment variable.");
+    let oauth2_client_secret = env::var("OAUTH2_CLIENT_SECRET").expect("Missing the OAUTH2_CLIENT_SECRET environment variable.");
+    let oauth2_server= env::var("OAUTH2_SERVER").expect("Missing the OAUTH2_SERVER environment variable.");
         
     let azure_auth = AzureAuth::new(&oauth2_server, &oauth2_client_id, &oauth2_client_secret);
 
@@ -183,22 +168,24 @@ async fn main() {
     let conn = sea_orm::Database::connect(opt).await.unwrap();
     let _ = entity::create_post_table(&conn).await;
 
-    let app_state = AppState {
-        oauth: client,
-        tmpl: tera,
-        db: conn,
-        actix_admin: actix_admin,
-    };
-
     let cookie_secret_key = Key::generate();
     HttpServer::new(move || {
+        let actix_admin_builder = create_actix_admin_builder();
+        
+        let app_state = AppState {
+            oauth: client.clone(),
+            tmpl: tera.clone(),
+            db: conn.clone(),
+            actix_admin: actix_admin_builder.get_actix_admin(),
+        };
+
         App::new()
             .app_data(web::Data::new(app_state.clone()))
             .wrap(SessionMiddleware::new(CookieSessionStore::default(), cookie_secret_key.clone()))
             .route("/", web::get().to(index))
             .service(azure_auth.clone().create_scope::<AppState>())
             .service(
-                create_actix_admin_builder().get_scope::<AppState>()
+                actix_admin_builder.get_scope::<AppState>()
             )
             .wrap(middleware::Logger::default())
     })

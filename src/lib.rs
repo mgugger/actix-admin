@@ -36,6 +36,7 @@ pub mod prelude {
     pub use itertools::izip;
     pub use lazy_static::lazy_static;
     pub use async_trait::async_trait;
+    pub use actix_session::{Session};
 }
 
 use crate::prelude::*; 
