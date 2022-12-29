@@ -109,7 +109,8 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
              user_info.is_some()
         }),
         login_link: Some("/azure-auth/login".to_string()),
-        logout_link: Some("/azure-auth/logout".to_string())
+        logout_link: Some("/azure-auth/logout".to_string()),
+        file_upload_directory: "./file_uploads"
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
@@ -135,7 +136,8 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
 
 #[actix_rt::main]
 async fn main() {
-    dotenv::dotenv().ok();
+    dotenv::from_filename("./examples/azure_auth/.env.example").ok();
+    dotenv::from_filename("./examples/azure_auth/.env").ok();
 
     let oauth2_client_id = env::var("OAUTH2_CLIENT_ID").expect("Missing the OAUTH2_CLIENT_ID environment variable.");
     let oauth2_client_secret = env::var("OAUTH2_CLIENT_SECRET").expect("Missing the OAUTH2_CLIENT_SECRET environment variable.");

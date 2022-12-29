@@ -31,7 +31,8 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
         enable_auth: false,
         user_is_logged_in: None,
         login_link: None,
-        logout_link: None
+        logout_link: None,
+        file_upload_directory: "./file_uploads"
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);

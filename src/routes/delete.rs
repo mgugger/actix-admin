@@ -1,7 +1,7 @@
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web::http::header;
 use actix_session::{Session};
-use crate::prelude::*;
+use crate::{prelude::*};
 use tera::{Context};
 use super::{ user_can_access_page, render_unauthorized};
 
@@ -24,11 +24,23 @@ pub async fn delete<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     }
 
     let db = &data.get_db();
-    let result = E::delete_entity(db, id.into_inner()).await;
+    let id = id.into_inner();
+    let model_result = E::get_entity(db, id).await;
+    let delete_result = E::delete_entity(db, id).await;
 
-    match result {
-        Ok(_) => Ok(HttpResponse::Ok().finish()),
-        Err(_) => Ok(HttpResponse::InternalServerError().finish())
+    match (model_result, delete_result) {
+        (Ok(model), Ok(_)) => {
+            for field in view_model.fields {
+                if field.field_type == ActixAdminViewModelFieldType::FileUpload {
+                    let file_name = model.get_value::<String>(&field.field_name, true, true).unwrap_or_default();
+                    let file_path = format!("{}/{}/{}", actix_admin.configuration.file_upload_directory, E::get_entity_name(), file_name.unwrap_or_default());
+                    std::fs::remove_file(file_path)?;
+                }
+            }
+
+            Ok(HttpResponse::Ok().finish())
+        },
+        (_,_) => Ok(HttpResponse::InternalServerError().finish())
     }   
 }
 
@@ -60,10 +72,20 @@ pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     
     // TODO: implement delete_many
     for id in entity_ids {
-        let result = E::delete_entity(db, id).await;
-        match result {
-            Err(e) => errors.push(e),
-            _ => {}
+        let model_result = E::get_entity(db, id).await;
+        let delete_result = E::delete_entity(db, id).await;
+        match (delete_result, model_result) {
+            (Err(e), _) => errors.push(e),
+            (Ok(_), Ok(model)) => {
+                for field in view_model.fields {
+                    if field.field_type == ActixAdminViewModelFieldType::FileUpload {
+                        let file_name = model.get_value::<String>(&field.field_name, true, true).unwrap_or_default();
+                        let file_path = format!("{}/{}/{}", actix_admin.configuration.file_upload_directory, E::get_entity_name(), file_name.unwrap_or_default());
+                        std::fs::remove_file(file_path)?;
+                    }
+                }
+            },
+            (Ok(_), Err(e)) => errors.push(e)
         }
     }
 

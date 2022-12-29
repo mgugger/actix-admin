@@ -26,8 +26,8 @@ pub trait ActixAdminViewModelTrait {
 
     fn get_entity_name() -> String;
 
-    fn get_list_link(entity_name: &String) -> String {
-        format!("/admin/{}/list", entity_name)
+    fn get_base_path(entity_name: &String) -> String {
+        format!("/admin/{}", entity_name)
     }
 }
 
@@ -61,7 +61,7 @@ impl From<ActixAdminViewModel> for ActixAdminViewModelSerializable {
 }
 
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum ActixAdminViewModelFieldType {
     Number,
     Text,
@@ -70,7 +70,8 @@ pub enum ActixAdminViewModelFieldType {
     Date,
     Time,
     DateTime,
-    SelectList
+    SelectList,
+    FileUpload
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -83,12 +84,15 @@ pub struct ActixAdminViewModelField {
 }
 
 impl ActixAdminViewModelFieldType {
-    pub fn get_field_type(type_path: &str, select_list: String, is_textarea: bool) -> ActixAdminViewModelFieldType {
+    pub fn get_field_type(type_path: &str, select_list: String, is_textarea: bool, is_file_upload: bool) -> ActixAdminViewModelFieldType {
         if !select_list.is_empty() {
             return ActixAdminViewModelFieldType::SelectList;
         }
         if is_textarea {
             return ActixAdminViewModelFieldType::TextArea;
+        }
+        if is_file_upload {
+            return ActixAdminViewModelFieldType::FileUpload;
         }
 
         match type_path {

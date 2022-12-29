@@ -14,7 +14,9 @@ pub mod derive_attr {
         pub html_input_type: Option<syn::LitStr>,
         pub select_list: Option<syn::LitStr>,
         pub searchable: Option<()>,
-        pub textarea: Option<()>
+        pub textarea: Option<()>,
+        pub file_upload: Option<()>,
+        pub not_empty: Option<()>
         //pub inner_type: Option<syn::Type>,
 
         // Anything that implements `syn::parse::Parse` is supported.

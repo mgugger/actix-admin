@@ -1,11 +1,15 @@
-use crate::{ ActixAdminViewModelField, ActixAdminError};
+use crate::{ActixAdminError, ActixAdminViewModelField};
+use actix_multipart::{Multipart, MultipartError};
+use actix_web::web::Bytes;
 use async_trait::async_trait;
+use chrono::{NaiveDate, NaiveDateTime};
+use futures_util::stream::StreamExt as _;
 use sea_orm::DatabaseConnection;
 use serde::Serialize;
 use std::collections::HashMap;
-use actix_multipart:: {Multipart, MultipartError} ;
-use futures_util::stream::StreamExt as _;
-use chrono::{NaiveDateTime, NaiveDate};
+use std::fs::File;
+use std::io::Write;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[async_trait]
 pub trait ActixAdminModelTrait {
@@ -13,9 +17,9 @@ pub trait ActixAdminModelTrait {
         db: &DatabaseConnection,
         page: usize,
         posts_per_page: usize,
-        search: &String
+        search: &String,
     ) -> Result<(usize, Vec<ActixAdminModel>), ActixAdminError>;
-    fn get_fields() -> &'static[ActixAdminViewModelField];
+    fn get_fields() -> &'static [ActixAdminViewModelField];
     fn validate_model(model: &mut ActixAdminModel);
 }
 
@@ -30,9 +34,8 @@ pub struct ActixAdminModel {
     pub primary_key: Option<String>,
     pub values: HashMap<String, String>,
     pub errors: HashMap<String, String>,
-    pub custom_errors: HashMap<String, String>
+    pub custom_errors: HashMap<String, String>,
 }
-
 
 impl ActixAdminModel {
     pub fn create_empty() -> ActixAdminModel {
@@ -44,21 +47,47 @@ impl ActixAdminModel {
         }
     }
 
-    pub async fn create_from_payload(mut payload: Multipart) -> Result<ActixAdminModel, MultipartError> {
+    pub async fn create_from_payload(
+        mut payload: Multipart, file_upload_folder: &str
+    ) -> Result<ActixAdminModel, MultipartError> {
         let mut hashmap = HashMap::<String, String>::new();
-    
+
         while let Some(item) = payload.next().await {
             let mut field = item?;
-    
-            // TODO: how to handle binary chunks?
+
+            let mut binary_data: Vec<Bytes> = Vec::new();
             while let Some(chunk) = field.next().await {
+                binary_data.push(chunk.unwrap());
                 //println!("-- CHUNK: \n{:?}", String::from_utf8(chunk.map_or(Vec::new(), |c| c.to_vec())));
-                let res_string = String::from_utf8(chunk.map_or(Vec::new(), |c| c.to_vec()));
+                // let res_string = String::from_utf8(chunk.map_or(Vec::new(), |c| c.to_vec()));
+            }
+            let binary_data = binary_data.concat();
+            if field.content_disposition().get_filename().is_some() {
+                let mut filename = field
+                    .content_disposition()
+                    .get_filename()
+                    .unwrap()
+                    .to_string();
+
+                let mut file_path = format!("{}/{}", file_upload_folder, filename);
+                let file_exists = std::path::Path::new(&file_path).exists();
+                // Avoid overwriting existing files
+                if file_exists {
+                    filename =  format!("{}_{}", SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(), filename);
+                    file_path = format!("{}/{}", file_upload_folder, filename);
+                }
+
+                let file = File::create(file_path);
+                let _res = file.unwrap().write_all(&binary_data);
+
+                hashmap.insert(
+                    field.name().to_string(),
+                    filename.clone()
+                );
+            } else {
+                let res_string = String::from_utf8(binary_data);
                 if res_string.is_ok() {
-                    hashmap.insert(
-                        field.name().to_string(),
-                        res_string.unwrap()
-                    );
+                    hashmap.insert(field.name().to_string(), res_string.unwrap());
                 }
             }
         }
@@ -71,35 +100,68 @@ impl ActixAdminModel {
         })
     }
 
-    pub fn get_value<T: std::str::FromStr>(&self, key: &str, is_option_or_string: bool) -> Result<Option<T>, String> {
-        self.get_value_by_closure(key, is_option_or_string, |val| val.parse::<T>())
+    pub fn get_value<T: std::str::FromStr>(
+        &self,
+        key: &str,
+        is_option_or_string: bool,
+        is_allowed_to_be_empty: bool
+    ) -> Result<Option<T>, String> {
+        self.get_value_by_closure(key, is_option_or_string, is_allowed_to_be_empty, |val| val.parse::<T>())
     }
 
-    pub fn get_datetime(&self, key: &str, is_option_or_string: bool) -> Result<Option<NaiveDateTime>, String> {
-        self.get_value_by_closure(key, is_option_or_string, |val| NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M"))
+    pub fn get_datetime(
+        &self,
+        key: &str,
+        is_option_or_string: bool,
+        is_allowed_to_be_empty: bool
+    ) -> Result<Option<NaiveDateTime>, String> {
+        self.get_value_by_closure(key, is_option_or_string, is_allowed_to_be_empty, |val| {
+            NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M")
+        })
     }
 
-    pub fn get_date(&self, key: &str, is_option_or_string: bool) -> Result<Option<NaiveDate>, String> {
-        self.get_value_by_closure(key, is_option_or_string, |val| NaiveDate::parse_from_str(val, "%Y-%m-%d"))
+    pub fn get_date(
+        &self,
+        key: &str,
+        is_option_or_string: bool,
+        is_allowed_to_be_empty: bool
+    ) -> Result<Option<NaiveDate>, String> {
+        self.get_value_by_closure(key, is_option_or_string, is_allowed_to_be_empty, |val| {
+            NaiveDate::parse_from_str(val, "%Y-%m-%d")
+        })
     }
 
-    pub fn get_bool(&self, key: &str, is_option_or_string: bool) -> Result<Option<bool>, String> {
-        let val = self.get_value_by_closure(key, is_option_or_string, |val| if !val.is_empty() && (val == "true" || val == "yes") { Ok(true) } else { Ok(false) });
+    pub fn get_bool(&self, key: &str, is_option_or_string: bool, is_allowed_to_be_empty: bool) -> Result<Option<bool>, String> {
+        let val = self.get_value_by_closure(key, is_option_or_string, is_allowed_to_be_empty ,|val| {
+            if !val.is_empty() && (val == "true" || val == "yes") {
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        });
         // not selected bool field equals to false and not to missing
         match val {
             Ok(val) => Ok(val),
-            Err(_) => Ok(Some(false))
+            Err(_) => Ok(Some(false)),
         }
     }
 
-    fn get_value_by_closure<T: std::str::FromStr>(&self, key: &str, is_option_or_string: bool, f: impl Fn(&String) -> Result<T, <T as std::str::FromStr>::Err>) -> Result<Option<T>, String> {
+    fn get_value_by_closure<T: std::str::FromStr>(
+        &self,
+        key: &str,
+        is_option_or_string: bool,
+        is_allowed_to_be_empty: bool,
+        f: impl Fn(&String) -> Result<T, <T as std::str::FromStr>::Err>,
+    ) -> Result<Option<T>, String> {
         let value = self.values.get(key);
 
         let res: Result<Option<T>, String> = match value {
             Some(val) => {
-                if val.is_empty() && is_option_or_string {
-                    return Ok(None);
-                }
+                match (val.is_empty(), is_option_or_string, is_allowed_to_be_empty) {
+                    (true, true, true) => return Ok(None),
+                    (true, true, false) => return Err("Cannot be empty".to_string()),
+                    _ => {}
+                };
 
                 let parsed_val = f(val);
 
@@ -109,11 +171,12 @@ impl ActixAdminModel {
                 }
             }
             _ => {
-                match is_option_or_string {
-                    true => Ok(None),
-                    false => Err("Invalid Value".to_string()) // a missing value in the form for a non-optional value
-                } 
-            } 
+                match (is_option_or_string, is_allowed_to_be_empty) {
+                    (true, true) => Ok(None),
+                    (true, false) => Err("Cannot be empty".to_string()),
+                    (false, _) => Err("Invalid Value".to_string()), // a missing value in the form for a non-optional value
+                }
+            }
         };
 
         res

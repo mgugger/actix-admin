@@ -12,7 +12,7 @@ pub struct Model {
     #[serde(skip_deserializing)]
     #[actix_admin(primary_key)]
     pub id: i32,
-    #[actix_admin(searchable)]
+    #[actix_admin(searchable, not_empty)]
     pub title: String,
     #[sea_orm(column_type = "Text")]
     #[actix_admin(searchable, textarea)]
@@ -22,6 +22,8 @@ pub struct Model {
     #[actix_admin(select_list="Tea")]
     pub tea_optional: Option<Tea>,
     pub insert_date: Date,
+    #[actix_admin(file_upload)]
+    pub attachment: String
 }
 
 impl Display for Model {

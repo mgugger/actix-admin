@@ -41,6 +41,7 @@ pub fn create_actix_admin_builder() -> ActixAdminBuilder {
         user_is_logged_in: None,
         login_link: None,
         logout_link: None,
+        file_upload_directory: "./file_uploads"
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
@@ -78,8 +79,9 @@ async fn create_post_from_plaintext<
     data: web::Data<T>,
     text: String,
 ) -> Result<HttpResponse, Error> {
+    let actix_admin = data.get_actix_admin();
     let model = ActixAdminModel::from(text);
-    create_or_edit_post::<T, E>(&session, &data, Ok(model), None).await
+    create_or_edit_post::<T, E>(&session, &data, Ok(model), None, actix_admin).await
 }
 
 async fn edit_post_from_plaintext<
@@ -91,6 +93,7 @@ async fn edit_post_from_plaintext<
     text: String,
     id: web::Path<i32>,
 ) -> Result<HttpResponse, Error> {
+    let actix_admin = data.get_actix_admin();
     let model = ActixAdminModel::from(text);
-    create_or_edit_post::<T, E>(&session, &data, Ok(model), Some(id.into_inner())).await
+    create_or_edit_post::<T, E>(&session, &data, Ok(model), Some(id.into_inner()), actix_admin).await
 }

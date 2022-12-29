@@ -154,6 +154,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let fields_searchable = get_actix_admin_fields_searchable(&fields);
     let fields_type_path = get_actix_admin_fields_type_path_string(&fields);
     let fields_textarea = get_actix_admin_fields_textarea(&fields);
+    let fields_file_upload = get_actix_admin_fields_file_upload(&fields);
 
     let expanded = quote! {
         actix_admin::prelude::lazy_static! {
@@ -187,7 +188,11 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     #(#fields_textarea),*
                 ];
 
-                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea) in actix_admin::prelude::izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas) {
+                let fields_fileupload = [
+                    #(#fields_file_upload),*
+                ];
+
+                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea, is_file_upload) in actix_admin::prelude::izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas, fields_fileupload) {
                     
                     let select_list = select_list.replace('"', "").replace(' ', "").to_string();
                     let field_name = field_name.replace('"', "").replace(' ', "").to_string();
@@ -198,7 +203,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                         html_input_type: html_input_type,
                         select_list: select_list.clone(),
                         is_option: is_option_list,
-                        field_type: ActixAdminViewModelFieldType::get_field_type(fields_type_path, select_list, is_textarea)
+                        field_type: ActixAdminViewModelFieldType::get_field_type(fields_type_path, select_list, is_textarea, is_file_upload)
                     });
                 }
                 vec

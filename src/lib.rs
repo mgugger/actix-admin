@@ -96,6 +96,7 @@ pub fn get_html_input_type<S: BuildHasher>(value: &tera::Value, _: &HashMap<Stri
         ActixAdminViewModelFieldType::DateTime => "datetime-local",
         ActixAdminViewModelFieldType::Date => "date",
         ActixAdminViewModelFieldType::Checkbox => "checkbox",
+        ActixAdminViewModelFieldType::FileUpload => "file",
         _ => "text"
     };
 
@@ -120,7 +121,8 @@ pub struct ActixAdminConfiguration {
     pub enable_auth: bool,
     pub user_is_logged_in: Option<for<'a> fn(&'a Session) -> bool>,
     pub login_link: Option<String>,
-    pub logout_link: Option<String>
+    pub logout_link: Option<String>,
+    pub file_upload_directory: &'static str
 }
 
 #[derive(Clone)]

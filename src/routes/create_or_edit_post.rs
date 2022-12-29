@@ -1,23 +1,28 @@
 use super::{render_unauthorized, user_can_access_page};
+use crate::prelude::*;
 use crate::ActixAdminError;
 use crate::ActixAdminNotification;
-use crate::prelude::*;
 use crate::TERA;
+use actix_multipart::Multipart;
 use actix_multipart::MultipartError;
 use actix_session::Session;
 use actix_web::http::header;
 use actix_web::{error, web, Error, HttpResponse};
-use tera::Context;
-use actix_multipart::Multipart;
 use std::collections::HashMap;
+use tera::Context;
 
 pub async fn create_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     session: Session,
     data: web::Data<T>,
     payload: Multipart,
 ) -> Result<HttpResponse, Error> {
-    let model = ActixAdminModel::create_from_payload(payload).await;
-    create_or_edit_post::<T, E>(&session, &data, model, None).await
+    let actix_admin = data.get_actix_admin();
+    let model = ActixAdminModel::create_from_payload(
+        payload,
+        &format!("{}/{}", actix_admin.configuration.file_upload_directory, E::get_entity_name())
+    )
+    .await;
+    create_or_edit_post::<T, E>(&session, &data, model, None, actix_admin).await
 }
 
 pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
@@ -26,8 +31,13 @@ pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     payload: Multipart,
     id: web::Path<i32>,
 ) -> Result<HttpResponse, Error> {
-    let model = ActixAdminModel::create_from_payload(payload).await;
-    create_or_edit_post::<T, E>(&session, &data, model, Some(id.into_inner())).await
+    let actix_admin = data.get_actix_admin();
+    let model = ActixAdminModel::create_from_payload(
+        payload,
+        &format!("{}/{}", actix_admin.configuration.file_upload_directory, E::get_entity_name()),
+    )
+    .await;
+    create_or_edit_post::<T, E>(&session, &data, model, Some(id.into_inner()), actix_admin).await
 }
 
 pub async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
@@ -35,8 +45,8 @@ pub async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewMod
     data: &web::Data<T>,
     model_res: Result<ActixAdminModel, MultipartError>,
     id: Option<i32>,
+    actix_admin: &ActixAdmin,
 ) -> Result<HttpResponse, Error> {
-    let actix_admin = data.get_actix_admin();
     let entity_name = E::get_entity_name();
 
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
@@ -62,23 +72,28 @@ pub async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewMod
         };
 
         match res {
-            Ok(_) => {
-                Ok(HttpResponse::SeeOther()
+            Ok(_) => Ok(HttpResponse::SeeOther()
                 .append_header((
                     header::LOCATION,
                     format!("/admin/{}/list", view_model.entity_name),
                 ))
-                .finish())
-            },
+                .finish()),
             Err(e) => {
                 errors.push(e);
                 render_form::<E>(actix_admin, view_model, db, entity_name, &model, errors).await
-            } 
-        }    
+            }
+        }
     }
 }
 
-async fn render_form<E: ActixAdminViewModelTrait>(actix_admin: &ActixAdmin, view_model: &ActixAdminViewModel, db: &&sea_orm::DatabaseConnection, entity_name: String, model: &ActixAdminModel, errors: Vec<ActixAdminError>) -> Result<HttpResponse, Error> {
+async fn render_form<E: ActixAdminViewModelTrait>(
+    actix_admin: &ActixAdmin,
+    view_model: &ActixAdminViewModel,
+    db: &&sea_orm::DatabaseConnection,
+    entity_name: String,
+    model: &ActixAdminModel,
+    errors: Vec<ActixAdminError>,
+) -> Result<HttpResponse, Error> {
     let mut ctx = Context::new();
     ctx.insert("entity_names", &actix_admin.entity_names);
     ctx.insert(
@@ -86,13 +101,14 @@ async fn render_form<E: ActixAdminViewModelTrait>(actix_admin: &ActixAdmin, view
         &ActixAdminViewModelSerializable::from(view_model.clone()),
     );
     ctx.insert("select_lists", &E::get_select_lists(db).await?);
-    ctx.insert("list_link", &E::get_list_link(&entity_name));
+    ctx.insert("base_path", &E::get_base_path(&entity_name));
     ctx.insert("model", model);
-    
-    let notifications: Vec<ActixAdminNotification> = errors.into_iter()
+
+    let notifications: Vec<ActixAdminNotification> = errors
+        .into_iter()
         .map(|err| ActixAdminNotification::from(err))
         .collect();
-    
+
     ctx.insert("notifications", &notifications);
     let body = TERA
         .render("create_or_edit.html", &ctx)

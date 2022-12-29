@@ -28,6 +28,7 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
         .col(ColumnDef::new(post::Column::TeaMandatory).string().not_null())
         .col(ColumnDef::new(post::Column::TeaOptional).string())
         .col(ColumnDef::new(post::Column::InsertDate).date())
+        .col(ColumnDef::new(post::Column::Attachment).string())
         .to_owned();
 
     let _result = create_table(db, &stmt).await;

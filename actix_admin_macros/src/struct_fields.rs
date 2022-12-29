@@ -41,6 +41,12 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let is_textarea = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.textarea.is_some());
+                let is_file_upload = actix_admin_attr
+                    .clone()
+                    .map_or(false, |attr| attr.file_upload.is_some());
+                let is_not_empty = actix_admin_attr
+                    .clone()
+                    .map_or(false, |attr| attr.not_empty.is_some());
                 let select_list = actix_admin_attr.clone().map_or("".to_string(), |attr| {
                     attr.select_list.map_or("".to_string(), |attr_field| {
                         (LitStr::from(attr_field)).value()
@@ -62,7 +68,9 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     html_input_type: html_input_type,
                     select_list: select_list,
                     searchable: is_searchable,
-                    textarea: is_textarea
+                    textarea: is_textarea,
+                    file_upload: is_file_upload,
+                    not_empty: is_not_empty
                 };
                 Some(model_field)
             } else {
@@ -186,6 +194,20 @@ pub fn get_actix_admin_fields_textarea(fields: &Vec<ModelField>) -> Vec<TokenStr
         .collect::<Vec<_>>()
 }
 
+pub fn get_actix_admin_fields_file_upload(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+        .iter()
+        .filter(|model_field| !model_field.primary_key)
+        .map(|model_field| {
+            let is_fileupload = model_field.file_upload;
+
+            quote! {
+                #is_fileupload
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
 pub fn get_actix_admin_fields_searchable(fields: &Vec<ModelField>) -> Vec<TokenStream> {
     fields
         .iter()
@@ -275,33 +297,34 @@ pub fn get_fields_for_validate_model(fields: &Vec<ModelField>) -> Vec<TokenStrea
         let type_path = model_field.get_type_path_string();
 
         let is_option_or_string = model_field.is_option() || model_field.is_string();
+        let is_allowed_to_be_empty = !model_field.not_empty;
 
         let res = match (model_field.is_option(), type_path.as_str()) {
             (_, "DateTime") => {
                 quote! {
-                    model.get_datetime(#ident_name, #is_option_or_string).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
+                    model.get_datetime(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
                 }
             },
             (_, "Date") => {
                 quote! {
-                    model.get_date(#ident_name, #is_option_or_string).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
+                    model.get_date(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
                 }
             },
             (_, "bool") => {
                 quote! {
-                    model.get_bool(#ident_name, #is_option_or_string).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
+                    model.get_bool(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
                 }
             },
             // generic
             (true, _) => {
                 let inner_ty = model_field.inner_type.to_owned().unwrap();
                 quote! {
-                    model.get_value::<#inner_ty>(#ident_name, #is_option_or_string).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
+                    model.get_value::<#inner_ty>(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
                 }
             },
             (false, _) => {
                 quote! {
-                    model.get_value::<#ty>(#ident_name, #is_option_or_string).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
+                    model.get_value::<#ty>(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
                 }
             }
         };
@@ -323,51 +346,52 @@ pub fn get_fields_for_create_model(fields: &Vec<ModelField>) -> Vec<TokenStream>
             let type_path = model_field.get_type_path_string();
 
             let is_option_or_string = model_field.is_option() || model_field.is_string();
+            let is_allowed_to_be_empty = !model_field.not_empty;
 
             let res = match (model_field.is_option(), model_field.is_string(), type_path.as_str()) {
                 // is DateTime
                 (true , _, "DateTime") => {
                     quote! {
-                        #ident: Set(model.get_datetime(#ident_name, #is_option_or_string).unwrap())
+                        #ident: Set(model.get_datetime(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap())
                     }
                 },
                 (false , _, "DateTime") => {
                     quote! {
-                        #ident: Set(model.get_datetime(#ident_name, #is_option_or_string).unwrap().unwrap())
+                        #ident: Set(model.get_datetime(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap().unwrap())
                     }
                 },
                 (true , _, "Date") => {
                     quote! {
-                        #ident: Set(model.get_date(#ident_name, #is_option_or_string).unwrap())
+                        #ident: Set(model.get_date(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap())
                     }
                 },
                 (false , _, "Date") => {
                     quote! {
-                        #ident: Set(model.get_date(#ident_name, #is_option_or_string).unwrap().unwrap())
+                        #ident: Set(model.get_date(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap().unwrap())
                     }
                 },
                 (_ , _, "bool") => {
                     quote! {
-                        #ident: Set(model.get_bool(#ident_name, #is_option_or_string).unwrap().unwrap())
+                        #ident: Set(model.get_bool(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap().unwrap())
                     }
                 },
                 // Default fields
                 (true, _, _) => {
                     let inner_ty = model_field.inner_type.to_owned().unwrap();
                     quote! {
-                        #ident: Set(model.get_value::<#inner_ty>(#ident_name, #is_option_or_string).unwrap())
+                        #ident: Set(model.get_value::<#inner_ty>(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap())
                     }
                 },
                 // is string which can be empty
                 (false, true, _) => {
                     quote! {
-                        #ident: Set(model.get_value::<#ty>(#ident_name, #is_option_or_string).unwrap().unwrap_or(String::new()))
+                        #ident: Set(model.get_value::<#ty>(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap().unwrap_or(String::new()))
                     }
                 },
                 // no string
                 (false, false, _) => {
                     quote! {
-                        #ident: Set(model.get_value::<#ty>(#ident_name, #is_option_or_string).unwrap().unwrap())
+                        #ident: Set(model.get_value::<#ty>(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap().unwrap())
                     }
                 }
             };
@@ -389,47 +413,48 @@ pub fn get_fields_for_edit_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
             let type_path = model_field.get_type_path_string();
 
             let is_option_or_string = model_field.is_option() || model_field.is_string();
+            let is_allowed_to_be_empty = !model_field.not_empty;
             
             let res = match (model_field.is_option(), model_field.is_string(), type_path.as_str()) {
                 (_, _, "bool") => {
                     quote! {
-                        entity.#ident = Set(model.get_bool(#ident_name, #is_option_or_string).unwrap().unwrap())
+                        entity.#ident = Set(model.get_bool(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap().unwrap())
                     }
                 },
                 (true , _, "DateTime") => {
                     quote! {
-                        entity.#ident = Set(model.get_datetime(#ident_name, #is_option_or_string).unwrap())
+                        entity.#ident = Set(model.get_datetime(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap())
                     }
                 },
                 (false , _, "DateTime") => {
                     quote! {
-                        entity.#ident = Set(model.get_datetime(#ident_name, #is_option_or_string).unwrap().unwrap())
+                        entity.#ident = Set(model.get_datetime(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap().unwrap())
                     }
                 },
                 (true , _, "Date") => {
                     quote! {
-                        entity.#ident = Set(model.get_date(#ident_name, #is_option_or_string).unwrap())
+                        entity.#ident = Set(model.get_date(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap())
                     }
                 },
                 (false , _, "Date") => {
                     quote! {
-                        entity.#ident = Set(model.get_date(#ident_name, #is_option_or_string).unwrap().unwrap())
+                        entity.#ident = Set(model.get_date(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap().unwrap())
                     }
                 },
                 (true, _, _) => {
                     let inner_ty = model_field.inner_type.to_owned().unwrap();
                     quote! {
-                        entity.#ident = Set(model.get_value::<#inner_ty>(#ident_name, #is_option_or_string).unwrap())
+                        entity.#ident = Set(model.get_value::<#inner_ty>(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap())
                     }
                 },
                 (false, true, _) => {
                     quote! {
-                        entity.#ident = Set(model.get_value::<#ty>(#ident_name, #is_option_or_string).unwrap().unwrap_or(String::new()))
+                        entity.#ident = Set(model.get_value::<#ty>(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap().unwrap_or(String::new()))
                     }
                 },
                 (false, false, _) => {
                     quote! {
-                        entity.#ident = Set(model.get_value::<#ty>(#ident_name, #is_option_or_string).unwrap().unwrap())
+                        entity.#ident = Set(model.get_value::<#ty>(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).unwrap().unwrap())
                     }
                 }
             };

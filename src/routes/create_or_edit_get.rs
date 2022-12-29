@@ -70,7 +70,7 @@ async fn create_or_edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTra
 
     ctx.insert("view_model", &ActixAdminViewModelSerializable::from(view_model.clone()));
     ctx.insert("select_lists", &E::get_select_lists(db).await?);
-    ctx.insert("list_link", &E::get_list_link(&entity_name));
+    ctx.insert("base_path", &E::get_base_path(&entity_name));
     ctx.insert("model", &model);
     ctx.insert("notifications", &notifications);
     
