@@ -272,14 +272,14 @@ pub fn get_fields_for_from_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
                 true => {
                     quote! {
                         #ident_name => match model.#ident {
-                            Some(val) => val.to_string(),
+                            Some(val) => val.to_string().trim_start_matches("'").trim_end_matches("'").to_string(),
                             None => "".to_owned()
                         }
                     }
                 }
                 false => {
                     quote! {
-                        #ident_name => model.#ident.to_string()
+                        #ident_name => model.#ident.to_string().trim_start_matches("'").trim_end_matches("'").to_string()
                     }
                 }
             }

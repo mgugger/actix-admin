@@ -68,7 +68,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
 
         #[actix_admin::prelude::async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
-            async fn list(db: &DatabaseConnection, page: usize, entities_per_page: usize, search: &String) -> Result<(usize, Vec<ActixAdminModel>), ActixAdminError> {
+            async fn list(db: &DatabaseConnection, page: u64, entities_per_page: u64, search: &String) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError> {
                 let entities = Entity::list_model(db, page, entities_per_page, search).await;
                 entities
             }
@@ -236,7 +236,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
 
         #[actix_admin::prelude::async_trait]
         impl ActixAdminModelTrait for Entity {
-            async fn list_model(db: &DatabaseConnection, page: usize, posts_per_page: usize, search: &String) -> Result<(usize, Vec<ActixAdminModel>), ActixAdminError> {
+            async fn list_model(db: &DatabaseConnection, page: u64, posts_per_page: u64, search: &String) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError> {
                 use sea_orm::{ query::* };
                 let paginator = Entity::find()
                     .filter(

@@ -15,10 +15,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub trait ActixAdminModelTrait {
     async fn list_model(
         db: &DatabaseConnection,
-        page: usize,
-        posts_per_page: usize,
+        page: u64,
+        posts_per_page: u64,
         search: &String,
-    ) -> Result<(usize, Vec<ActixAdminModel>), ActixAdminError>;
+    ) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError>;
     fn get_fields() -> &'static [ActixAdminViewModelField];
     fn validate_model(model: &mut ActixAdminModel);
 }

@@ -11,12 +11,12 @@ use crate::TERA;
 use actix_session::{Session};
 use super::{ add_auth_context, user_can_access_page, render_unauthorized};
 
-const DEFAULT_ENTITIES_PER_PAGE: usize = 10;
+const DEFAULT_ENTITIES_PER_PAGE: u64 = 10;
 
 #[derive(Debug, Deserialize)]
 pub struct Params {
-    page: Option<usize>,
-    entities_per_page: Option<usize>,
+    page: Option<u64>,
+    entities_per_page: Option<u64>,
     render_partial: Option<bool>,
     search: Option<String>
 }

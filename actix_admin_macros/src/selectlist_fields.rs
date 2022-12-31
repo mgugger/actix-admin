@@ -38,7 +38,8 @@ pub fn get_select_list_from_enum(input: proc_macro::TokenStream) -> proc_macro::
             async fn get_key_value(db: &DatabaseConnection) -> Result<Vec<(String, String)>, ActixAdminError> {
                 let mut fields = Vec::new();
                 for field in #ty::iter() {
-                    fields.push((field.to_string(), field.to_string()));
+                    let field_val = field.to_string().trim_start_matches("'").trim_end_matches("'").to_string();
+                    fields.push((field_val.clone(), field_val));
                 }
                 Ok(fields)
             }
