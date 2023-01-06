@@ -3,10 +3,8 @@
 <title>Actix Admin</title>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css"
-    integrity="sha512-1sCRPdkRXhBV2PBLUdRb4tMg1w2YPf37qatUFeS7zlBy7jJI8Lf4VHwWfZZfpXtYSLy85pkm9GaYVYMfw5BC1A=="
-    crossorigin="anonymous" referrerpolicy="no-referrer" />
-<script src="https://unpkg.com/htmx.org@1.7.0"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+<script src="https://unpkg.com/htmx.org@1.8.4"></script>
 
 <script>
     function checkAll(bx) {
@@ -16,6 +14,17 @@
                 cbs[i].checked = bx.checked;
             }
         }
+    }
+
+    function sort_by(column) {
+        document.getElementById("sort_by").value = column;
+        current_sort_order = document.getElementById("sort_order").value;
+        if(current_sort_order == "asc") {
+            document.getElementById("sort_order").value = "desc";
+        } else {
+            document.getElementById("sort_order").value = "asc";
+        }
+        document.getElementById('search_form').submit();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -58,24 +67,5 @@
         align-items: center;
         z-index: 6;
         pointer-events: none
-    }
-
-    .fade-in {
-        opacity: 1;
-        animation-name: fadeInOpacity;
-        animation-iteration-count: 1;
-        animation-timing-function: ease-in;
-        animation-duration: 0.2s;
-    }
-
-
-    @keyframes fadeInOpacity {
-        0% {
-            opacity: 0;
-        }
-
-        100% {
-            opacity: 1;
-        }
     }
 </style>

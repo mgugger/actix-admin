@@ -18,7 +18,9 @@ pub struct Params {
     page: Option<u64>,
     entities_per_page: Option<u64>,
     render_partial: Option<bool>,
-    search: Option<String>
+    search: Option<String>,
+    sort_by: Option<String>,
+    sort_order: Option<String>
 }
 
 pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
@@ -50,6 +52,8 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     let search = params.search.clone().unwrap_or(String::new());
 
     let db = data.get_db();
+    let sort_by = params.sort_by.clone().unwrap_or(view_model.primary_key.to_string());
+    let sort_order = params.sort_order.clone().unwrap_or(String::new());
     let result = E::list(db, page, entities_per_page, &search).await;
     match result {
         Ok(res) => {
@@ -76,11 +80,12 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     ctx.insert("entity_name", &entity_name);
     ctx.insert("notifications", &notifications);
     ctx.insert("page", &page);
-    ctx.insert("params", &entities_per_page);
     ctx.insert("entities_per_page", &entities_per_page);
     ctx.insert("render_partial", &render_partial);
     ctx.insert("view_model", &ActixAdminViewModelSerializable::from(view_model.clone()));
     ctx.insert("search", &search);
+    ctx.insert("sort_by", &sort_by);
+    ctx.insert("sort_order", &sort_order);
 
     let body = TERA
         .render("list.html", &ctx)
