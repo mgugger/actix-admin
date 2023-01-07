@@ -1,10 +1,12 @@
 // setup
 use sea_orm::sea_query::{ForeignKeyCreateStatement, ColumnDef, TableCreateStatement};
-use sea_orm::{error::*, sea_query, ConnectionTrait, DbConn, ExecResult};
+use sea_orm::{Set, EntityTrait, error::*, sea_query, ConnectionTrait, DbConn, ExecResult};
 pub mod comment;
 pub mod post;
 pub use comment::Entity as Comment;
 pub use post::Entity as Post;
+use sea_orm::prelude::DateTime;
+use sea_orm::prelude::Decimal;
 
 // setup
 async fn create_table(db: &DbConn, stmt: &TableCreateStatement) -> Result<ExecResult, DbErr> {
@@ -59,5 +61,30 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
         )
         .to_owned();
 
-    create_table(db, &stmt).await
+    let res = create_table(db, &stmt).await;
+
+    for i in 1..101 {
+        let row = post::ActiveModel {
+           title: Set(format!("Test {}", i)),
+           text: Set("some content".to_string()),
+           tea_mandatory: Set(post::Tea::EverydayTea),
+           tea_optional: Set(None),
+           ..Default::default()
+        };
+        let _res = Post::insert(row).exec(db).await;
+   }
+
+   for i in 1..101 {
+       let row = comment::ActiveModel {
+          comment: Set(format!("Test {}", i)),
+          user: Set("me@home.com".to_string()),
+          my_decimal: Set(Decimal::new(105, 0)),
+          insert_date: Set(DateTime::default()),
+          is_visible: Set(i%2 == 0),
+          ..Default::default()
+       };
+       let _res = Comment::insert(row).exec(db).await;
+  }
+
+    res
 }

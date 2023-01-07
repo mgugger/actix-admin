@@ -133,7 +133,7 @@
             </tfoot>
         </table>
     </form>
-    <nav class="pagination" aria-label="pagination">
+    <nav hx-boost="true" hx-indicator="#loading" class="pagination" aria-label="pagination">
         <a href="?page={{ page - 1 }}&entities_per_page={{ entities_per_page }}&search={{ search }}"
             class="pagination-previous">Previous Page</a>
         <a href="?page={{ page + 1 }}&entities_per_page={{ entities_per_page }}&search={{ search }}"

@@ -4,7 +4,6 @@ use actix_admin::prelude::*;
 use actix_web::{web, App, HttpServer, middleware};
 use sea_orm::{ConnectOptions, DatabaseConnection};
 use std::time::Duration;
-
 mod entity;
 use entity::{Post, Comment};
 
@@ -61,7 +60,7 @@ async fn main() {
     let conn = sea_orm::Database::connect(opt).await.unwrap();
     let _ = entity::create_post_table(&conn).await;
 
-    println!("The admin interface will be available at http://localhost:5000/admin/");
+    println!("The admin interface is available at http://localhost:5000/admin/");
 
     HttpServer::new(move || {
 
