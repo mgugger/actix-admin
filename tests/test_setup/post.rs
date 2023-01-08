@@ -67,13 +67,4 @@ impl FromStr for Tea {
     }
 }
 
-impl Display for Tea {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        match &*self {
-            Tea::EverydayTea => write!(formatter, "{}", String::from("EverydayTea")),
-            Tea::BreakfastTea => write!(formatter, "{}", String::from("BreakfastTea")),
-        }
-    }
-}
-
 impl ActixAdminModelValidationTrait<ActiveModel> for Entity {}
