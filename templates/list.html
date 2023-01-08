@@ -33,7 +33,6 @@
             <p class="control has-icons-left has-icons-right">
                 <input class="input is-rounded" type="search" id="search" value="{{ search }}" name="search"
                     placeholder="Search"
-                    hx-push-url="true"
                     hx-get="/admin/{{ entity_name }}/list?render_partial=true&entities_per_page={{ entities_per_page }}&page={{ page }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}"
                     hx-trigger="keyup changed delay:500ms, search" hx-target="#{{ entity_name }}table"
                     hx-indicator="#loading">
@@ -80,9 +79,9 @@
                         <th onclick="sort_by('{{ view_model.primary_key }}');" class="is-clickable">{{
                             view_model.primary_key | title }}
                             {% if sort_by == view_model.primary_key %}
-                            {% if sort_order == "asc" %}
+                            {% if sort_order == "{{ sort_order_asc }}" %}
                             <i class="ml-1 fa-solid fa-caret-up"></i>
-                            {% else %}
+                            {% elif sort_order == "{{ sort_order_desc }}" %}
                             <i class="ml-1 fa-solid fa-caret-down"></i>
                             {% endif %}
                             {% endif %}
@@ -91,9 +90,9 @@
                         <th onclick="sort_by('{{ model_field.field_name }}');" class="is-clickable">{{
                             model_field.field_name | split(pat="_") | join(sep=" ") | title }}
                             {% if sort_by == model_field.field_name %}
-                            {% if sort_order == "asc" %}
+                            {% if sort_order == "{{ sort_order_asc }}" %}
                             <i class="ml-1 fa-solid fa-caret-up"></i>
-                            {% else %}
+                            {% elif sort_order == "{{ sort_order_desc }}" %}
                             <i class="ml-1 fa-solid fa-caret-down"></i>
                             {% endif %}
                             {% endif %}
@@ -141,38 +140,42 @@
             </table>
         </div>
     </form>
-    <nav hx-boost="true" hx-indicator="#loading" class="pagination is-rounded is-centered" role="pagination" aria-label="pagination">
+    <nav hx-boost="true" hx-indicator="#loading" class="pagination is-rounded is-centered" role="pagination"
+        aria-label="pagination">
         {% if page > 1 %}
         <a href="?page={{ page - 1 }}&entities_per_page={{ entities_per_page }}&search={{ search }}"
             class="pagination-previous left-arrow-click"><i class="fa-solid fa-arrow-left"></i>
         </a>
         {% endif %}
-        {% if page < num_pages %}
-        <a href="?page={{ page + 1 }}&entities_per_page={{ entities_per_page }}&search={{ search }}"
+        {% if page < num_pages %} <a
+            href="?page={{ page + 1 }}&entities_per_page={{ entities_per_page }}&search={{ search }}"
             class="pagination-next right-arrow-click"><i class="fa-solid fa-arrow-right"></i>
-        </a>
-        {% endif %}
-        <ul class="pagination-list">
-            <li>
-                <a class="pagination-link {% if page == 1 %}is-current{% endif %}"
-                    href="?page={{ 1 }}&entities_per_page={{ entities_per_page }}&search={{ search }}"
-                    aria-label="Goto page 1">1</a>
-            </li>
-            <li>
-                <span class="pagination-ellipsis">&hellip;</span>
-            </li>
-            {% for i in range(start=min_show_page,end=max_show_page) %}
-            <li><a class="pagination-link {% if page == i+1 %}is-current{% endif %}" aria-label="Goto page {{ i + 1 }}"
-                    href="?page={{ i + 1 }}&entities_per_page={{ entities_per_page }}&search={{ search }}">{{
-                    i + 1 }}</a></li>
-            {%- endfor %}
-            <li>
-                <span class="pagination-ellipsis">&hellip;</span>
-            </li>
-            <li>
-                <a href="?page={{ num_pages }}&entities_per_page={{ entities_per_page }}&search={{ search }}" class="pagination-link is-rounded {% if page == num_pages %}is-current{% endif %}" aria-label="Goto page {{ num_pages }}">{{ num_pages }} </a>
-            </li>
-        </ul>
+            </a>
+            {% endif %}
+            <ul class="pagination-list">
+                <li>
+                    <a class="pagination-link {% if page == 1 %}is-current{% endif %}"
+                        href="?page={{ 1 }}&entities_per_page={{ entities_per_page }}&search={{ search }}"
+                        aria-label="Goto page 1">1</a>
+                </li>
+                <li>
+                    <span class="pagination-ellipsis">&hellip;</span>
+                </li>
+                {% for i in range(start=min_show_page,end=max_show_page) %}
+                <li><a class="pagination-link {% if page == i+1 %}is-current{% endif %}"
+                        aria-label="Goto page {{ i + 1 }}"
+                        href="?page={{ i + 1 }}&entities_per_page={{ entities_per_page }}&search={{ search }}">{{
+                        i + 1 }}</a></li>
+                {%- endfor %}
+                <li>
+                    <span class="pagination-ellipsis">&hellip;</span>
+                </li>
+                <li>
+                    <a href="?page={{ num_pages }}&entities_per_page={{ entities_per_page }}&search={{ search }}"
+                        class="pagination-link is-rounded {% if page == num_pages %}is-current{% endif %}"
+                        aria-label="Goto page {{ num_pages }}">{{ num_pages }} </a>
+                </li>
+            </ul>
     </nav>
 </div>
 

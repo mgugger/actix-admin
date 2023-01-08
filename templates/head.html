@@ -42,10 +42,10 @@
     function sort_by(column) {
         document.getElementById("sort_by").value = column;
         current_sort_order = document.getElementById("sort_order").value;
-        if (current_sort_order == "asc") {
-            document.getElementById("sort_order").value = "desc";
+        if (current_sort_order == "{{ sort_order_asc }}") {
+            document.getElementById("sort_order").value = "{{ sort_order_desc }}";
         } else {
-            document.getElementById("sort_order").value = "asc";
+            document.getElementById("sort_order").value = "{{ sort_order_asc }}";
         }
         document.getElementById('search_form').submit();
     }

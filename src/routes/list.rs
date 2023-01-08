@@ -1,4 +1,5 @@
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
+use serde::Serialize;
 use serde::{Deserialize};
 use tera::{Context};
 use crate::prelude::*;
@@ -13,6 +14,12 @@ use super::{ add_auth_context, user_can_access_page, render_unauthorized};
 
 const DEFAULT_ENTITIES_PER_PAGE: u64 = 10;
 
+#[derive(Debug, Serialize, Deserialize)]
+pub enum SortOrder {
+    Asc,
+    Desc,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Params {
     page: Option<u64>,
@@ -20,7 +27,7 @@ pub struct Params {
     render_partial: Option<bool>,
     search: Option<String>,
     sort_by: Option<String>,
-    sort_order: Option<String>
+    sort_order: Option<SortOrder>
 }
 
 pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
@@ -53,7 +60,7 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
 
     let db = data.get_db();
     let sort_by = params.sort_by.clone().unwrap_or(view_model.primary_key.to_string());
-    let sort_order = params.sort_order.clone().unwrap_or(String::new());
+    let sort_order = params.sort_order.as_ref().unwrap_or(&SortOrder::Asc);
     let result = E::list(db, page, entities_per_page, &search).await;
     match result {
         Ok(res) => {
@@ -94,6 +101,8 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     ctx.insert("search", &search);
     ctx.insert("sort_by", &sort_by);
     ctx.insert("sort_order", &sort_order);
+    ctx.insert("sort_order_asc", &SortOrder::Asc);
+    ctx.insert("sort_order_desc", &SortOrder::Desc);
 
     let body = TERA
         .render("list.html", &ctx)
