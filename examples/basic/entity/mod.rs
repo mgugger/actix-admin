@@ -5,7 +5,7 @@ pub mod comment;
 pub mod post;
 pub use comment::Entity as Comment;
 pub use post::Entity as Post;
-use sea_orm::prelude::DateTime;
+use chrono::{Local};
 use sea_orm::prelude::Decimal;
 
 // setup
@@ -29,7 +29,7 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
         .col(ColumnDef::new(post::Column::Text).string().not_null())
         .col(ColumnDef::new(post::Column::TeaMandatory).string().not_null())
         .col(ColumnDef::new(post::Column::TeaOptional).string())
-        .col(ColumnDef::new(post::Column::InsertDate).date())
+        .col(ColumnDef::new(post::Column::InsertDate).date().not_null())
         .col(ColumnDef::new(post::Column::Attachment).string())
         .to_owned();
 
@@ -63,23 +63,24 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
 
     let res = create_table(db, &stmt).await;
 
-    for i in 1..101 {
+    for i in 1..1000 {
         let row = post::ActiveModel {
            title: Set(format!("Test {}", i)),
            text: Set("some content".to_string()),
            tea_mandatory: Set(post::Tea::EverydayTea),
            tea_optional: Set(None),
+           insert_date: Set(Local::now().date_naive()),
            ..Default::default()
         };
         let _res = Post::insert(row).exec(db).await;
    }
 
-   for i in 1..101 {
+   for i in 1..1000 {
        let row = comment::ActiveModel {
           comment: Set(format!("Test {}", i)),
           user: Set("me@home.com".to_string()),
           my_decimal: Set(Decimal::new(105, 0)),
-          insert_date: Set(DateTime::default()),
+          insert_date: Set(Local::now().naive_utc()),
           is_visible: Set(i%2 == 0),
           ..Default::default()
        };

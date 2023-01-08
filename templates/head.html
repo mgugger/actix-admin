@@ -7,6 +7,29 @@
 <script src="https://unpkg.com/htmx.org@1.8.4"></script>
 
 <script>
+    document.onkeydown = function (e) {
+        switch (e.which) {
+            case 37: // left
+                let left_el = document.getElementsByClassName('left-arrow-click').item(0);
+                if (left_el) { left_el.click(); };
+                break;
+
+            //case 38: // up
+            //    break;
+
+            case 39: // right
+                let right_el = document.getElementsByClassName('right-arrow-click').item(0);
+                if (right_el) { right_el.click(); };
+                break;
+
+            //case 40: // down
+            //    break;
+
+            default: return; // exit this handler for other keys
+        }
+        e.preventDefault(); // prevent the default action (scroll / move caret)
+    };
+
     function checkAll(bx) {
         var cbs = document.getElementsByTagName('input');
         for (var i = 0; i < cbs.length; i++) {
@@ -19,7 +42,7 @@
     function sort_by(column) {
         document.getElementById("sort_by").value = column;
         current_sort_order = document.getElementById("sort_order").value;
-        if(current_sort_order == "asc") {
+        if (current_sort_order == "asc") {
             document.getElementById("sort_order").value = "desc";
         } else {
             document.getElementById("sort_order").value = "asc";
@@ -57,13 +80,12 @@
 <style>
     .loader-wrapper {
         position: absolute;
-        top: 0;
-        left: 0;
         height: 100%;
         width: 100%;
         display: flex;
         background: rgba(255, 255, 255, 0.3);
         justify-content: center;
+        border-radius: 6px;
         align-items: center;
         z-index: 6;
         pointer-events: none

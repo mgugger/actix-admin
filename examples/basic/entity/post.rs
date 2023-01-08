@@ -21,15 +21,16 @@ pub struct Model {
     pub tea_mandatory: Tea,
     #[actix_admin(select_list="Tea")]
     pub tea_optional: Option<Tea>,
+    #[sea_orm(column_type = "Date")]
     pub insert_date: Date,
     #[actix_admin(file_upload)]
-    pub attachment: String
+    pub attachment: Option<String>
 }
 
 impl Display for Model {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match &*self {
-           _ => write!(formatter, "{} {}", &self.title, &self.insert_date),
+           _ => write!(formatter, "{} {}", &self.title, ""/* &self.insert_date*/),
         }
     }
 }

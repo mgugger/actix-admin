@@ -246,16 +246,17 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     .order_by_asc(Column::Id)
                     .paginate(db, posts_per_page);
                 let num_pages = paginator.num_pages().await?;
-                let entities = paginator
-                    .fetch_page(page - 1)
-                    .await?;
                 let mut model_entities = Vec::new();
+                if (num_pages == 0) { return Ok((num_pages, model_entities)) };
+                let entities = paginator
+                    .fetch_page(std::cmp::min(num_pages - 1, page - 1))
+                    .await?;
                 for entity in entities {
                     model_entities.push(
                         ActixAdminModel::from(entity)
                     );
                 }
-
+ 
                 Ok((num_pages, model_entities))
             }
 

@@ -44,7 +44,7 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
 
     let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
 
-    let page = params.page.unwrap_or(1);
+    let mut page = params.page.unwrap_or(1);
     let entities_per_page = params
         .entities_per_page
         .unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
@@ -58,13 +58,22 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     match result {
         Ok(res) => {
             let entities = res.1;
-            let num_pages = res.0;
+            let num_pages = std::cmp::max(res.0, 1);
             ctx.insert("entities", &entities);
             ctx.insert("num_pages", &num_pages);
+            ctx.insert("page", &std::cmp::min(num_pages, page));
+            page = std::cmp::min(page, num_pages);
+            let min_show_page = if &page < &5 { 1 } else { let max_page = &page - &5; max_page };
+            let max_show_page = if &page >= &num_pages { std::cmp::max(1, num_pages - 1) } else { let max_page = &page + &5; std::cmp::min(num_pages - 1, max_page) };
+            ctx.insert("min_show_page", &min_show_page);
+            ctx.insert("max_show_page", &max_show_page);
         },
         Err(e) => {
             ctx.insert("entities", &Vec::<ActixAdminModel>::new());
             ctx.insert("num_pages", &0);
+            ctx.insert("min_show_page", &1);
+            ctx.insert("max_show_page", &1);
+            ctx.insert("page", &1);
             errors.push(e);
         }
     }
@@ -79,7 +88,6 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
 
     ctx.insert("entity_name", &entity_name);
     ctx.insert("notifications", &notifications);
-    ctx.insert("page", &page);
     ctx.insert("entities_per_page", &entities_per_page);
     ctx.insert("render_partial", &render_partial);
     ctx.insert("view_model", &ActixAdminViewModelSerializable::from(view_model.clone()));
