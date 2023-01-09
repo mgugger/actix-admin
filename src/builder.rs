@@ -2,7 +2,6 @@ use crate::{prelude::*, ActixAdminMenuElement, routes::delete_static_content};
 use actix_web::{web, Route};
 use std::collections::HashMap;
 use std::fs;
-
 use crate::routes::{
     create_get, create_post, delete, delete_many, edit_get, edit_post, index, list, not_found, show, download
 };
@@ -105,8 +104,8 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 .route("/show/{id}", web::get().to(show::<T, E>))
                 .route("/static_content/{id}/{column_name}", web::get().to(download::<T, E>))
                 .route("/static_content/{id}/{column_name}", web::delete().to(delete_static_content::<T, E>))
-                .default_service(web::to(not_found)),
-        );
+                .default_service(web::to(not_found))
+            );
 
         fs::create_dir_all(format!("{}/{}", &self.actix_admin.configuration.file_upload_directory, E::get_entity_name())).unwrap();
 

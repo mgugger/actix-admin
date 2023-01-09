@@ -9,7 +9,9 @@ exclude = [
     "examples/*",
     "actix_admin_macros/*",
     "tests/*",
-    "README.md"
+    "docs/*",
+    "README.md",
+    ".gitignore"
 ]
 
 [lib]
