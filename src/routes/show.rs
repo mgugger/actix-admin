@@ -50,6 +50,6 @@ pub async fn show<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(sessio
 
     let body = TERA
         .render("show.html", &ctx)
-        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
+        .map_err(|err| error::ErrorInternalServerError(format!("{:?}", err)))?;
     Ok(http_response_code.content_type("text/html").body(body))
 }

@@ -16,6 +16,27 @@ pub async fn create_tables_and_get_connection() -> DatabaseConnection {
     conn
 }
 
+#[macro_export]
+macro_rules! create_app (
+    ($db: expr) => ({
+        let conn = $db.clone();
+        let actix_admin_builder = super::create_actix_admin_builder();
+        let actix_admin = actix_admin_builder.get_actix_admin();
+        let app_state = super::AppState {
+            db: conn,
+            actix_admin,
+        };
+        
+        test::init_service(
+            App::new()
+                .app_data(web::Data::new(app_state.clone()))
+                .service(actix_admin_builder.get_scope::<super::AppState>())
+        )
+        .await
+    });
+);
+
+
 #[derive(Clone)]
 pub struct AppState {
     pub db: DatabaseConnection,

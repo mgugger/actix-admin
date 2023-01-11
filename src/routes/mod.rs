@@ -19,5 +19,5 @@ pub use delete::{ delete, delete_many };
 mod helpers;
 pub use helpers::{ add_auth_context, user_can_access_page, render_unauthorized };
 
-mod static_content;
-pub use static_content::{download, delete_static_content};
+mod file;
+pub use file::{download, delete_file};

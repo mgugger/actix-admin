@@ -41,7 +41,7 @@ pub async fn download<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(re
     
 }
 
-pub async fn delete_static_content<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(session: Session, data: web::Data<T>, params: web::Path<(i32, String)>) -> Result<HttpResponse, Error> {
+pub async fn delete_file<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(session: Session, data: web::Data<T>, params: web::Path<(i32, String)>) -> Result<HttpResponse, Error> {
     let actix_admin = data.get_actix_admin();
     let db = &data.get_db();
 

@@ -3,12 +3,10 @@ use test_setup::helper::{create_actix_admin_builder, create_tables_and_get_conne
 
 #[cfg(test)]
 mod tests {
-    extern crate serde_derive;
-
     use actix_admin::prelude::*;
     use actix_web::http::header::ContentType;
     use actix_web::test;
-    use actix_web::{middleware, web, App};
+    use actix_web::{web, App};
     use chrono::NaiveDate;
     use chrono::NaiveDateTime;
     use serde::{Serialize};
@@ -16,23 +14,12 @@ mod tests {
     use sea_orm::PaginatorTrait;
     use sea_orm::prelude::Decimal;
 
+    use crate::create_app;
+
     #[actix_web::test]
     async fn comment_create_and_edit() {
-        let conn = super::create_tables_and_get_connection().await;
-        let actix_admin_builder = super::create_actix_admin_builder();
-        let actix_admin = actix_admin_builder.get_actix_admin();
-        let app_state = super::AppState {
-            db: conn,
-            actix_admin,
-        };
-        
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(app_state.clone()))
-                .service(actix_admin_builder.get_scope::<super::AppState>())
-                .wrap(middleware::Logger::default()),
-        )
-        .await;
+        let db = super::create_tables_and_get_connection().await;
+        let app = create_app!(db);
 
         #[derive(Serialize, Clone)]
         pub struct CommentModel {
@@ -66,7 +53,7 @@ mod tests {
         assert!(resp.status().is_redirection());
 
         let entities = super::test_setup::Comment::find()
-            .paginate(&app_state.db, 50)
+            .paginate(&db, 50)
             .fetch_page(0)
             .await
             .expect("could not retrieve entities");
@@ -98,39 +85,26 @@ mod tests {
         assert!(resp.status().is_redirection());
 
         let entities = super::test_setup::Comment::find()
-            .paginate(&app_state.db, 50)
+            .paginate(&db, 50)
             .fetch_page(0)
             .await
             .expect("could not retrieve entities");
 
-        assert!(entities.len() == 1, "After edit post, db does not contain 1 model");
+        assert_eq!(entities.len(), 1, "After edit post, db does not contain 1 model");
         let entity = entities.first().unwrap();
-        assert!(entity.id == 1);
-        assert!(entity.comment == "updated");
-        assert!(entity.user == "updated");
+        assert_eq!(entity.id, 1);
+        assert_eq!(entity.comment, "updated");
+        assert_eq!(entity.user, "updated");
         assert!(!entity.is_visible);
         assert!(entity.post_id.is_none());
-        assert!(entity.my_decimal == Decimal::new(213141, 3));
-        assert!(entity.insert_date == NaiveDateTime::parse_from_str("1987-04-01T14:00", "%Y-%m-%dT%H:%M").unwrap());
+        assert_eq!(entity.my_decimal, Decimal::new(213141, 3));
+        assert_eq!(entity.insert_date, NaiveDateTime::parse_from_str("1987-04-01T14:00", "%Y-%m-%dT%H:%M").unwrap());
     }
     
     #[actix_web::test]
     async fn post_create_and_edit() {
-        let conn = super::create_tables_and_get_connection().await;
-        let actix_admin_builder = super::create_actix_admin_builder();
-        let actix_admin = actix_admin_builder.get_actix_admin();
-        let app_state = super::AppState {
-            db: conn,
-            actix_admin,
-        };
-        
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(app_state.clone()))
-                .service(actix_admin_builder.get_scope::<super::AppState>())
-                .wrap(middleware::Logger::default()),
-        )
-        .await;
+        let db = super::create_tables_and_get_connection().await;
+        let app = create_app!(db);
 
         #[derive(Serialize, Clone)]
         pub struct PostModel {
@@ -159,18 +133,18 @@ mod tests {
         assert!(resp.status().is_redirection());
 
         let entities = super::test_setup::Post::find()
-            .paginate(&app_state.db, 50)
+            .paginate(&db, 50)
             .fetch_page(0)
             .await
             .expect("could not retrieve entities");
 
-        assert!(entities.len() == 1, "After post, db does not contain 1 model");
+        assert_eq!(entities.len(), 1, "After post, db does not contain 1 model");
         let entity = entities.first().unwrap();
-        assert!(entity.id == 1);
-        assert!(entity.tea_mandatory == super::test_setup::post::Tea::EverydayTea);
-        assert!(entity.title == model.title);
-        assert!(entity.text == model.text);
-        assert!(entity.insert_date == NaiveDate::parse_from_str("1977-04-01", "%Y-%m-%d").unwrap());
+        assert_eq!(entity.id, 1);
+        assert_eq!(entity.tea_mandatory, super::test_setup::post::Tea::EverydayTea);
+        assert_eq!(entity.title, model.title);
+        assert_eq!(entity.text, model.text);
+        assert_eq!(entity.insert_date, NaiveDate::parse_from_str("1977-04-01", "%Y-%m-%d").unwrap());
 
         // update entity
         model.tea_mandatory = "BreakfastTea";
@@ -188,16 +162,16 @@ mod tests {
         assert!(resp.status().is_redirection());
 
         let entities = super::test_setup::Post::find()
-            .paginate(&app_state.db, 50)
+            .paginate(&db, 50)
             .fetch_page(0)
             .await
             .expect("could not retrieve entities");
 
-        assert!(entities.len() == 1, "After edit post, db does not contain 1 model");
+            assert_eq!(entities.len(), 1, "After edit post, db does not contain 1 model");
         let entity = entities.first().unwrap();
-        assert!(entity.id == 1);
-        assert!(entity.text == "updated");
-        assert!(entity.title == "updated");
-        assert!(entity.insert_date == NaiveDate::parse_from_str("1987-04-01", "%Y-%m-%d").unwrap());
+        assert_eq!(entity.id, 1);
+        assert_eq!(entity.text, "updated");
+        assert_eq!(entity.title, "updated");
+        assert_eq!(entity.insert_date, NaiveDate::parse_from_str("1987-04-01", "%Y-%m-%d").unwrap());
     }
 }

@@ -1,4 +1,4 @@
-use crate::{prelude::*, ActixAdminMenuElement, routes::delete_static_content};
+use crate::{prelude::*, ActixAdminMenuElement, routes::delete_file};
 use actix_web::{web, Route};
 use std::collections::HashMap;
 use std::fs;
@@ -102,8 +102,8 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 .route("/delete", web::delete().to(delete_many::<T, E>))
                 .route("/delete/{id}", web::delete().to(delete::<T, E>))
                 .route("/show/{id}", web::get().to(show::<T, E>))
-                .route("/static_content/{id}/{column_name}", web::get().to(download::<T, E>))
-                .route("/static_content/{id}/{column_name}", web::delete().to(delete_static_content::<T, E>))
+                .route("/file/{id}/{column_name}", web::get().to(download::<T, E>))
+                .route("/file/{id}/{column_name}", web::delete().to(delete_file::<T, E>))
                 .default_service(web::to(not_found))
             );
 
@@ -232,6 +232,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         };
         let mut admin_scope = web::scope("/admin")
             .route("/", index_handler)
+            .service(actix_files::Files::new("/static", "./static").show_files_listing())
             .default_service(web::to(not_found));
 
         for (_entity, scope) in self.scopes {

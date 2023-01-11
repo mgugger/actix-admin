@@ -9,7 +9,7 @@
             {% if model_field.field_type == "Checkbox" %}
             <td>{{ model.values | get(key=model_field.field_name) | get_icon | safe }}</td>
             {% elif model_field.field_type == "FileUpload" %}
-            <td><a href="static_content/{{ entity.primary_key }}/{{ model_field.field_name }}">{{ entity.values | get(key=model_field.field_name) }}</a></td>
+            <td><a href="file/{{ view_model.primary_key }}/{{ model_field.field_name }}">{{ model.values | get(key=model_field.field_name) }}</a></td>
             {% else %}
             <td>{{ model.values | get(key=model_field.field_name) }}</td>
             {% endif %}
