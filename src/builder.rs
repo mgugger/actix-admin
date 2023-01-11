@@ -203,12 +203,12 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
             Some(scope) => {
                 let existing_scope = scope.route(path, route);
                 self.scopes
-                    .insert(menu_element.link.to_string(), existing_scope);
+                    .insert(E::get_entity_name(), existing_scope);
             }
             _ => {
                 let new_scope =
                     web::scope(&format!("/{}", E::get_entity_name())).route(path, route);
-                self.scopes.insert(menu_element.link.to_string(), new_scope);
+                self.scopes.insert(E::get_entity_name(), new_scope);
             }
         }
 

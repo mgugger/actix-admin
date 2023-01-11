@@ -6,8 +6,7 @@ mod tests {
     extern crate serde_derive;
 
     use actix_web::test;
-    use actix_web::{middleware, web, App};
-
+    use actix_web::{web, App};
     use actix_admin::prelude::*;
 
     #[actix_web::test]
@@ -36,21 +35,20 @@ mod tests {
     }
 
     async fn test_get_is_success(url: &str) {
-        let conn = super::create_tables_and_get_connection().await;
+        let db = super::create_tables_and_get_connection().await;
 
         let actix_admin_builder = super::create_actix_admin_builder();
         let actix_admin = actix_admin_builder.get_actix_admin();
 
         let app_state = super::AppState {
-            db: conn,
-            actix_admin: actix_admin,
+            actix_admin,
+            db,
         };
 
         let app = test::init_service(
             App::new()
-                .app_data(web::Data::new(app_state.clone()))
+                .app_data(web::Data::new(app_state))
                 .service(actix_admin_builder.get_scope::<super::AppState>())
-                .wrap(middleware::Logger::default()),
         )
         .await;
 
@@ -59,6 +57,6 @@ mod tests {
             .to_request();
         let resp = test::call_service(&app, req).await;
 
-        assert!(resp.status().is_success());
+        assert_eq!(200, resp.status().as_u16());
     }
 }
