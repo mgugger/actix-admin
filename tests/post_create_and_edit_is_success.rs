@@ -1,36 +1,44 @@
 mod test_setup;
-use test_setup::helper::{create_actix_admin_builder, create_tables_and_get_connection, AppState};
+use test_setup::prelude::*;
 
 #[cfg(test)]
-mod tests {
+mod post_create_and_edit_is_success {
     use actix_admin::prelude::*;
-    use actix_web::http::header::ContentType;
-    use actix_web::test;
-    use actix_web::{web, App};
-    use chrono::NaiveDate;
-    use chrono::NaiveDateTime;
+    use actix_web::{
+        test, 
+        App, 
+        http::header::ContentType
+    };
+    use chrono::{ NaiveDateTime, NaiveDate };
     use serde::{Serialize};
-    use sea_orm::EntityTrait;
-    use sea_orm::PaginatorTrait;
-    use sea_orm::prelude::Decimal;
+    use sea_orm::{ PaginatorTrait, EntityTrait, prelude::Decimal};
+    
+    use crate::{create_app};
 
-    use crate::create_app;
+    #[derive(Serialize, Clone)]
+    pub struct CommentModel {
+        id: &'static str,
+        insert_date: &'static str,
+        comment: &'static str,
+        user: &'static str,
+        is_visible: &'static str,
+        post_id: Option<&'static str>,
+        my_decimal: &'static str
+    }
+
+    #[derive(Serialize, Clone)]
+    pub struct PostModel {
+        id: &'static str,
+        title: &'static str,
+        text: &'static str,
+        tea_mandatory: &'static str,
+        insert_date: &'static str,
+    }
 
     #[actix_web::test]
     async fn comment_create_and_edit() {
-        let db = super::create_tables_and_get_connection().await;
+        let db = super::setup_db(false).await;
         let app = create_app!(db);
-
-        #[derive(Serialize, Clone)]
-        pub struct CommentModel {
-            id: &'static str,
-            insert_date: &'static str,
-            comment: &'static str,
-            user: &'static str,
-            is_visible: &'static str,
-            post_id: Option<&'static str>,
-            my_decimal: &'static str
-        }
 
         // create entity
         let mut model = CommentModel {
@@ -58,15 +66,15 @@ mod tests {
             .await
             .expect("could not retrieve entities");
 
-        assert!(entities.len() == 1, "After post, db does not contain 1 model");
+        assert_eq!(entities.len(), 1, "After post, db does not contain 1 model");
         let entity = entities.first().unwrap();
-        assert!(entity.id == 1);
-        assert!(entity.comment == "test");
-        assert!(entity.user == "test");
+        assert_eq!(entity.id, 1);
+        assert_eq!(entity.comment,"test");
+        assert_eq!(entity.user, "test");
         assert!(entity.is_visible);
         assert!(entity.post_id.is_none());
-        assert!(entity.my_decimal == Decimal::new(113141, 3));
-        assert!(entity.insert_date == NaiveDateTime::parse_from_str("1977-04-01T14:00", "%Y-%m-%dT%H:%M").unwrap());
+        assert_eq!(entity.my_decimal, Decimal::new(113141, 3));
+        assert_eq!(entity.insert_date, NaiveDateTime::parse_from_str("1977-04-01T14:00", "%Y-%m-%dT%H:%M").unwrap());
 
         // update entity
         model.my_decimal = "213.141";
@@ -103,17 +111,8 @@ mod tests {
     
     #[actix_web::test]
     async fn post_create_and_edit() {
-        let db = super::create_tables_and_get_connection().await;
+        let db = super::setup_db(false).await;
         let app = create_app!(db);
-
-        #[derive(Serialize, Clone)]
-        pub struct PostModel {
-            id: &'static str,
-            title: &'static str,
-            text: &'static str,
-            tea_mandatory: &'static str,
-            insert_date: &'static str,
-        }
 
         let mut model = PostModel {
             id: "0",

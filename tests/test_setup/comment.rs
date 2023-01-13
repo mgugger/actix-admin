@@ -12,6 +12,7 @@ pub struct Model {
     #[serde(skip_deserializing)]
     #[actix_admin(primary_key)]
     pub id: i32,
+    #[actix_admin(searchable)]
     pub comment: String,
     #[sea_orm(column_type = "Text")]
     #[actix_admin(html_input_type = "email")]

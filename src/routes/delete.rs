@@ -57,7 +57,7 @@ pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     session: Session,
     _req: HttpRequest,
     data: web::Data<T>,
-    text: String,
+    form: web::Form<Vec<(String, i32)>>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = data.get_actix_admin();
     let entity_name = E::get_entity_name();
@@ -73,14 +73,11 @@ pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
 
     let db = &data.get_db();
     let entity_name = E::get_entity_name();
-    let entity_ids: Vec<i32> = text
-        .split("&")
-        .filter(|id| !id.is_empty())
-        .map(|id_str| id_str.replace("ids=", "").parse::<i32>().unwrap())
-        .collect();
+
+    let ids: Vec<i32> = form.iter().map(|el| el.1).collect();
 
     // TODO: implement delete_many
-    for id in entity_ids {
+    for id in ids {
         let model_result = E::get_entity(db, id).await;
         let delete_result = E::delete_entity(db, id).await;
         match (delete_result, model_result) {
@@ -91,13 +88,15 @@ pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
                         let file_name = model
                             .get_value::<String>(&field.field_name, true, true)
                             .unwrap_or_default();
-                        let file_path = format!(
-                            "{}/{}/{}",
-                            actix_admin.configuration.file_upload_directory,
-                            E::get_entity_name(),
-                            file_name.unwrap_or_default()
-                        );
-                        std::fs::remove_file(file_path)?;
+                        if file_name.is_some() {
+                            let file_path = format!(
+                                "{}/{}/{}",
+                                actix_admin.configuration.file_upload_directory,
+                                E::get_entity_name(),
+                                file_name.unwrap_or_default()
+                            );
+                            std::fs::remove_file(file_path)?;
+                        }
                     }
                 }
             }
