@@ -31,14 +31,14 @@ function checkAll(bx) {
 }
 
 function sort_by(column) {
-    document.getElementById("sort_by").value = column;
-    current_sort_order = document.getElementById("sort_order").value;
-    if (current_sort_order == "{{ sort_order_asc }}") {
-        document.getElementById("sort_order").value = "{{ sort_order_desc }}";
+    current_sort_order = document.getElementsByName("sort_order")[0].value;
+    if (current_sort_order == "Asc") {
+        document.getElementsByName("sort_order").forEach((e) => e.value = "Desc");
     } else {
-        document.getElementById("sort_order").value = "{{ sort_order_asc }}";
+        document.getElementsByName("sort_order").forEach((e) => e.value = "Asc");
     }
-    document.getElementById('search_form').submit();
+    document.getElementsByName("sort_by").forEach((e) => e.value = column);
+    document.getElementById('table_form').requestSubmit();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

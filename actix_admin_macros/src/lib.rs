@@ -68,8 +68,8 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
 
         #[actix_admin::prelude::async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
-            async fn list(db: &DatabaseConnection, page: u64, entities_per_page: u64, search: &String) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError> {
-                let entities = Entity::list_model(db, page, entities_per_page, search).await;
+            async fn list(db: &DatabaseConnection, page: u64, entities_per_page: u64, search: &str, sort_by: &str, sort_order: &SortOrder) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError> {
+                let entities = Entity::list_model(db, page, entities_per_page, search, sort_by, sort_order).await;
                 entities
             }
 
@@ -155,6 +155,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let fields_type_path = get_actix_admin_fields_type_path_string(&fields);
     let fields_textarea = get_actix_admin_fields_textarea(&fields);
     let fields_file_upload = get_actix_admin_fields_file_upload(&fields);
+    let fields_match_name_to_columns = get_match_name_to_column(&fields);
 
     let expanded = quote! {
         actix_admin::prelude::lazy_static! {
@@ -236,14 +237,25 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
 
         #[actix_admin::prelude::async_trait]
         impl ActixAdminModelTrait for Entity {
-            async fn list_model(db: &DatabaseConnection, page: u64, posts_per_page: u64, search: &String) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError> {
+            async fn list_model(db: &DatabaseConnection, page: u64, posts_per_page: u64, search: &str, sort_by: &str, sort_order: &SortOrder) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError> {
                 use sea_orm::{ query::* };
-                let paginator = Entity::find()
+
+                let sort_column = match sort_by {
+                    #(#fields_match_name_to_columns)*
+                    _ => panic!("Unknown column")
+                };
+                
+                let query = if sort_order.eq(&SortOrder::Asc) {
+                    Entity::find().order_by_asc(sort_column)
+                } else {
+                    Entity::find().order_by_desc(sort_column)
+                };
+
+                let paginator = query
                     .filter(
                         Condition::any()
                         #(#fields_searchable)*
                     )
-                    .order_by_asc(Column::Id)
                     .paginate(db, posts_per_page);
                 let num_pages = paginator.num_pages().await?;
                 let mut model_entities = Vec::new();

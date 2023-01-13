@@ -78,8 +78,13 @@ mod get_request_is_success {
         let page_size = 20; // Verify with default size in list.rs
         let url = format!("/admin/{}/list?page={}&entities_per_page={}", crate::Comment::get_entity_name(), page, page_size);
 
-        let entities =  crate::Comment::find()
-            .order_by_asc(crate::comment::Column::Id)
+        let query = if page_size == 5 {
+            crate::Comment::find().order_by_asc(crate::comment::Column::Id)
+        } else {
+            crate::Comment::find().order_by_asc(crate::comment::Column::Id)
+        };
+        
+        let entities = query
             .paginate(&db, page_size)
             .fetch_page(page-1)
             .await

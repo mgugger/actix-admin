@@ -57,7 +57,7 @@ pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     session: Session,
     _req: HttpRequest,
     data: web::Data<T>,
-    form: web::Form<Vec<(String, i32)>>,
+    form: web::Form<Vec<(String, String)>>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = data.get_actix_admin();
     let entity_name = E::get_entity_name();
@@ -74,7 +74,7 @@ pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     let db = &data.get_db();
     let entity_name = E::get_entity_name();
 
-    let ids: Vec<i32> = form.iter().map(|el| el.1).collect();
+    let ids: Vec<i32> = form.iter().filter(|el| el.0 == "ids").map(|el| el.1.parse::<i32>().unwrap()).collect();
 
     // TODO: implement delete_many
     for id in ids {
@@ -104,11 +104,32 @@ pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
         }
     }
 
+    let entities_per_page = form.iter()
+        .find(|el| el.0 == "entities_per_page")
+        .map(|e| e.1.to_string())
+        .unwrap_or("10".to_string());
+    let search = form.iter()
+        .find(|el| el.0 == "search")
+        .map(|e| e.1.to_string())
+        .unwrap_or_default();
+    let sort_by = form.iter()
+        .find(|el| el.0 == "sort_by")
+        .map(|e| e.1.to_string())
+        .unwrap_or("id".to_string());
+    let sort_order = form.iter()
+        .find(|el| el.0 == "sort_order")
+        .map(|e| e.1.to_string())
+        .unwrap_or("Asc".to_string());
+    let page = form.iter()
+        .find(|el| el.0 == "page")
+        .map(|e| e.1.to_string())
+        .unwrap_or("1".to_string());
+
     match errors.is_empty() {
         true => Ok(HttpResponse::SeeOther()
             .append_header((
                 header::LOCATION,
-                format!("/admin/{}/list?render_partial=true", entity_name),
+                format!("/admin/{}/list?render_partial=true&entities_per_page={}&search={}&sort_by={}&sort_order={}&page={}", entity_name, entities_per_page, search, sort_by, sort_order, page),
             ))
             .finish()),
         false => Ok(HttpResponse::InternalServerError().finish()),

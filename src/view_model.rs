@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sea_orm::DatabaseConnection;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-use crate::ActixAdminModel;
+use crate::{ActixAdminModel, SortOrder};
 use actix_session::{Session};
 use std::convert::From;
 use crate::ActixAdminError;
@@ -13,7 +13,9 @@ pub trait ActixAdminViewModelTrait {
         db: &DatabaseConnection,
         page: u64,
         entities_per_page: u64,
-        search: &String
+        search: &str,
+        sort_by: &str,
+        sort_order: &SortOrder
     ) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError>;
     
     // TODO: Replace return value with proper Result Type containing Ok or Err

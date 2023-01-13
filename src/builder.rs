@@ -146,7 +146,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
             if add_to_menu {
                 let menu_element = ActixAdminMenuElement {
                     name: menu_element_name.to_string(),
-                    link: format!("{}", path.replacen("/", "", 1)),
+                    link: path.replacen("/", "", 1),
                     is_custom_handler: true,
                 };
                 let category = self.actix_admin.entity_names.get_mut("");

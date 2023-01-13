@@ -1,3 +1,4 @@
+use crate::routes::SortOrder;
 use crate::{ActixAdminError, ActixAdminViewModelField};
 use actix_multipart::{Multipart, MultipartError};
 use actix_web::web::Bytes;
@@ -17,7 +18,9 @@ pub trait ActixAdminModelTrait {
         db: &DatabaseConnection,
         page: u64,
         posts_per_page: u64,
-        search: &String,
+        search: &str,
+        sort_by: &str,
+        sort_order: &SortOrder
     ) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError>;
     fn get_fields() -> &'static [ActixAdminViewModelField];
     fn validate_model(model: &mut ActixAdminModel);

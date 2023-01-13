@@ -8,7 +8,7 @@ mod index;
 pub use index::{ index, not_found, get_admin_ctx };
 
 mod list;
-pub use list::{ list };
+pub use list::{ list, SortOrder };
 
 mod show;
 pub use show::show;

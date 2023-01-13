@@ -6,7 +6,7 @@
 
 use lazy_static::lazy_static;
 use sea_orm::DatabaseConnection;
-use serde::Serialize;
+use serde::{Serialize };
 use std::collections::HashMap;
 use tera::{Tera, Result, to_value, try_get_value };
 use std::{ hash::BuildHasher};
@@ -31,7 +31,7 @@ pub mod prelude {
     pub use actix_admin_macros::{ DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel, DeriveActixAdminEnumSelectList, DeriveActixAdminModelSelectList };
     pub use crate::{ ActixAdminError, ActixAdminAppDataTrait, ActixAdmin, ActixAdminConfiguration };
     pub use crate::{ hashmap, ActixAdminSelectListTrait };
-    pub use crate::routes::{ create_or_edit_post, get_admin_ctx };
+    pub use crate::routes::{ create_or_edit_post, get_admin_ctx, SortOrder };
     pub use crate::{ TERA };
     pub use itertools::izip;
     pub use lazy_static::lazy_static;

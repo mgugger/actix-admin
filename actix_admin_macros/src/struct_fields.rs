@@ -17,7 +17,15 @@ pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::V
 }
 
 fn capitalize_first_letter(s: &str) -> String {
-    s[0..1].to_uppercase() + &s[1..]
+    if s.len() > 0 {
+        s[0..1].to_uppercase() + &s[1..]
+    } else {
+        String::new()
+    }
+}
+
+fn to_camelcase(s: &str) -> String {
+    s.split("_").fold(String::new(), |a, b| capitalize_first_letter(&a) + &capitalize_first_letter(b))
 }
 
 pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
@@ -208,12 +216,26 @@ pub fn get_actix_admin_fields_file_upload(fields: &Vec<ModelField>) -> Vec<Token
         .collect::<Vec<_>>()
 }
 
+pub fn get_match_name_to_column(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+    .iter()
+    .map(|model_field| {
+        let column_name = model_field.ident.to_string();
+        let column_name_capitalized = to_camelcase(&column_name);
+        let column_ident = Ident::new(&column_name_capitalized, Span::call_site());
+        quote! {
+            #column_name => Column::#column_ident,
+        }
+    })
+    .collect::<Vec<_>>()
+}
+
 pub fn get_actix_admin_fields_searchable(fields: &Vec<ModelField>) -> Vec<TokenStream> {
     fields
         .iter()
         .filter(|model_field| model_field.searchable)
         .map(|model_field| {
-            let column_name = format!("{}", capitalize_first_letter(&model_field.ident.to_string()));
+            let column_name = capitalize_first_letter(&model_field.ident.to_string());
             let column_ident = Ident::new(&column_name, Span::call_site());
             quote! {
                 .add(Column::#column_ident.contains(&search))
