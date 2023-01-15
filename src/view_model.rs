@@ -83,7 +83,8 @@ pub struct ActixAdminViewModelField {
     pub select_list: String,
     pub is_option: bool,
     pub field_type: ActixAdminViewModelFieldType,
-    pub list_sort_position: usize
+    pub list_sort_position: usize,
+    pub list_hide_column: bool
 }
 
 impl ActixAdminViewModelFieldType {

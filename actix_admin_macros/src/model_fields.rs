@@ -15,7 +15,8 @@ pub struct ModelField {
     pub textarea: bool,
     pub file_upload: bool,
     pub not_empty: bool,
-    pub list_sort_position: usize
+    pub list_sort_position: usize,
+    pub list_hide_column: bool
 }
 
 impl ModelField {

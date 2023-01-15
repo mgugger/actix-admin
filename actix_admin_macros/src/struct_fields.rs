@@ -6,8 +6,6 @@ use syn::{DeriveInput, Fields, LitStr, Ident};
 
 pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::Vec<ModelField> {
     let ast: DeriveInput = syn::parse(input).unwrap();
-    //let (_vis, _ty, _generics) = (&ast.vis, &ast.ident, &ast.generics);
-    //let _names_struct_ident = Ident::new(&(ty.to_string() + "FieldStaticStr"), Span::call_site());
 
     let fields = filter_fields(match ast.data {
         syn::Data::Struct(ref s) => &s.fields,
@@ -52,6 +50,9 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let is_file_upload = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.file_upload.is_some());
+                let is_list_hide_column = actix_admin_attr
+                    .clone()
+                    .map_or(false, |attr| attr.list_hide_column.is_some());
                 let is_not_empty = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.not_empty.is_some());
@@ -88,7 +89,8 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     textarea: is_textarea,
                     file_upload: is_file_upload,
                     not_empty: is_not_empty,
-                    list_sort_position: list_sort_position
+                    list_sort_position: list_sort_position,
+                    list_hide_column: is_list_hide_column
                 };
                 Some(model_field)
             } else {
@@ -301,6 +303,20 @@ pub fn get_fields_list_sort_positions(fields: &Vec<ModelField>) -> Vec<TokenStre
 
             quote! {
                 #sort_position
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
+pub fn get_fields_list_hide_column(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+        .iter()
+        .filter(|model_field| !model_field.primary_key)
+        .map(|model_field| {
+            let list_hide_column = model_field.list_hide_column;
+
+            quote! {
+                #list_hide_column
             }
         })
         .collect::<Vec<_>>()
