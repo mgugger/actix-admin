@@ -156,6 +156,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let fields_textarea = get_actix_admin_fields_textarea(&fields);
     let fields_file_upload = get_actix_admin_fields_file_upload(&fields);
     let fields_match_name_to_columns = get_match_name_to_column(&fields);
+    let fields_list_sort_positions = get_fields_list_sort_positions(&fields);
 
     let expanded = quote! {
         actix_admin::prelude::lazy_static! {
@@ -193,8 +194,12 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     #(#fields_file_upload),*
                 ];
 
-                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea, is_file_upload) in actix_admin::prelude::izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas, fields_fileupload) {
-                    
+                let list_sort_positions = [
+                    #(#fields_list_sort_positions),*
+                ];
+                
+                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea, is_file_upload, list_sort_position) in actix_admin::prelude::izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas, fields_fileupload, list_sort_positions) {
+                
                     let select_list = select_list.replace('"', "").replace(' ', "").to_string();
                     let field_name = field_name.replace('"', "").replace(' ', "").to_string();
                     let html_input_type = html_input_type.replace('"', "").replace(' ', "").to_string();
@@ -204,6 +209,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                         html_input_type: html_input_type,
                         select_list: select_list.clone(),
                         is_option: is_option_list,
+                        list_sort_position: list_sort_position,
                         field_type: ActixAdminViewModelFieldType::get_field_type(fields_type_path, select_list, is_textarea, is_file_upload)
                     });
                 }

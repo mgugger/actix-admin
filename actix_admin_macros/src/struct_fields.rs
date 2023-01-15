@@ -55,6 +55,15 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let is_not_empty = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.not_empty.is_some());
+                let list_sort_position: usize = actix_admin_attr.clone().map_or(99, |attr| {
+                    attr.list_sort_position.map_or( 99, |attr_field| {
+                        let sort_pos = LitStr::from(attr_field).value().parse::<usize>();
+                        match sort_pos {
+                            Ok(pos) => pos,
+                            _ => 99
+                        }
+                    })
+                });
                 let select_list = actix_admin_attr.clone().map_or("".to_string(), |attr| {
                     attr.select_list.map_or("".to_string(), |attr_field| {
                         (LitStr::from(attr_field)).value()
@@ -78,7 +87,8 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     searchable: is_searchable,
                     textarea: is_textarea,
                     file_upload: is_file_upload,
-                    not_empty: is_not_empty
+                    not_empty: is_not_empty,
+                    list_sort_position: list_sort_position
                 };
                 Some(model_field)
             } else {
@@ -280,6 +290,20 @@ pub fn get_primary_key_field_name(fields: &Vec<ModelField>) -> String {
         .expect("model must have a single primary key");
 
     primary_key_model_field.ident.to_string()
+}
+
+pub fn get_fields_list_sort_positions(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+        .iter()
+        .filter(|model_field| !model_field.primary_key)
+        .map(|model_field| {
+            let sort_position = model_field.list_sort_position;
+
+            quote! {
+                #sort_position
+            }
+        })
+        .collect::<Vec<_>>()
 }
 
 pub fn get_fields_for_from_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {

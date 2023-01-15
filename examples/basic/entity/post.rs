@@ -22,6 +22,7 @@ pub struct Model {
     #[actix_admin(select_list="Tea")]
     pub tea_optional: Option<Tea>,
     #[sea_orm(column_type = "Date")]
+    #[actix_admin(list_sort_position="1")]
     pub insert_date: Date,
     #[actix_admin(file_upload)]
     pub attachment: Option<String>
