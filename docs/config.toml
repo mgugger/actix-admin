@@ -1,0 +1,4 @@
+baseURL = 'https://mgugger.github.io/actix-admin/'
+languageCode = 'en-us'
+title = 'Actix-Admin'
+theme = "hugo-book"

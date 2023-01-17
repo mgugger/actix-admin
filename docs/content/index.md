@@ -1,6 +1,7 @@
 ---
-layout: default
-list_title: ' '
+title: ""
+date: 2023-01-17T11:44:56+01:00
+draft: false
 ---
 
 The actix-admin crate aims at creating a web admin interface similar to other admin interfaces (such as [flask-admin](https://github.com/flask-admin/flask-admin) in python).
@@ -15,8 +16,4 @@ The actix-admin crate aims at creating a web admin interface similar to other ad
 
 ## Example
 
-Check the [examples](https://github.com/mgugger/actix-admin/tree/main/examples) and run with ```cargo run```. The admin interface is accessible under ```localhost:5000/admin/```.
-
-## Screenshot
-
-<img src="https://raw.githubusercontent.com/mgugger/actix-admin/main/static/Screenshot.png"/>
+Check the [examples](https://github.com/mgugger/actix-admin/tree/main/examples) and run  ```cargo run --example basic``` from the root folder for a basic in-memory sqlite version. The admin interface is accessible under ```localhost:5000/admin/```.
