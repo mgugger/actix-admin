@@ -30,3 +30,5 @@ vendor/
 
 # Ignore File Uploads
 file_uploads/
+
+*.lock
