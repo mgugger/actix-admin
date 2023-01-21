@@ -23,9 +23,6 @@ impl ActixAdminAppDataTrait for AppState {
 }
 
 fn create_actix_admin_builder() -> ActixAdminBuilder {
-    let post_view_model = ActixAdminViewModel::from(Post);
-    let comment_view_model = ActixAdminViewModel::from(Comment);
-
     let configuration = ActixAdminConfiguration {
         enable_auth: false,
         user_is_logged_in: None,
@@ -36,8 +33,12 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
     
-    let some_category = "Groupings";
+
+    let post_view_model = ActixAdminViewModel::from(Post);
     admin_builder.add_entity::<AppState, Post>(&post_view_model);
+
+    let some_category = "Groupings";
+    let comment_view_model = ActixAdminViewModel::from(Comment);
     admin_builder.add_entity_to_category::<AppState, Comment>(&comment_view_model, some_category);
 
     admin_builder

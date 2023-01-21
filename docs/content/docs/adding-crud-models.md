@@ -76,3 +76,18 @@ Views / Models can be grouped in the Navbar by using the following functions ins
 admin_builder.add_entity::<AppState, Comment>(&comment_view_model);
 admin_builder.add_entity_to_category::<AppState, Comment>(&comment_view_model, "Group 1");
 ```
+
+## Additional Model Attributes
+
+More attributes can be added to the model struct properties:
+| | | |
+|----|----|----|
+| primary_key | required | defines which column is used for the primary key of the model |
+| html_input_type=<String> | optional | add the defined value such as *email* as input type to the html input field
+| select_list | optional | Where a dropdown is rendered for the specific entity, needs to match the name of a struct or an enum |
+| searchable | optional | Adds a search field to the table allowing to search the specific column |
+| textarea | optional | renders a textarea instead of a text input field
+| file_upload | optional | renders a file upload field, storing the filename in the column, column must be a string |
+| not_empty | optional | disallow empty strings such as "" |
+| list_sort_position=<usize> | optional | orders the column in the list view by ascending position |
+| list_hide_column<bool> | optional | hides the column in the list view |
