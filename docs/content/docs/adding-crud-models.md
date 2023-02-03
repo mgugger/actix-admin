@@ -23,6 +23,8 @@ pub struct Model {
     pub id: i32,
     pub comment: String
 }
+
+impl ActixAdminModelValidationTrait<ActiveModel> for Entity {}
 ```
 
 ## Derive Implementations
