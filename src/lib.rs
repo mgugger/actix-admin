@@ -4,42 +4,48 @@
 //!
 //! See the [documentation](https://mgugger.github.io/actix-admin/) at [https://mgugger.github.io/actix-admin/](https://mgugger.github.io/actix-admin/).
 
-use lazy_static::lazy_static;
-use sea_orm::DatabaseConnection;
-use serde::{Serialize };
-use std::collections::HashMap;
-use tera::{Tera, Result, to_value, try_get_value };
-use std::{ hash::BuildHasher};
-use actix_session::{Session};
-use async_trait::async_trait;
-use derive_more::{Display, Error};
+use actix_session::Session;
 use actix_web::{
     error,
     http::{header::ContentType, StatusCode},
     HttpResponse,
 };
+use async_trait::async_trait;
+use derive_more::{Display, Error};
+use lazy_static::lazy_static;
+use sea_orm::DatabaseConnection;
+use serde::Serialize;
+use std::collections::HashMap;
+use std::hash::BuildHasher;
+use tera::{to_value, try_get_value, Result, Tera};
 
-pub mod view_model;
+pub mod builder;
 pub mod model;
 pub mod routes;
-pub mod builder;
+pub mod view_model;
 
 pub mod prelude {
-    pub use crate::builder::{ ActixAdminBuilder, ActixAdminBuilderTrait};
-    pub use crate::model::{ ActixAdminModel, ActixAdminModelValidationTrait, ActixAdminModelTrait};
-    pub use crate::view_model::{ ActixAdminViewModel, ActixAdminViewModelTrait, ActixAdminViewModelField, ActixAdminViewModelSerializable, ActixAdminViewModelFieldType };
-    pub use actix_admin_macros::{ DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel, DeriveActixAdminEnumSelectList, DeriveActixAdminModelSelectList };
-    pub use crate::{ ActixAdminError, ActixAdminAppDataTrait, ActixAdmin, ActixAdminConfiguration };
-    pub use crate::{ hashmap, ActixAdminSelectListTrait };
-    pub use crate::routes::{ create_or_edit_post, get_admin_ctx, SortOrder };
-    pub use crate::{ TERA };
+    pub use crate::builder::{ActixAdminBuilder, ActixAdminBuilderTrait};
+    pub use crate::model::{ActixAdminModel, ActixAdminModelTrait, ActixAdminModelValidationTrait};
+    pub use crate::routes::{create_or_edit_post, get_admin_ctx, SortOrder};
+    pub use crate::view_model::{
+        ActixAdminViewModel, ActixAdminViewModelField, ActixAdminViewModelFieldType,
+        ActixAdminViewModelSerializable, ActixAdminViewModelTrait,
+    };
+    pub use crate::TERA;
+    pub use crate::{hashmap, ActixAdminSelectListTrait};
+    pub use crate::{ActixAdmin, ActixAdminAppDataTrait, ActixAdminConfiguration, ActixAdminError};
+    pub use actix_admin_macros::{
+        DeriveActixAdmin, DeriveActixAdminEnumSelectList, DeriveActixAdminModel,
+        DeriveActixAdminModelSelectList, DeriveActixAdminViewModel,
+    };
+    pub use actix_session::Session;
+    pub use async_trait::async_trait;
     pub use itertools::izip;
     pub use lazy_static::lazy_static;
-    pub use async_trait::async_trait;
-    pub use actix_session::{Session};
 }
 
-use crate::prelude::*; 
+use crate::prelude::*;
 
 #[macro_export]
 macro_rules! hashmap {
@@ -53,42 +59,95 @@ macro_rules! hashmap {
 // globals
 lazy_static! {
     pub static ref TERA: Tera = {
-       let mut tera = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
-       tera.register_filter("get_html_input_type", get_html_input_type);
-       tera.register_filter("get_html_input_class", get_html_input_class);
-       tera.register_filter("get_icon", get_icon);
-       tera
+        let mut tera = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
+        tera.register_filter("get_html_input_type", get_html_input_type);
+        tera.register_filter("get_html_input_class", get_html_input_class);
+        tera.register_filter("get_icon", get_icon);
+
+        let list_html = include_str!("templates/list.html");
+        let create_or_edit_html = include_str!("templates/create_or_edit.html");
+        let base_html = include_str!("templates/base.html");
+        let head_html = include_str!("templates/head.html");
+        let index_html = include_str!("templates/index.html");
+        let loader_html = include_str!("templates/loader.html");
+        let navbar_html = include_str!("templates/navbar.html");
+        let not_found_html = include_str!("templates/not_found.html");
+        let show_html = include_str!("templates/show.html");
+        let unauthorized_html = include_str!("templates/unauthorized.html");
+
+        // form elements
+        let checkbox_html = include_str!("templates/form_elements/checkbox.html");
+        let input_html = include_str!("templates/form_elements/input.html");
+        let selectlist_html = include_str!("templates/form_elements/selectlist.html");
+
+        let _res = tera.add_raw_templates(vec![
+            ("base.html", base_html),
+            ("list.html", list_html),
+            ("create_or_edit.html", create_or_edit_html),
+            ("head.html", head_html),
+            ("index.html", index_html),
+            ("loader.html", loader_html),
+            ("navbar.html", navbar_html),
+            ("not_found.html", not_found_html),
+            ("show.html",show_html),
+            ("unauthorized.html", unauthorized_html),
+            // form elements
+            ("form_elements/checkbox.html", checkbox_html),
+            ("form_elements/input.html", input_html),
+            ("form_elements/selectlist.html", selectlist_html)
+        ]);
+
+        tera
     };
 }
 
-pub fn get_html_input_class<S: BuildHasher>(value: &tera::Value, _: &HashMap<String, tera::Value, S>) -> Result<tera::Value> {
-    let field = try_get_value!("get_html_input_class", "value", ActixAdminViewModelField, value);
+pub fn get_html_input_class<S: BuildHasher>(
+    value: &tera::Value,
+    _: &HashMap<String, tera::Value, S>,
+) -> Result<tera::Value> {
+    let field = try_get_value!(
+        "get_html_input_class",
+        "value",
+        ActixAdminViewModelField,
+        value
+    );
     let html_input_type = match field.field_type {
         ActixAdminViewModelFieldType::TextArea => "textarea",
         ActixAdminViewModelFieldType::Checkbox => "checkbox",
-        _ => "input"
+        _ => "input",
     };
 
     Ok(to_value(html_input_type).unwrap())
 }
 
-pub fn get_icon<S: BuildHasher>(value: &tera::Value, _: &HashMap<String, tera::Value, S>) -> Result<tera::Value> {
+pub fn get_icon<S: BuildHasher>(
+    value: &tera::Value,
+    _: &HashMap<String, tera::Value, S>,
+) -> Result<tera::Value> {
     let field = try_get_value!("get_icon", "value", String, value);
     let font_awesome_icon = match field.as_str() {
         "true" => "<i class=\"fa-solid fa-check\"></i>",
         "false" => "<i class=\"fa-solid fa-xmark\"></i>",
-        _ => panic!("not implemented icon")
+        _ => panic!("not implemented icon"),
     };
 
     Ok(to_value(font_awesome_icon).unwrap())
 }
 
-pub fn get_html_input_type<S: BuildHasher>(value: &tera::Value, _: &HashMap<String, tera::Value, S>) -> Result<tera::Value> {
-    let field = try_get_value!("get_html_input_type", "value", ActixAdminViewModelField, value);
+pub fn get_html_input_type<S: BuildHasher>(
+    value: &tera::Value,
+    _: &HashMap<String, tera::Value, S>,
+) -> Result<tera::Value> {
+    let field = try_get_value!(
+        "get_html_input_type",
+        "value",
+        ActixAdminViewModelField,
+        value
+    );
 
     // TODO: convert to option
     if field.html_input_type != "" {
-        return Ok(to_value(field.html_input_type).unwrap())
+        return Ok(to_value(field.html_input_type).unwrap());
     }
 
     let html_input_type = match field.field_type {
@@ -97,7 +156,7 @@ pub fn get_html_input_type<S: BuildHasher>(value: &tera::Value, _: &HashMap<Stri
         ActixAdminViewModelFieldType::Date => "date",
         ActixAdminViewModelFieldType::Checkbox => "checkbox",
         ActixAdminViewModelFieldType::FileUpload => "file",
-        _ => "text"
+        _ => "text",
     };
 
     Ok(to_value(html_input_type).unwrap())
@@ -112,9 +171,10 @@ pub trait ActixAdminAppDataTrait {
 // SelectListTrait
 #[async_trait]
 pub trait ActixAdminSelectListTrait {
-    async fn get_key_value(db: &DatabaseConnection) -> core::result::Result<Vec<(String, String)>, ActixAdminError>;
+    async fn get_key_value(
+        db: &DatabaseConnection,
+    ) -> core::result::Result<Vec<(String, String)>, ActixAdminError>;
 }
-
 
 #[derive(Clone)]
 pub struct ActixAdminConfiguration {
@@ -122,21 +182,21 @@ pub struct ActixAdminConfiguration {
     pub user_is_logged_in: Option<for<'a> fn(&'a Session) -> bool>,
     pub login_link: Option<String>,
     pub logout_link: Option<String>,
-    pub file_upload_directory: &'static str
+    pub file_upload_directory: &'static str,
 }
 
 #[derive(Clone)]
 pub struct ActixAdmin {
     pub entity_names: HashMap<String, Vec<ActixAdminMenuElement>>,
     pub view_models: HashMap<String, ActixAdminViewModel>,
-    pub configuration: ActixAdminConfiguration
+    pub configuration: ActixAdminConfiguration,
 }
 
 #[derive(PartialEq, Eq, Clone, Serialize)]
 pub struct ActixAdminMenuElement {
     pub name: String,
     pub link: String,
-    pub is_custom_handler: bool
+    pub is_custom_handler: bool,
 }
 
 // Errors
@@ -164,10 +224,8 @@ pub enum ActixAdminError {
     DatabaseError,
 
     #[display(fmt = "Entity does not exist")]
-    EntityDoesNotExistError
+    EntityDoesNotExistError,
 }
-
-
 
 impl error::ResponseError for ActixAdminError {
     fn error_response(&self) -> HttpResponse {
@@ -199,14 +257,14 @@ pub enum ActixAdminNotificationType {
 #[derive(Debug, Serialize)]
 pub struct ActixAdminNotification {
     css_class: String,
-    message: String
+    message: String,
 }
 
 impl std::convert::From<ActixAdminError> for ActixAdminNotification {
     fn from(e: ActixAdminError) -> ActixAdminNotification {
         ActixAdminNotification {
             css_class: ActixAdminNotificationType::Danger.to_string(),
-            message: e.to_string()
+            message: e.to_string(),
         }
     }
 }
