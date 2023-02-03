@@ -1,5 +1,6 @@
 use actix_admin::prelude::*;
 use actix_session::Session;
+use actix_web::HttpRequest;
 use actix_web::web;
 use actix_web::Error;
 use actix_web::HttpResponse;
@@ -135,16 +136,18 @@ pub fn create_actix_admin_builder() -> ActixAdminBuilder {
 
 async fn create_post_from_plaintext<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     session: Session,
+    req: HttpRequest,
     data: web::Data<T>,
     text: String,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = data.get_actix_admin();
     let model = ActixAdminModel::from(text);
-    create_or_edit_post::<T, E>(&session, &data, Ok(model), None, actix_admin).await
+    create_or_edit_post::<T, E>(&session, req, &data, Ok(model), None, actix_admin).await
 }
 
 async fn edit_post_from_plaintext<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     session: Session,
+    req: HttpRequest,
     data: web::Data<T>,
     text: String,
     id: web::Path<i32>,
@@ -153,6 +156,7 @@ async fn edit_post_from_plaintext<T: ActixAdminAppDataTrait, E: ActixAdminViewMo
     let model = ActixAdminModel::from(text);
     create_or_edit_post::<T, E>(
         &session,
+        req,
         &data,
         Ok(model),
         Some(id.into_inner()),

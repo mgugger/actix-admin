@@ -21,3 +21,16 @@ pub use helpers::{ add_auth_context, user_can_access_page, render_unauthorized }
 
 mod file;
 pub use file::{download, delete_file};
+
+use serde::{Deserialize};
+#[derive(Debug, Deserialize)]
+pub struct Params {
+    page: Option<u64>,
+    entities_per_page: Option<u64>,
+    render_partial: Option<bool>,
+    search: Option<String>,
+    sort_by: Option<String>,
+    sort_order: Option<SortOrder>
+}
+
+const DEFAULT_ENTITIES_PER_PAGE: u64 = 10;

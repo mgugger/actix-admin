@@ -1,4 +1,5 @@
 use super::{render_unauthorized, user_can_access_page};
+use super::{Params, DEFAULT_ENTITIES_PER_PAGE};
 use crate::prelude::*;
 use crate::ActixAdminError;
 use crate::ActixAdminNotification;
@@ -7,26 +8,32 @@ use actix_multipart::Multipart;
 use actix_multipart::MultipartError;
 use actix_session::Session;
 use actix_web::http::header;
-use actix_web::{error, web, Error, HttpResponse};
+use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use std::collections::HashMap;
 use tera::Context;
 
 pub async fn create_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     session: Session,
+    req: HttpRequest,
     data: web::Data<T>,
     payload: Multipart,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = data.get_actix_admin();
     let model = ActixAdminModel::create_from_payload(
         payload,
-        &format!("{}/{}", actix_admin.configuration.file_upload_directory, E::get_entity_name())
+        &format!(
+            "{}/{}",
+            actix_admin.configuration.file_upload_directory,
+            E::get_entity_name()
+        ),
     )
     .await;
-    create_or_edit_post::<T, E>(&session, &data, model, None, actix_admin).await
+    create_or_edit_post::<T, E>(&session, req, &data, model, None, actix_admin).await
 }
 
 pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     session: Session,
+    req: HttpRequest,
     data: web::Data<T>,
     payload: Multipart,
     id: web::Path<i32>,
@@ -34,14 +41,27 @@ pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     let actix_admin = data.get_actix_admin();
     let model = ActixAdminModel::create_from_payload(
         payload,
-        &format!("{}/{}", actix_admin.configuration.file_upload_directory, E::get_entity_name()),
+        &format!(
+            "{}/{}",
+            actix_admin.configuration.file_upload_directory,
+            E::get_entity_name()
+        ),
     )
     .await;
-    create_or_edit_post::<T, E>(&session, &data, model, Some(id.into_inner()), actix_admin).await
+    create_or_edit_post::<T, E>(
+        &session,
+        req,
+        &data,
+        model,
+        Some(id.into_inner()),
+        actix_admin,
+    )
+    .await
 }
 
 pub async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     session: &Session,
+    req: HttpRequest,
     data: &web::Data<T>,
     model_res: Result<ActixAdminModel, MultipartError>,
     id: Option<i32>,
@@ -64,7 +84,16 @@ pub async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewMod
 
     if model.has_errors() {
         errors.push(ActixAdminError::ValidationErrors);
-        render_form::<E>(actix_admin, view_model, db, entity_name, &model, errors).await
+        render_form::<E>(
+            req,
+            actix_admin,
+            view_model,
+            db,
+            entity_name,
+            &model,
+            errors,
+        )
+        .await
     } else {
         let res = match id {
             Some(id) => E::edit_entity(db, id, model.clone()).await,
@@ -72,21 +101,47 @@ pub async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewMod
         };
 
         match res {
-            Ok(_) => Ok(HttpResponse::SeeOther()
+            Ok(_) => {
+                let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
+
+                let page = params.page.unwrap_or(1);
+                let entities_per_page = params
+                    .entities_per_page
+                    .unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
+                let _render_partial = params.render_partial.unwrap_or(false);
+                let search = params.search.clone().unwrap_or(String::new());
+                let sort_by = params
+                    .sort_by
+                    .clone()
+                    .unwrap_or(view_model.primary_key.to_string());
+                let sort_order = params.sort_order.as_ref().unwrap_or(&SortOrder::Asc);
+
+                Ok(HttpResponse::SeeOther()
                 .append_header((
                     header::LOCATION,
-                    format!("/admin/{}/list", view_model.entity_name),
+                    format!("/admin/{0}/list?page={1}&search={2}&sort_by={3}&sort_order={4}&entities_per_page={5}", view_model.entity_name, page, search, sort_by, sort_order, entities_per_page),
                 ))
-                .finish()),
+                .finish())
+            }
             Err(e) => {
                 errors.push(e);
-                render_form::<E>(actix_admin, view_model, db, entity_name, &model, errors).await
+                render_form::<E>(
+                    req,
+                    actix_admin,
+                    view_model,
+                    db,
+                    entity_name,
+                    &model,
+                    errors,
+                )
+                .await
             }
         }
     }
 }
 
 async fn render_form<E: ActixAdminViewModelTrait>(
+    req: HttpRequest,
     actix_admin: &ActixAdmin,
     view_model: &ActixAdminViewModel,
     db: &&sea_orm::DatabaseConnection,
@@ -95,6 +150,28 @@ async fn render_form<E: ActixAdminViewModelTrait>(
     errors: Vec<ActixAdminError>,
 ) -> Result<HttpResponse, Error> {
     let mut ctx = Context::new();
+
+    let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
+
+    let page = params.page.unwrap_or(1);
+    let entities_per_page = params
+        .entities_per_page
+        .unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
+    let render_partial = params.render_partial.unwrap_or(false);
+    let search = params.search.clone().unwrap_or(String::new());
+    let sort_by = params
+        .sort_by
+        .clone()
+        .unwrap_or(view_model.primary_key.to_string());
+    let sort_order = params.sort_order.as_ref().unwrap_or(&SortOrder::Asc);
+
+    ctx.insert("entities_per_page", &entities_per_page);
+    ctx.insert("render_partial", &render_partial);
+    ctx.insert("search", &search);
+    ctx.insert("sort_by", &sort_by);
+    ctx.insert("sort_order", &sort_order);
+    ctx.insert("page", &page);
+
     ctx.insert("entity_names", &actix_admin.entity_names);
     ctx.insert(
         "view_model",

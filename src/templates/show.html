@@ -9,7 +9,8 @@
             {% if model_field.field_type == "Checkbox" %}
             <td>{{ model.values | get(key=model_field.field_name) | get_icon | safe }}</td>
             {% elif model_field.field_type == "FileUpload" %}
-            <td><a href="file/{{ view_model.primary_key }}/{{ model_field.field_name }}">{{ model.values | get(key=model_field.field_name) }}</a></td>
+            <td><a href="file/{{ view_model.primary_key }}/{{ model_field.field_name }}">{{ model.values |
+                    get(key=model_field.field_name) }}</a></td>
             {% else %}
             <td>{{ model.values | get(key=model_field.field_name) }}</td>
             {% endif %}
@@ -21,11 +22,18 @@
     <div class="column">
         <div class="field is-grouped">
             <div class="control">
-                <a class="button is-link is-light" href="{{ base_path }}/list">Back</a>
+                <a hx-vals='{ 
+                    "entities_per_page" : "{{ entities_per_page }}",
+                    "search" : "{{ search }}",
+                    "sort_by" : "{{ sort_by }}",
+                    "sort_order" : "{{ sort_order }}",
+                    "render_partial" : "false",
+                    "page" : "{{ page }}"
+                    }' hx-boost="true" hx-push-url="true" hx-indicator="#loading"
+                    class="button is-link is-light" href="{{ base_path }}/list">Back</a>
             </div>
         </div>
     </div>
 </div>
-
 
 {% endblock content %}

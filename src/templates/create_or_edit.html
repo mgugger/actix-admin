@@ -2,6 +2,11 @@
 
 {% block content %}
 <form hx-boost="true" hx-indicator="#loading" hx-push-url="true" hx-encoding="multipart/form-data" method="post" enctype="multipart/form-data">
+    <input type="hidden" id="sort_by" name="sort_by" value="{{ sort_by }}">
+    <input type="hidden" id="sort_order" name="sort_order" value="{{ sort_order }}">
+    <input type="hidden" name="entities_per_page" value="{{ entities_per_page }}">
+    <input type="hidden" name="search" value="{{ search }}">
+    <input type="hidden" name="page" value="{{ page }}">
     {% for model_field in view_model.fields -%}
     <div class="field">
         <label class="{{ model_field | get_html_input_type }}" for="{{ model_field.field_name }}">
@@ -29,7 +34,17 @@
             <button class="button is-link" type="submit">Save</i></button>
         </div>
         <div class="control">
-            <a class="button is-link is-light" href="{{ base_path }}/list">Cancel</a>
+            <a hx-vals='{ 
+                "entities_per_page" : "{{ entities_per_page }}",
+                "search" : "{{ search }}",
+                "sort_by" : "{{ sort_by }}",
+                "sort_order" : "{{ sort_order }}",
+                "render_partial" : "false",
+                "page" : "{{ page }}"
+                }' hx-boost="true" hx-push-url="true" hx-indicator="#loading"
+                class="button is-link is-light" href="{{ base_path }}/list">
+                Cancel
+            </a>
         </div>
     </div>
 </form>

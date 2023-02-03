@@ -1,3 +1,5 @@
+use std::fmt;
+
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use serde::Serialize;
 use serde::{Deserialize};
@@ -10,24 +12,21 @@ use crate::ActixAdminModel;
 use crate::ActixAdminNotification;
 use crate::TERA;
 use actix_session::{Session};
-use super::{ add_auth_context, user_can_access_page, render_unauthorized};
-
-const DEFAULT_ENTITIES_PER_PAGE: u64 = 10;
-
-#[derive(Debug, Deserialize)]
-pub struct Params {
-    page: Option<u64>,
-    entities_per_page: Option<u64>,
-    render_partial: Option<bool>,
-    search: Option<String>,
-    sort_by: Option<String>,
-    sort_order: Option<SortOrder>
-}
+use super::{ add_auth_context, user_can_access_page, render_unauthorized, Params, DEFAULT_ENTITIES_PER_PAGE};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SortOrder {
     Asc,
     Desc,
+}
+
+impl fmt::Display for SortOrder {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            SortOrder::Asc => write!(f, "Asc"),
+            SortOrder::Desc => write!(f, "Desc"),
+        }
+    }
 }
 
 pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
