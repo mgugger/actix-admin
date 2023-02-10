@@ -1,7 +1,7 @@
 use crate::attributes::derive_attr;
 use crate::model_fields::ModelField;
 use proc_macro2::{Span, TokenStream};
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{DeriveInput, Fields, LitStr, Ident};
 
 pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::Vec<ModelField> {
@@ -144,88 +144,18 @@ fn extract_type_from_option(ty: &syn::Type) -> Option<syn::Type> {
         })
 }
 
-pub fn get_actix_admin_fields(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+pub fn get_fields_as_tokenstream<T: ToTokens>(fields: &Vec<ModelField>, accessor: fn(&ModelField) -> T) -> Vec<TokenStream> {
     fields
-        .iter()
-        .filter(|model_field| !model_field.primary_key)
-        .map(|model_field| {
-            let ident_name = model_field.ident.to_string();
+    .iter()
+    .filter(|model_field| !model_field.primary_key)
+    .map(|model_field| {
+        let ident_name = accessor(model_field);
 
-            quote! {
-                #ident_name
-            }
-        })
-        .collect::<Vec<_>>()
-}
-
-pub fn get_actix_admin_fields_is_option_list(fields: &Vec<ModelField>) -> Vec<TokenStream> {
-    fields
-        .iter()
-        .filter(|model_field| !model_field.primary_key)
-        .map(|model_field| {
-            let is_option = model_field.is_option();
-
-            quote! {
-                #is_option
-            }
-        })
-        .collect::<Vec<_>>()
-}
-
-pub fn get_actix_admin_fields_type_path_string(fields: &Vec<ModelField>) -> Vec<TokenStream> {
-    fields
-        .iter()
-        .filter(|model_field| !model_field.primary_key)
-        .map(|model_field| {
-            let type_path_string = model_field.get_type_path_string();
-
-            quote! {
-                #type_path_string
-            }
-        })
-        .collect::<Vec<_>>()
-}
-
-pub fn get_actix_admin_fields_html_input(fields: &Vec<ModelField>) -> Vec<TokenStream> {
-    fields
-        .iter()
-        .filter(|model_field| !model_field.primary_key)
-        .map(|model_field| {
-            let html_input_type = model_field.html_input_type.to_string();
-
-            quote! {
-                #html_input_type
-            }
-        })
-        .collect::<Vec<_>>()
-}
-
-pub fn get_actix_admin_fields_textarea(fields: &Vec<ModelField>) -> Vec<TokenStream> {
-    fields
-        .iter()
-        .filter(|model_field| !model_field.primary_key)
-        .map(|model_field| {
-            let is_textarea = model_field.textarea;
-
-            quote! {
-                #is_textarea
-            }
-        })
-        .collect::<Vec<_>>()
-}
-
-pub fn get_actix_admin_fields_file_upload(fields: &Vec<ModelField>) -> Vec<TokenStream> {
-    fields
-        .iter()
-        .filter(|model_field| !model_field.primary_key)
-        .map(|model_field| {
-            let is_fileupload = model_field.file_upload;
-
-            quote! {
-                #is_fileupload
-            }
-        })
-        .collect::<Vec<_>>()
+        quote! {
+            #ident_name
+        }
+    })
+    .collect::<Vec<_>>()
 }
 
 pub fn get_match_name_to_column(fields: &Vec<ModelField>) -> Vec<TokenStream> {
@@ -256,20 +186,6 @@ pub fn get_actix_admin_fields_searchable(fields: &Vec<ModelField>) -> Vec<TokenS
         .collect::<Vec<_>>()
 }
 
-pub fn get_actix_admin_fields_select_list(fields: &Vec<ModelField>) -> Vec<TokenStream> {
-    fields
-        .iter()
-        .filter(|model_field| !model_field.primary_key)
-        .map(|model_field| {
-            let select_list = model_field.select_list.to_string();
-
-            quote! {
-                #select_list
-            }
-        })
-        .collect::<Vec<_>>()
-}
-
 pub fn get_field_for_primary_key(fields: &Vec<ModelField>) -> TokenStream {
     let primary_key_model_field = fields
         .iter()
@@ -292,34 +208,6 @@ pub fn get_primary_key_field_name(fields: &Vec<ModelField>) -> String {
         .expect("model must have a single primary key");
 
     primary_key_model_field.ident.to_string()
-}
-
-pub fn get_fields_list_sort_positions(fields: &Vec<ModelField>) -> Vec<TokenStream> {
-    fields
-        .iter()
-        .filter(|model_field| !model_field.primary_key)
-        .map(|model_field| {
-            let sort_position = model_field.list_sort_position;
-
-            quote! {
-                #sort_position
-            }
-        })
-        .collect::<Vec<_>>()
-}
-
-pub fn get_fields_list_hide_column(fields: &Vec<ModelField>) -> Vec<TokenStream> {
-    fields
-        .iter()
-        .filter(|model_field| !model_field.primary_key)
-        .map(|model_field| {
-            let list_hide_column = model_field.list_hide_column;
-
-            quote! {
-                #list_hide_column
-            }
-        })
-        .collect::<Vec<_>>()
 }
 
 pub fn get_fields_for_from_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {

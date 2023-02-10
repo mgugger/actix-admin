@@ -143,21 +143,21 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
 pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let fields = get_fields_for_tokenstream(input);
 
-    let field_names = get_actix_admin_fields(&fields);
-    let field_html_input_type = get_actix_admin_fields_html_input(&fields);
-    let field_select_list = get_actix_admin_fields_select_list(&fields);
-    let is_option_list = get_actix_admin_fields_is_option_list(&fields);
+    let field_names = get_fields_as_tokenstream(&fields, |model_field| -> String { model_field.ident.to_string() });
+    let field_html_input_type = get_fields_as_tokenstream(&fields, |model_field| -> String { model_field.html_input_type.to_string() });
+    let field_select_list = get_fields_as_tokenstream(&fields, |model_field| -> String { model_field.select_list.to_string() });
+    let is_option_list = get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.is_option() });
     let fields_for_create_model = get_fields_for_create_model(&fields);
     let fields_for_from_model = get_fields_for_from_model(&fields);
     let field_for_primary_key = get_field_for_primary_key(&fields);
     let fields_for_validate_model = get_fields_for_validate_model(&fields);
-    let fields_searchable = get_actix_admin_fields_searchable(&fields);
-    let fields_type_path = get_actix_admin_fields_type_path_string(&fields);
-    let fields_textarea = get_actix_admin_fields_textarea(&fields);
-    let fields_file_upload = get_actix_admin_fields_file_upload(&fields);
+    let fields_type_path = get_fields_as_tokenstream(&fields, |model_field| -> String { model_field.get_type_path_string() });
+    let fields_textarea = get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.textarea });
+    let fields_file_upload = get_fields_as_tokenstream(&fields, |model_field|  -> bool { model_field.file_upload });
     let fields_match_name_to_columns = get_match_name_to_column(&fields);
-    let fields_list_sort_positions = get_fields_list_sort_positions(&fields);
-    let fields_list_hide_column = get_fields_list_hide_column(&fields);
+    let fields_list_sort_positions = get_fields_as_tokenstream(&fields, |model_field| -> usize { model_field.list_sort_position });
+    let fields_list_hide_column = get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.list_hide_column });
+    let fields_searchable = get_actix_admin_fields_searchable(&fields);
 
     let expanded = quote! {
         actix_admin::prelude::lazy_static! {
