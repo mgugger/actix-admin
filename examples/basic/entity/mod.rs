@@ -5,7 +5,7 @@ pub mod comment;
 pub mod post;
 pub use comment::Entity as Comment;
 pub use post::Entity as Post;
-use chrono::{Local};
+use chrono::{Local, Duration, DurationRound};
 use sea_orm::prelude::Decimal;
 
 // setup
@@ -80,7 +80,7 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
           comment: Set(format!("Test {}", i)),
           user: Set("me@home.com".to_string()),
           my_decimal: Set(Decimal::new(105, 0)),
-          insert_date: Set(Local::now().naive_utc()),
+          insert_date: Set(Local::now().naive_utc().duration_round(Duration::minutes(1)).unwrap()),
           is_visible: Set(i%2 == 0),
           ..Default::default()
        };
