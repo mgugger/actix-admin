@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use regex::Regex;
 use sea_orm::DatabaseConnection;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
@@ -84,7 +85,9 @@ pub struct ActixAdminViewModelField {
     pub is_option: bool,
     pub field_type: ActixAdminViewModelFieldType,
     pub list_sort_position: usize,
-    pub list_hide_column: bool
+    pub list_hide_column: bool,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub list_regex_mask: Option<Regex>
 }
 
 impl ActixAdminViewModelFieldType {

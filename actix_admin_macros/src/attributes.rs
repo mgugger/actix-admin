@@ -18,7 +18,8 @@ pub mod derive_attr {
         pub file_upload: Option<()>,
         pub not_empty: Option<()>,
         pub list_sort_position: Option<syn::LitStr>,
-        pub list_hide_column: Option<()>
+        pub list_hide_column: Option<()>,
+        pub list_regex_mask: Option<syn::LitStr>
         //pub inner_type: Option<syn::Type>,
 
         // Anything that implements `syn::parse::Parse` is supported.

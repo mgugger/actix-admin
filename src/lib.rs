@@ -63,6 +63,7 @@ lazy_static! {
         tera.register_filter("get_html_input_type", get_html_input_type);
         tera.register_filter("get_html_input_class", get_html_input_class);
         tera.register_filter("get_icon", get_icon);
+        tera.register_filter("get_regex_val", get_regex_val);
 
         let list_html = include_str!("templates/list.html");
         let create_or_edit_html = include_str!("templates/create_or_edit.html");
@@ -132,6 +133,29 @@ pub fn get_icon<S: BuildHasher>(
     };
 
     Ok(to_value(font_awesome_icon).unwrap())
+}
+
+pub fn get_regex_val<S: BuildHasher>(
+    value: &tera::Value,
+    args: &HashMap<String, tera::Value, S>,
+) -> Result<tera::Value> {
+    let field = try_get_value!("get_regex_val", "value", ActixAdminViewModelField, value);
+
+    let s = args.get("values");
+    let field_val = s.unwrap().get(&field.field_name);
+    
+    println!("field {} regex {:?}", field.field_name, field.list_regex_mask);
+    match (field_val, field.list_regex_mask) {
+        (Some(val), Some(r)) => {
+            let val_str = val.to_string();
+            let is_match = r.is_match(&val_str);
+            println!("is match: {}, regex {}", is_match, r.to_string());
+            let result_str = r.replace_all(&val_str, "*");
+            return Ok(to_value(result_str).unwrap());
+        },
+        (Some(val), None) => { return Ok(to_value(val).unwrap()); },
+        (_, _) => panic!("key {} not found in model values", &field.field_name)
+    }
 }
 
 pub fn get_html_input_type<S: BuildHasher>(

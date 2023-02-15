@@ -38,6 +38,7 @@ pub fn derive_actix_admin(_input: proc_macro::TokenStream) -> proc_macro::TokenS
             EntityTrait
         };
         use std::collections::HashMap;
+        use regex::Regex;
     };
     proc_macro::TokenStream::from(expanded)
 }
@@ -145,6 +146,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
 
     let field_names = get_fields_as_tokenstream(&fields, |model_field| -> String { model_field.ident.to_string() });
     let field_html_input_type = get_fields_as_tokenstream(&fields, |model_field| -> String { model_field.html_input_type.to_string() });
+    let field_list_regex_mask = get_fields_as_tokenstream(&fields, |model_field| -> String { model_field.list_regex_mask.to_string() });
     let field_select_list = get_fields_as_tokenstream(&fields, |model_field| -> String { model_field.select_list.to_string() });
     let is_option_list = get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.is_option() });
     let fields_for_create_model = get_fields_for_create_model(&fields);
@@ -202,12 +204,20 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                 let list_hide_columns = [
                     #(#fields_list_hide_column),*
                 ];
+
+                let list_regex_masks = [
+                    #(#field_list_regex_mask),*
+                ];
                 
-                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea, is_file_upload, list_sort_position, list_hide_column) in actix_admin::prelude::izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas, fields_fileupload, list_sort_positions, list_hide_columns) {
+                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea, is_file_upload, list_sort_position, list_hide_column, list_regex_mask) in actix_admin::prelude::izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas, fields_fileupload, list_sort_positions, list_hide_columns, list_regex_masks) {
                 
                     let select_list = select_list.replace('"', "").replace(' ', "").to_string();
                     let field_name = field_name.replace('"', "").replace(' ', "").to_string();
                     let html_input_type = html_input_type.replace('"', "").replace(' ', "").to_string();
+                    let mut list_regex_mask_regex = None;
+                    if list_regex_mask != "" {
+                        list_regex_mask_regex = Some(Regex::new(list_regex_mask).unwrap());
+                    };
 
                     vec.push(ActixAdminViewModelField {
                         field_name: field_name,
@@ -216,7 +226,8 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                         is_option: is_option_list,
                         list_sort_position: list_sort_position,
                         field_type: ActixAdminViewModelFieldType::get_field_type(fields_type_path, select_list, is_textarea, is_file_upload),
-                        list_hide_column: list_hide_column
+                        list_hide_column: list_hide_column,
+                        list_regex_mask: list_regex_mask_regex
                     });
                 }
                 vec

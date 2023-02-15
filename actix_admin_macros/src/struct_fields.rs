@@ -56,6 +56,12 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let is_not_empty = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.not_empty.is_some());
+                let list_regex_mask = actix_admin_attr.clone().map_or("".to_string(), |attr| {
+                    attr.list_regex_mask
+                        .map_or("".to_string(), |attr_field| {
+                            (LitStr::from(attr_field)).value()
+                        })
+                });
                 let list_sort_position: usize = actix_admin_attr.clone().map_or(99, |attr| {
                     attr.list_sort_position.map_or( 99, |attr_field| {
                         let sort_pos = LitStr::from(attr_field).value().parse::<usize>();
@@ -90,7 +96,8 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     file_upload: is_file_upload,
                     not_empty: is_not_empty,
                     list_sort_position: list_sort_position,
-                    list_hide_column: is_list_hide_column
+                    list_hide_column: is_list_hide_column,
+                    list_regex_mask: list_regex_mask
                 };
                 Some(model_field)
             } else {
