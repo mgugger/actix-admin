@@ -87,7 +87,6 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
             async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> Result<ActixAdminModel, ActixAdminError> {
                 let new_model = ActiveModel::from(model.clone());
                 let insert_operation = Entity::insert(new_model).exec(db).await?;
-                
                 model.primary_key = Some(insert_operation.last_insert_id.to_string());
 
                 Ok(model)
