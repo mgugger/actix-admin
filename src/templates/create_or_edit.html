@@ -10,7 +10,7 @@
     {% for model_field in view_model.fields -%}
     <div class="field">
         <label class="{{ model_field | get_html_input_type }}" for="{{ model_field.field_name }}">
-            {{ model_field.field_name | split(pat="_") | join(sep=" ") | title }}{% if not model_field.is_option %} *{% endif %}
+            {{ model_field.field_name | replace(from="_id", to="") | split(pat="_") | join(sep=" ") | title }}{% if not model_field.is_option %} *{% endif %}
         </label>
         <div class="control">
         {% if model_field.field_type == "SelectList" %}      
