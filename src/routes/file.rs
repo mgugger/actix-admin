@@ -13,7 +13,7 @@ pub async fn download<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(re
     let entity_name = E::get_entity_name();
     let view_model: &ActixAdminViewModel = actix_admin.view_models.get(&entity_name).unwrap();
     if !user_can_access_page(&session, actix_admin, view_model) {
-        return render_unauthorized(&ctx);
+        return render_unauthorized(&ctx, &actix_admin);
     }
     
     let (id, column_name) = params.into_inner();
@@ -49,7 +49,7 @@ pub async fn delete_file<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     let entity_name = E::get_entity_name();
     let view_model: &ActixAdminViewModel = actix_admin.view_models.get(&entity_name).unwrap();
     if !user_can_access_page(&session, actix_admin, view_model) {
-        return render_unauthorized(&ctx);
+        return render_unauthorized(&ctx, &actix_admin);
     }
     
     let (id, column_name) = params.into_inner();
@@ -77,7 +77,7 @@ pub async fn delete_file<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     ctx.insert("base_path", &E::get_base_path(&entity_name));
     ctx.insert("model", &model);
 
-    let body = TERA
+    let body = actix_admin.tera
         .render("form_elements/input.html", &ctx)
         .map_err(|err| error::ErrorInternalServerError(err))? ;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))

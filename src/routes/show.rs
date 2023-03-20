@@ -6,7 +6,6 @@ use tera::{Context};
 use crate::ActixAdminNotification;
 use crate::prelude::*;
 
-use crate::TERA;
 use super::{Params, DEFAULT_ENTITIES_PER_PAGE};
 use super::{ add_auth_context, user_can_access_page, render_unauthorized};
 
@@ -18,7 +17,7 @@ pub async fn show<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(sessio
     let entity_name = E::get_entity_name();
     let view_model: &ActixAdminViewModel = actix_admin.view_models.get(&entity_name).unwrap();
     if !user_can_access_page(&session, actix_admin, view_model) {
-        return render_unauthorized(&ctx);
+        return render_unauthorized(&ctx, &actix_admin);
     }
     
     let mut errors: Vec<crate::ActixAdminError> = Vec::new();
@@ -67,7 +66,7 @@ pub async fn show<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(sessio
 
     add_auth_context(&session, actix_admin, &mut ctx);
 
-    let body = TERA
+    let body = actix_admin.tera
         .render("show.html", &ctx)
         .map_err(|err| error::ErrorInternalServerError(format!("{:?}", err)))?;
     Ok(http_response_code.content_type("text/html").body(body))

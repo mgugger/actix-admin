@@ -12,12 +12,10 @@ use actix_web::{
 };
 use async_trait::async_trait;
 use derive_more::{Display, Error};
-use lazy_static::lazy_static;
 use sea_orm::DatabaseConnection;
 use serde::Serialize;
+use tera::Tera;
 use std::collections::HashMap;
-use std::hash::BuildHasher;
-use tera::{to_value, try_get_value, Result, Tera};
 
 pub mod builder;
 pub mod model;
@@ -32,7 +30,6 @@ pub mod prelude {
         ActixAdminViewModel, ActixAdminViewModelField, ActixAdminViewModelFieldType,
         ActixAdminViewModelSerializable, ActixAdminViewModelTrait,
     };
-    pub use crate::TERA;
     pub use crate::{hashmap, ActixAdminSelectListTrait};
     pub use crate::{ActixAdmin, ActixAdminAppDataTrait, ActixAdminConfiguration, ActixAdminError};
     pub use actix_admin_macros::{
@@ -54,136 +51,6 @@ macro_rules! hashmap {
          $( map.insert($key.to_string(), $val); )*
          map
     }}
-}
-
-// globals
-lazy_static! {
-    pub static ref TERA: Tera = {
-        let mut tera = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
-        tera.register_filter("get_html_input_type", get_html_input_type);
-        tera.register_filter("get_html_input_class", get_html_input_class);
-        tera.register_filter("get_icon", get_icon);
-        tera.register_filter("get_regex_val", get_regex_val);
-
-        let list_html = include_str!("templates/list.html");
-        let create_or_edit_html = include_str!("templates/create_or_edit.html");
-        let base_html = include_str!("templates/base.html");
-        let head_html = include_str!("templates/head.html");
-        let index_html = include_str!("templates/index.html");
-        let loader_html = include_str!("templates/loader.html");
-        let navbar_html = include_str!("templates/navbar.html");
-        let not_found_html = include_str!("templates/not_found.html");
-        let show_html = include_str!("templates/show.html");
-        let unauthorized_html = include_str!("templates/unauthorized.html");
-
-        // form elements
-        let checkbox_html = include_str!("templates/form_elements/checkbox.html");
-        let input_html = include_str!("templates/form_elements/input.html");
-        let selectlist_html = include_str!("templates/form_elements/selectlist.html");
-
-        let _res = tera.add_raw_templates(vec![
-            ("base.html", base_html),
-            ("list.html", list_html),
-            ("create_or_edit.html", create_or_edit_html),
-            ("head.html", head_html),
-            ("index.html", index_html),
-            ("loader.html", loader_html),
-            ("navbar.html", navbar_html),
-            ("not_found.html", not_found_html),
-            ("show.html",show_html),
-            ("unauthorized.html", unauthorized_html),
-            // form elements
-            ("form_elements/checkbox.html", checkbox_html),
-            ("form_elements/input.html", input_html),
-            ("form_elements/selectlist.html", selectlist_html)
-        ]);
-
-        tera
-    };
-}
-
-pub fn get_html_input_class<S: BuildHasher>(
-    value: &tera::Value,
-    _: &HashMap<String, tera::Value, S>,
-) -> Result<tera::Value> {
-    let field = try_get_value!(
-        "get_html_input_class",
-        "value",
-        ActixAdminViewModelField,
-        value
-    );
-    let html_input_type = match field.field_type {
-        ActixAdminViewModelFieldType::TextArea => "textarea",
-        ActixAdminViewModelFieldType::Checkbox => "checkbox",
-        _ => "input",
-    };
-
-    Ok(to_value(html_input_type).unwrap())
-}
-
-pub fn get_icon<S: BuildHasher>(
-    value: &tera::Value,
-    _: &HashMap<String, tera::Value, S>,
-) -> Result<tera::Value> {
-    let field = try_get_value!("get_icon", "value", String, value);
-    let font_awesome_icon = match field.as_str() {
-        "true" => "<i class=\"fa-solid fa-check\"></i>",
-        "false" => "<i class=\"fa-solid fa-xmark\"></i>",
-        _ => panic!("not implemented icon"),
-    };
-
-    Ok(to_value(font_awesome_icon).unwrap())
-}
-
-pub fn get_regex_val<S: BuildHasher>(
-    value: &tera::Value,
-    args: &HashMap<String, tera::Value, S>,
-) -> Result<tera::Value> {
-    let field = try_get_value!("get_regex_val", "value", ActixAdminViewModelField, value);
-
-    let s = args.get("values");
-    let field_val = s.unwrap().get(&field.field_name);
-    
-    println!("field {} regex {:?}", field.field_name, field.list_regex_mask);
-    match (field_val, field.list_regex_mask) {
-        (Some(val), Some(r)) => {
-            let val_str = val.to_string();
-            let is_match = r.is_match(&val_str);
-            println!("is match: {}, regex {}", is_match, r.to_string());
-            let result_str = r.replace_all(&val_str, "*");
-            return Ok(to_value(result_str).unwrap());
-        },
-        (Some(val), None) => { return Ok(to_value(val).unwrap()); },
-        (_, _) => panic!("key {} not found in model values", &field.field_name)
-    }
-}
-
-pub fn get_html_input_type<S: BuildHasher>(
-    value: &tera::Value,
-    _: &HashMap<String, tera::Value, S>,
-) -> Result<tera::Value> {
-    let field = try_get_value!(
-        "get_html_input_type",
-        "value",
-        ActixAdminViewModelField,
-        value
-    );
-
-    // TODO: convert to option
-    if field.html_input_type != "" {
-        return Ok(to_value(field.html_input_type).unwrap());
-    }
-
-    let html_input_type = match field.field_type {
-        ActixAdminViewModelFieldType::Text => "text",
-        ActixAdminViewModelFieldType::DateTime => "datetime-local",
-        ActixAdminViewModelFieldType::Date => "date",
-        ActixAdminViewModelFieldType::Checkbox => "checkbox",
-        ActixAdminViewModelFieldType::FileUpload => "file",
-        _ => "text",
-    };
-
-    Ok(to_value(html_input_type).unwrap())
 }
 
 // AppDataTrait
@@ -214,6 +81,7 @@ pub struct ActixAdmin {
     pub entity_names: HashMap<String, Vec<ActixAdminMenuElement>>,
     pub view_models: HashMap<String, ActixAdminViewModel>,
     pub configuration: ActixAdminConfiguration,
+    pub tera: Tera
 }
 
 #[derive(PartialEq, Eq, Clone, Serialize)]

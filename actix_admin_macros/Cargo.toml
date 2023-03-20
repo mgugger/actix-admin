@@ -3,7 +3,7 @@ name = "actix-admin-macros"
 description = "macros to be used with actix-admin crate"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/mgugger/actix-admin"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 exclude = [
     "tests/*"
@@ -14,7 +14,7 @@ proc-macro = true
 
 [dependencies]
 bae = "0.1.7"
-quote = "1.0"
-syn = { version = "1.0", features = ["full", "extra-traits"] }
-proc-macro2 = { version = "1.0.36", default-features = false }
+quote = "1.0.26"
+syn = { version = "1.0.109", features = ["full", "extra-traits"] }
+proc-macro2 = { version = "1.0.52", default-features = false }
 regex = "1.7.1"

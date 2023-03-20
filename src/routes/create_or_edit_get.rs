@@ -5,7 +5,6 @@ use crate::ActixAdminError;
 use crate::ActixAdminNotification;
 use crate::prelude::*;
 
-use crate::TERA;
 use super::DEFAULT_ENTITIES_PER_PAGE;
 use super::Params;
 use super::{ add_auth_context, user_can_access_page, render_unauthorized};
@@ -48,7 +47,7 @@ async fn create_or_edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTra
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
 
     if !user_can_access_page(&session, actix_admin, view_model) {
-        return render_unauthorized(&ctx);
+        return render_unauthorized(&ctx, &actix_admin);
     }
 
     let model;
@@ -93,7 +92,7 @@ async fn create_or_edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTra
     ctx.insert("sort_order", &sort_order);
     ctx.insert("page", &page);
     
-    let body = TERA
+    let body = actix_admin.tera
         .render("create_or_edit.html", &ctx)
         .map_err(|err| error::ErrorInternalServerError(err))?;
     Ok(http_response_code.content_type("text/html").body(body))

@@ -13,7 +13,6 @@ use crate::ActixAdminModel;
 use crate::ActixAdminNotification;
 use crate::ActixAdminViewModel;
 use crate::ActixAdminViewModelTrait;
-use crate::TERA;
 use actix_session::Session;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -63,7 +62,7 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     ctx.insert("entity_names", &actix_admin.entity_names);
 
     if !user_can_access_page(&session, actix_admin, view_model) {
-        return render_unauthorized(&ctx);
+        return render_unauthorized(&ctx, actix_admin);
     }
 
     let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
@@ -139,7 +138,7 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     ctx.insert("sort_by", &sort_by);
     ctx.insert("sort_order", &sort_order);
 
-    let body = TERA
+    let body = actix_admin.tera
         .render("list.html", &ctx)
         .map_err(|err| error::ErrorInternalServerError(err))?;
     Ok(http_response_code.content_type("text/html").body(body))

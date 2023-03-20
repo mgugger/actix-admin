@@ -4,8 +4,6 @@ use tera::{Context};
 
 use crate::prelude::*;
 
-use crate::TERA;
-
 use super::{ add_auth_context };
 
 pub fn get_admin_ctx<T: ActixAdminAppDataTrait>(session: Session, data: &web::Data<T>) -> Context {
@@ -29,14 +27,14 @@ pub async fn index<T: ActixAdminAppDataTrait>(session: Session, data: web::Data<
 
     add_auth_context(&session, actix_admin, &mut ctx);
 
-    let body = TERA
+    let body = actix_admin.tera
         .render("index.html", &ctx)
         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
-pub async fn not_found() -> Result<HttpResponse, Error> {
-    let body = TERA
+pub async fn not_found<T: ActixAdminAppDataTrait>(data: web::Data<T>) -> Result<HttpResponse, Error> {
+    let body = data.get_actix_admin().tera
         .render("not_found.html", &Context::new())
         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::NotFound().content_type("text/html").body(body))

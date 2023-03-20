@@ -2,7 +2,6 @@ use actix_session::{Session};
 use tera::{Context};
 
 use crate::prelude::*;
-use crate::TERA;
 use actix_web::{error, Error, HttpResponse};
 
 
@@ -29,8 +28,8 @@ pub fn user_can_access_page(session: &Session, actix_admin: &ActixAdmin, view_mo
     }
 }
 
-pub fn render_unauthorized(ctx: &Context) -> Result<HttpResponse, Error> {
-    let body = TERA
+pub fn render_unauthorized(ctx: &Context, actix_admin: &ActixAdmin) -> Result<HttpResponse, Error> {
+    let body = actix_admin.tera
             .render("unauthorized.html", &ctx)
             .map_err(|err| error::ErrorInternalServerError(err))?;
     Ok(HttpResponse::Unauthorized().content_type("text/html").body(body))

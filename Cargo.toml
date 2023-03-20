@@ -2,7 +2,7 @@
 name = "actix-admin"
 description = "An admin interface for actix-web"
 license = "MIT OR Apache-2.0"
-version = "0.3.0"
+version = "0.4.0"
 repository = "https://github.com/mgugger/actix-admin"
 edition = "2021"
 exclude = [
@@ -19,26 +19,26 @@ name = "actix_admin"
 path = "src/lib.rs"
 
 [dependencies]
-actix-web = "^4.2.1"
+actix-web = "^4.3.1"
 actix-session = { version = "^0.7.2", features = [] }
-actix-multipart = "^0.4.0"
+actix-multipart = "^0.6.0"
 actix-files = "^0.6.2"
-futures-util = "0.3.25"
-chrono = "0.4.23"
-tera = "^1.17.1"
-async-trait = "^0.1.60"
+futures-util = "0.3.27"
+chrono = "0.4.24"
+tera = "^1.18.1"
+async-trait = "^0.1.67"
 lazy_static = "^1.4.0"
 itertools = "^0.10.5"
-serde = "^1.0.152"
-serde_derive = "^1.0.152"
-sea-orm = { version = "^0.10.6", features = [], default-features = false }
-actix-admin-macros = { version = "0.3.0", path = "actix_admin_macros" }
+serde = "^1.0.158"
+serde_derive = "^1.0.158"
+sea-orm = { version = "^0.11.1", features = [], default-features = false }
+actix-admin-macros = { version = "0.4.0", path = "actix_admin_macros" }
 derive_more = "0.99.17"
 regex = "1.7.1"
 
 [dev-dependencies]
-sea-orm = { version = "^0.10.6", features = [ "sqlx-sqlite", "runtime-actix-native-tls", "macros" ], default-features = true }
-actix-rt = "2.7.0"
+sea-orm = { version = "^0.11.1", features = [ "sqlx-sqlite", "runtime-actix-native-tls", "macros" ], default-features = true }
+actix-rt = "2.8.0"
 azure_auth = { path = "./examples/azure_auth/azure_auth" }
 oauth2 = "4.3"
 dotenv = "0.15"

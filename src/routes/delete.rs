@@ -20,7 +20,7 @@ pub async fn delete<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     if !user_can_access_page(&session, actix_admin, view_model) {
         let mut ctx = Context::new();
         ctx.insert("render_partial", &true);
-        return render_unauthorized(&ctx);
+        return render_unauthorized(&ctx, &actix_admin);
     }
 
     let db = &data.get_db();
@@ -68,7 +68,7 @@ pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     if !user_can_access_page(&session, actix_admin, view_model) {
         let mut ctx = Context::new();
         ctx.insert("render_partial", &true);
-        return render_unauthorized(&ctx);
+        return render_unauthorized(&ctx, &actix_admin);
     }
 
     let db = &data.get_db();

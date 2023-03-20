@@ -17,3 +17,29 @@ The actix-admin crate aims at creating a web admin interface similar to other ad
 ## Example
 
 Check the [examples](https://github.com/mgugger/actix-admin/tree/main/examples) and run  ```cargo run --example basic``` from the root folder for a basic in-memory sqlite version. The admin interface is accessible under ```localhost:5000/admin/```.
+
+## Minimal Cargo.toml
+
+```toml
+[package]
+name = "actix-admin-example"
+description = "An admin interface for actix-web"
+version = "0.4.0"
+edition = "2021"
+
+[[bin]]
+name = "actix-admin-example"
+path = "main.rs"
+
+[dependencies]
+actix-web = "^4.2.1"
+actix-rt = "2.7.0"
+actix-multipart = "^0.4.0"
+sea-orm = { version = "^0.11.1", features = [ "sqlx-sqlite", "runtime-actix-native-tls", "macros" ], default-features = true }
+chrono = "0.4.23"
+tera = "^1.17.1"
+serde = "^1.0.152"
+serde_derive = "^1.0.152"
+actix-admin = { version = "0.4.0", path = "../../" }
+regex = "1.7.1"
+```

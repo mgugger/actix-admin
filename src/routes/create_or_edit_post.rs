@@ -3,7 +3,6 @@ use super::{Params, DEFAULT_ENTITIES_PER_PAGE};
 use crate::prelude::*;
 use crate::ActixAdminError;
 use crate::ActixAdminNotification;
-use crate::TERA;
 use actix_multipart::Multipart;
 use actix_multipart::MultipartError;
 use actix_session::Session;
@@ -75,7 +74,7 @@ pub async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewMod
     if !user_can_access_page(&session, actix_admin, view_model) {
         let mut ctx = Context::new();
         ctx.insert("render_partial", &true);
-        return render_unauthorized(&ctx);
+        return render_unauthorized(&ctx, &actix_admin);
     }
     let db = &data.get_db();
 
@@ -187,7 +186,7 @@ async fn render_form<E: ActixAdminViewModelTrait>(
         .collect();
 
     ctx.insert("notifications", &notifications);
-    let body = TERA
+    let body = actix_admin.tera
         .render("create_or_edit.html", &ctx)
         .map_err(|err| error::ErrorInternalServerError(err))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
