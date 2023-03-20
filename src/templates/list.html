@@ -29,8 +29,7 @@
         </div>
     </div>
     <form id="search_form" action="/admin/{{ entity_name }}/list" hx-boost="true" hx-indicator="#loading"
-        hx-target="#{{ entity_name }}table" hx-trigger="reload_table from:#entities_per_page"
-        hx-vals='{ "render_partial" : "true" }'>
+        hx-target="#{{ entity_name }}table" hx-trigger="reload_table from:#entities_per_page">
         <input type="hidden" id="sort_by" name="sort_by" value="{{ sort_by }}">
         <input type="hidden" id="sort_order" name="sort_order" value="{{ sort_order }}">
         <div class="column is-narrow">
@@ -66,7 +65,7 @@
     <div class="is-relative">
         {% include "loader.html" %}
         <form id="table_form" hx-indicator="#loading" hx-get="/admin/{{ entity_name }}/list"
-            hx-vals='{ "render_partial" : "true" }' hx-target="#{{ entity_name }}table">
+            hx-target="#{{ entity_name }}table">
             <input type="hidden" id="sort_by" name="sort_by" value="{{ sort_by }}">
             <input type="hidden" id="sort_order" name="sort_order" value="{{ sort_order }}">
             <input type="hidden" name="entities_per_page" value="{{ entities_per_page }}">
@@ -118,8 +117,7 @@
                                 "entities_per_page" : "{{ entities_per_page }}",
                                 "search" : "{{ search }}",
                                 "sort_by" : "{{ sort_by }}",
-                                "sort_order" : "{{ sort_order }}",
-                                "render_partial" : "true"
+                                "sort_order" : "{{ sort_order }}"
                             }' hx-target="#content">
                         <i class="fa-solid fa-magnifying-glass"></i> {{ entity.primary_key }}
                     </a>
@@ -142,8 +140,7 @@
                                 "entities_per_page" : "{{ entities_per_page }}",
                                 "search" : "{{ search }}",
                                 "sort_by" : "{{ sort_by }}",
-                                "sort_order" : "{{ sort_order }}",
-                                "render_partial" : "false"
+                                "sort_order" : "{{ sort_order }}"
                             }'>
                         <i class="fa-solid fa-pen-to-square"></i>
                     </a>
@@ -167,8 +164,7 @@
             "entities_per_page" : "{{ entities_per_page }}",
             "search" : "{{ search }}",
             "sort_by" : "{{ sort_by }}",
-            "sort_order" : "{{ sort_order }}",
-            "render_partial" : "true"
+            "sort_order" : "{{ sort_order }}"
         }' hx-indicator="#loading" class="pagination is-rounded is-centered" role="pagination" aria-label="pagination">
         {% if page > 1 %}
         <a href="?&page={{ page - 1 }}" class="pagination-previous left-arrow-click"><i
@@ -203,9 +199,5 @@
             </ul>
     </nav>
 </div>
-
-{% if not render_partial or render_partial == false %}
-
-{% endif %}
 
 {% endblock content %}

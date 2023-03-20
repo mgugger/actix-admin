@@ -75,7 +75,7 @@ async fn create_or_edit_get<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTra
     let entities_per_page = params
         .entities_per_page
         .unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
-    let render_partial = params.render_partial.unwrap_or(false);
+    let render_partial = req.headers().contains_key("HX-Target");
     let search = params.search.clone().unwrap_or(String::new());
     let sort_by = params.sort_by.clone().unwrap_or(view_model.primary_key.to_string());
     let sort_order = params.sort_order.as_ref().unwrap_or(&SortOrder::Asc);

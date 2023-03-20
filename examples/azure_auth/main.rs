@@ -155,9 +155,6 @@ async fn main() {
                 .expect("Invalid redirect URL"),
         );
 
-    let mut tera = Tera::parse(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
-    tera.extend(&TERA).unwrap();
-    let _tera_res = tera.build_inheritance_chains();
 
     let db_url = "sqlite::memory:".to_string();
     let mut opt = ConnectOptions::new(db_url);
@@ -173,12 +170,17 @@ async fn main() {
     let cookie_secret_key = Key::generate();
     HttpServer::new(move || {
         let actix_admin_builder = create_actix_admin_builder();
+
+        let actix_admin = actix_admin_builder.get_actix_admin();
+        let mut tera = Tera::parse(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
+        tera.extend(&actix_admin.tera).unwrap();
+        let _tera_res = tera.build_inheritance_chains();
         
         let app_state = AppState {
             oauth: client.clone(),
             tmpl: tera.clone(),
             db: conn.clone(),
-            actix_admin: actix_admin_builder.get_actix_admin(),
+            actix_admin: actix_admin,
         };
 
         App::new()

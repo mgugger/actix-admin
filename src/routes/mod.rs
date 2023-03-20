@@ -27,7 +27,6 @@ use serde::{Deserialize};
 pub struct Params {
     page: Option<u64>,
     entities_per_page: Option<u64>,
-    render_partial: Option<bool>,
     search: Option<String>,
     sort_by: Option<String>,
     sort_order: Option<SortOrder>

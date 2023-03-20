@@ -71,7 +71,7 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     let entities_per_page = params
         .entities_per_page
         .unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
-    let render_partial = params.render_partial.unwrap_or(false);
+    let render_partial = req.headers().contains_key("HX-Target");
     let search = params.search.clone().unwrap_or(String::new());
 
     let db = data.get_db();

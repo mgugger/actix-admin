@@ -129,7 +129,7 @@ pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
         true => Ok(HttpResponse::SeeOther()
             .append_header((
                 header::LOCATION,
-                format!("/admin/{}/list?render_partial=true&entities_per_page={}&search={}&sort_by={}&sort_order={}&page={}", entity_name, entities_per_page, search, sort_by, sort_order, page),
+                format!("/admin/{}/list?entities_per_page={}&search={}&sort_by={}&sort_order={}&page={}", entity_name, entities_per_page, search, sort_by, sort_order, page),
             ))
             .finish()),
         false => Ok(HttpResponse::InternalServerError().finish()),

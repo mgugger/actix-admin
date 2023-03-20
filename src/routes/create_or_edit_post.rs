@@ -107,7 +107,6 @@ pub async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewMod
                 let entities_per_page = params
                     .entities_per_page
                     .unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
-                let _render_partial = params.render_partial.unwrap_or(false);
                 let search = params.search.clone().unwrap_or(String::new());
                 let sort_by = params
                     .sort_by
@@ -156,7 +155,7 @@ async fn render_form<E: ActixAdminViewModelTrait>(
     let entities_per_page = params
         .entities_per_page
         .unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
-    let render_partial = params.render_partial.unwrap_or(false);
+    let render_partial = req.headers().contains_key("HX-Target");
     let search = params.search.clone().unwrap_or(String::new());
     let sort_by = params
         .sort_by
