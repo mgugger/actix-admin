@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
+{% include "loader.html" %}
 {% for model_field in view_model.fields -%}
 <div class="columns">
     <div class="column">
@@ -26,7 +27,7 @@
                     "entities_per_page" : "{{ entities_per_page }}",
                     "search" : "{{ search }}",
                     "sort_by" : "{{ sort_by }}",
-                    "sort_order" : "{{ sort_order }}"
+                    "sort_order" : "{{ sort_order }}",
                     "page" : "{{ page }}"
                     }' hx-boost="true" hx-push-url="true" hx-indicator="#loading"
                     class="button is-link is-light" href="{{ base_path }}/list">Back</a>

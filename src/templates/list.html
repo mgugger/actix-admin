@@ -6,12 +6,12 @@
 <div class="columns">
     <div class="column">
         <div class="buttons">
-            <a class="button is-primary" href="create" hx-boost="true" hx-indicator="#loading">Create</a>
+            <a class="button is-primary" href="/admin/{{ entity_name }}/create" hx-boost="true" hx-indicator="#loading"><i class="fa-solid fa-circle-plus"></i></a>
 
             <div class="dropdown is-hoverable">
                 <div class="dropdown-trigger">
                     <button class="button" aria-haspopup="true" aria-controls="dropdown-menu4">
-                        <span>With selected</span>
+                        <span><i class="fa-solid fa-list"></i></span>
                         <span class="icon is-small">
                             <i class="fas fa-angle-down" aria-hidden="true"></i>
                         </span>
@@ -142,7 +142,7 @@
             <tr>
                 <td><input type="checkbox" name="ids" value="{{ entity.primary_key }}"></td>
                 <td>
-                    <a href="show/{{ entity.primary_key }}" hx-vals='{ 
+                    <a href="/admin/{{ entity_name }}/show/{{ entity.primary_key }}" hx-vals='{ 
                                 "page" : "{{ page }}",
                                 "entities_per_page" : "{{ entities_per_page }}",
                                 "search" : "{{ search }}",
@@ -165,7 +165,7 @@
                 {% endif %}
                 {%- endfor %}
                 <td>
-                    <a hx-target="body" href="edit/{{ entity.primary_key }}" hx-vals='{ 
+                    <a hx-target="body" href="/admin/{{ entity_name }}/edit/{{ entity.primary_key }}" hx-vals='{ 
                                 "page" : "{{ page }}",
                                 "entities_per_page" : "{{ entities_per_page }}",
                                 "search" : "{{ search }}",
