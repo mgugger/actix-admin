@@ -194,39 +194,41 @@
             "entities_per_page" : "{{ entities_per_page }}",
             "search" : "{{ search }}",
             "sort_by" : "{{ sort_by }}",
-            "sort_order" : "{{ sort_order }}"
+            "sort_order" : "{{ sort_order }}",
+            "render_partial" : "true"
         }' hx-indicator="#loading" class="pagination is-rounded is-centered" role="pagination" aria-label="pagination">
         {% if page > 1 %}
-        <a href="?&page={{ page - 1 }}" class="pagination-previous left-arrow-click"><i
+        <a href="/admin/{{ entity_name }}/list?&page={{ page - 1 }}" class="pagination-previous left-arrow-click"><i
                 class="fa-solid fa-arrow-left"></i>
         </a>
         {% endif %}
-        {% if page < num_pages %} <a href="?page={{ page + 1 }}" class="pagination-next right-arrow-click"><i
+        {% if page < num_pages %} 
+            <a href="/admin/{{ entity_name }}/list?page={{ page + 1 }}" class="pagination-next right-arrow-click"><i
                 class="fa-solid fa-arrow-right"></i>
             </a>
-            {% endif %}
-            <ul class="pagination-list">
-                <li>
-                    <a class="pagination-link {% if page == 1 %}is-current{% endif %}" href="?page={{ 1 }}"
-                        aria-label="Goto page 1">1</a>
-                </li>
-                <li>
-                    <span class="pagination-ellipsis">&hellip;</span>
-                </li>
-                {% for i in range(start=min_show_page,end=max_show_page) %}
-                <li><a class="pagination-link {% if page == i+1 %}is-current{% endif %}"
-                        aria-label="Goto page {{ i + 1 }}" href="?page={{ i + 1 }}">{{
-                        i + 1 }}</a></li>
-                {%- endfor %}
-                <li>
-                    <span class="pagination-ellipsis">&hellip;</span>
-                </li>
-                <li>
-                    <a href="?page={{ num_pages }}"
-                        class="pagination-link is-rounded {% if page == num_pages %}is-current{% endif %}"
-                        aria-label="Goto page {{ num_pages }}">{{ num_pages }} </a>
-                </li>
-            </ul>
+        {% endif %}
+        <ul class="pagination-list">
+            <li>
+                <a class="pagination-link {% if page == 1 %}is-current{% endif %}" href="/admin/{{ entity_name }}/list?page={{ 1 }}"
+                    aria-label="Goto page 1">1</a>
+            </li>
+            <li>
+                <span class="pagination-ellipsis">&hellip;</span>
+            </li>
+            {% for i in range(start=min_show_page,end=max_show_page) %}
+            <li><a class="pagination-link {% if page == i+1 %}is-current{% endif %}"
+                    aria-label="Goto page {{ i + 1 }}" href="/admin/{{ entity_name }}/list?page={{ i + 1 }}">{{
+                    i + 1 }}</a></li>
+            {%- endfor %}
+            <li>
+                <span class="pagination-ellipsis">&hellip;</span>
+            </li>
+            <li>
+                <a href="/admin/{{ entity_name }}/list?page={{ num_pages }}"
+                    class="pagination-link is-rounded {% if page == num_pages %}is-current{% endif %}"
+                    aria-label="Goto page {{ num_pages }}">{{ num_pages }} </a>
+            </li>
+        </ul>
     </nav>
 </div>
 
