@@ -110,7 +110,8 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
         }),
         login_link: Some("/azure-auth/login".to_string()),
         logout_link: Some("/azure-auth/logout".to_string()),
-        file_upload_directory: "./file_uploads"
+        file_upload_directory: "./file_uploads",
+        navbar_title: "ActixAdmin Example"
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);

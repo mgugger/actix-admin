@@ -24,9 +24,17 @@
             {% endfor %}
             {% endif %}
         </div>
+
         <div id="content">
-            {% block content %}
-            {% endblock content %}
+            <div class="columns">
+                <aside id="nav_aside" class="column is-2 is-hidden is-narrow-mobile is-fullheight is-hidden-mobile">
+                    {% block aside %}
+                    {% endblock aside %}
+                </aside>
+
+                {% block content %}
+                {% endblock content %}
+            </div>
         </div>
     </div>
 </body>

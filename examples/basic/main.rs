@@ -28,7 +28,8 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
         user_is_logged_in: None,
         login_link: None,
         logout_link: None,
-        file_upload_directory: "./file_uploads"
+        file_upload_directory: "./file_uploads",
+        navbar_title: "ActixAdmin Example"
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
