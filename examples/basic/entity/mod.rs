@@ -1,10 +1,12 @@
 // setup
 use sea_orm::sea_query::{ForeignKeyCreateStatement, ColumnDef, TableCreateStatement};
-use sea_orm::{Set, EntityTrait, error::*, sea_query, ConnectionTrait, DbConn, ExecResult};
+use sea_orm::{Set, EntityTrait, error::*, sea_query, ConnectionTrait, DbConn, ExecResult };
 pub mod comment;
 pub mod post;
+pub mod user;
 pub use comment::Entity as Comment;
 pub use post::Entity as Post;
+pub use user::Entity as User;
 use chrono::{Local, Duration, DurationRound};
 use sea_orm::prelude::Decimal;
 
@@ -61,7 +63,22 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
         )
         .to_owned();
 
-    let res = create_table(db, &stmt).await;
+    let _res = create_table(db, &stmt).await;
+
+    let stmt = sea_query::Table::create()
+        .table(user::Entity)
+        .if_not_exists()
+        .col(
+            ColumnDef::new(post::Column::Id)
+                .integer()
+                .not_null()
+                .auto_increment()
+                .primary_key(),
+        )
+        .col(ColumnDef::new(user::Column::Name).string().not_null())
+        .to_owned();
+
+    let _res = create_table(db, &stmt).await;
 
     for i in 1..1000 {
         let row = post::ActiveModel {
@@ -87,5 +104,13 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
        let _res = Comment::insert(row).exec(db).await;
   }
 
-    res
+  for i in 1..100 {
+    let row = user::ActiveModel {
+       name: Set(format!("user {}", i)),
+       ..Default::default()
+    };
+    let _res = User::insert(row).exec(db).await;
+}
+
+    _res
 }

@@ -32,10 +32,10 @@ name = "actix-admin-example"
 path = "main.rs"
 
 [dependencies]
-actix-web = "^4.2.1"
+actix-web = "^4.3.1"
 actix-rt = "2.7.0"
 actix-multipart = "^0.4.0"
-sea-orm = { version = "^0.11.1", features = [ "sqlx-sqlite", "runtime-actix-native-tls", "macros" ], default-features = true }
+sea-orm = { version = "^0.11.3", features = [ "sqlx-sqlite", "runtime-actix-native-tls", "macros" ], default-features = true }
 chrono = "0.4.23"
 tera = "^1.17.1"
 serde = "^1.0.152"

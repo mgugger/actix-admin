@@ -71,63 +71,33 @@
             <input type="hidden" name="entities_per_page" value="{{ entities_per_page }}">
             <input type="hidden" name="search" value="{{ search }}">
             <input type="hidden" name="page" value="{{ page }}">
-            <table class="table is-relative is-fullwidth is-hoverable is-striped">
+            <table class="table is-relative is-narrow is-fullwidth is-hoverable is-striped">
                 <thead>
                     <tr>
                         <th>
                             <input type="checkbox" onclick="checkAll(this)">
                         </th>
-                        <th>
-                            <div class="dropdown is-hoverable">
-                                <div class="dropdown-trigger">
-                                    <div class="navbar-item has-dropdown" aria-haspopup="true"
-                                        aria-controls="dropdown-menu4">
-                                        <a class="navbar-link">
-                                            <span>{{ view_model.primary_key | split(pat="_") | join(sep=" ") | title
-                                                }}</span>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="dropdown-menu" id="dropdown-menu4" role="menu">
-                                    <div class="dropdown-content">
-                                        <div class="dropdown-item is-clickable"
-                                            onclick="sort_by('{{ view_model.primary_key }}', 'Desc');">
-                                            Sort by Desc <i class="ml-1 fa-solid fa-caret-down"></i>
-                                        </div>
-                                        <div class="dropdown-item is-clickable"
-                                            onclick="sort_by('{{ view_model.primary_key }}', 'Asc');">
-                                            Sort by Asc <i class="ml-1 fa-solid fa-caret-up"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <th onclick="sort_by('{{ view_model.primary_key }}');" class="is-clickable">{{
+                            view_model.primary_key | title }}
+                            {% if sort_by == view_model.primary_key %}
+                                {% if sort_order == "Asc" %}
+                                <i class="ml-1 fa-solid fa-caret-up"></i>
+                                {% elif sort_order == "Desc" %}
+                                <i class="ml-1 fa-solid fa-caret-down"></i>
+                                {% endif %}
+                            {% endif %}
                         </th>
                         {% for model_field in view_model.fields | filter(attribute="list_hide_column", value=false) |
                         sort(attribute="list_sort_position") -%}
-                        <th>
-                            <div class="dropdown is-hoverable">
-                                <div class="dropdown-trigger">
-                                    <div class="navbar-item has-dropdown" aria-haspopup="true"
-                                        aria-controls="dropdown-menu4">
-                                        <a class="navbar-link">
-                                            <span>{{ model_field.field_name | split(pat="_") | join(sep=" ") | title
-                                                }}</span>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="dropdown-menu" id="dropdown-menu4" role="menu">
-                                    <div class="dropdown-content">
-                                        <div class="dropdown-item is-clickable"
-                                            onclick="sort_by('{{ model_field.field_name }}', 'Desc');">
-                                            Sort by Desc <i class="ml-1 fa-solid fa-caret-down"></i>
-                                        </div>
-                                        <div class="dropdown-item is-clickable"
-                                            onclick="sort_by('{{ model_field.field_name }}', 'Asc');">
-                                            Sort by Asc <i class="ml-1 fa-solid fa-caret-up"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <th onclick="sort_by('{{ model_field.field_name }}');" class="is-clickable">{{
+                            model_field.field_name | split(pat="_") | join(sep=" ") | title }}
+                            {% if sort_by == model_field.field_name %}
+                                {% if sort_order == "Asc" %}
+                                <i class="ml-1 fa-solid fa-caret-up"></i>
+                                {% elif sort_order == "Desc" %}
+                                <i class="ml-1 fa-solid fa-caret-down"></i>
+                                {% endif %}
+                            {% endif %}
                         </th>
                         {%- endfor %}
                         <th>
@@ -164,7 +134,7 @@
                 <td>{{ entity.values | get(key=model_field.field_name) }}</td>
                 {% endif %}
                 {%- endfor %}
-                <td>
+                <td class="has-text-right">
                     <a hx-target="body" href="/admin/{{ entity_name }}/edit/{{ entity.primary_key }}" hx-vals='{ 
                                 "page" : "{{ page }}",
                                 "entities_per_page" : "{{ entities_per_page }}",

@@ -15,12 +15,16 @@ mod attributes;
 mod model_fields;
 
 #[proc_macro_derive(DeriveActixAdminEnumSelectList, attributes(actix_admin))]
-pub fn derive_actix_admin_enum_select_list(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn derive_actix_admin_enum_select_list(
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
     get_select_list_from_enum(input)
 }
 
 #[proc_macro_derive(DeriveActixAdminModelSelectList, attributes(actix_admin))]
-pub fn derive_actix_admin_model_select_list(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn derive_actix_admin_model_select_list(
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
     get_select_list_from_model(input)
 }
 
@@ -30,10 +34,10 @@ pub fn derive_actix_admin(_input: proc_macro::TokenStream) -> proc_macro::TokenS
         use std::convert::From;
         use actix_admin::prelude::*;
         use sea_orm::{
-            ActiveValue::Set, 
-            ConnectOptions, 
-            DatabaseConnection, 
-            entity::*, 
+            ActiveValue::Set,
+            ConnectOptions,
+            DatabaseConnection,
+            entity::*,
             query::*,
             EntityTrait
         };
@@ -82,7 +86,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                     let custom_errors = Entity::validate(&active_model);
                     model.custom_errors = custom_errors;
                 }
-            } 
+            }
 
             async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> Result<ActixAdminModel, ActixAdminError> {
                 let new_model = ActiveModel::from(model.clone());
@@ -108,8 +112,8 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                     Some(e) => {
                         let mut entity: ActiveModel = e.into();
                         #(#fields_for_edit_model);*;
-                        let entity: Model = entity.update(db).await?;    
-                        Ok(model)        
+                        let entity: Model = entity.update(db).await?;
+                        Ok(model)
                     },
                     _ => Err(ActixAdminError::EntityDoesNotExistError)
                 }
@@ -143,28 +147,46 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
 pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let fields = get_fields_for_tokenstream(input);
 
-    let field_names = get_fields_as_tokenstream(&fields, |model_field| -> String { model_field.ident.to_string() });
-    let field_html_input_type = get_fields_as_tokenstream(&fields, |model_field| -> String { model_field.html_input_type.to_string() });
-    let field_list_regex_mask = get_fields_as_tokenstream(&fields, |model_field| -> String { model_field.list_regex_mask.to_string() });
-    let field_select_list = get_fields_as_tokenstream(&fields, |model_field| -> String { model_field.select_list.to_string() });
-    let is_option_list = get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.is_option() });
+    let field_names = get_fields_as_tokenstream(&fields, |model_field| -> String {
+        model_field.ident.to_string()
+    });
+    let field_html_input_type = get_fields_as_tokenstream(&fields, |model_field| -> String {
+        model_field.html_input_type.to_string()
+    });
+    let field_list_regex_mask = get_fields_as_tokenstream(&fields, |model_field| -> String {
+        model_field.list_regex_mask.to_string()
+    });
+    let field_select_list = get_fields_as_tokenstream(&fields, |model_field| -> String {
+        model_field.select_list.to_string()
+    });
+    let is_option_list =
+        get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.is_option() });
     let fields_for_create_model = get_fields_for_create_model(&fields);
     let fields_for_from_model = get_fields_for_from_model(&fields);
     let field_for_primary_key = get_field_for_primary_key(&fields);
     let fields_for_validate_model = get_fields_for_validate_model(&fields);
-    let fields_type_path = get_fields_as_tokenstream(&fields, |model_field| -> String { model_field.get_type_path_string() });
-    let fields_textarea = get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.textarea });
-    let fields_file_upload = get_fields_as_tokenstream(&fields, |model_field|  -> bool { model_field.file_upload });
+    let fields_type_path = get_fields_as_tokenstream(&fields, |model_field| -> String {
+        model_field.get_type_path_string()
+    });
+    let fields_textarea =
+        get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.textarea });
+    let fields_file_upload =
+        get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.file_upload });
     let fields_match_name_to_columns = get_match_name_to_column(&fields);
-    let fields_list_sort_positions = get_fields_as_tokenstream(&fields, |model_field| -> usize { model_field.list_sort_position });
-    let fields_list_hide_column = get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.list_hide_column });
+    let fields_list_sort_positions = get_fields_as_tokenstream(&fields, |model_field| -> usize {
+        model_field.list_sort_position
+    });
+    let fields_list_hide_column = get_fields_as_tokenstream(&fields, |model_field| -> bool {
+        model_field.list_hide_column
+    });
     let fields_searchable = get_actix_admin_fields_searchable(&fields);
+    let has_searchable_fields = fields_searchable.len() > 0;
 
     let expanded = quote! {
         actix_admin::prelude::lazy_static! {
             pub static ref ACTIX_ADMIN_VIEWMODEL_FIELDS: Vec<ActixAdminViewModelField> = {
                 let mut vec = Vec::new();
-            
+
                 let field_names = stringify!(
                         #(#field_names),*
                 ).split(",")
@@ -207,9 +229,9 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                 let list_regex_masks = [
                     #(#field_list_regex_mask),*
                 ];
-                
+
                 for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea, is_file_upload, list_sort_position, list_hide_column, list_regex_mask) in actix_admin::prelude::izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas, fields_fileupload, list_sort_positions, list_hide_columns, list_regex_masks) {
-                
+
                     let select_list = select_list.replace('"', "").replace(' ', "").to_string();
                     let field_name = field_name.replace('"', "").replace(' ', "").to_string();
                     let html_input_type = html_input_type.replace('"', "").replace(' ', "").to_string();
@@ -260,26 +282,28 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
         #[actix_admin::prelude::async_trait]
         impl ActixAdminModelTrait for Entity {
             async fn list_model(db: &DatabaseConnection, page: u64, posts_per_page: u64, search: &str, sort_by: &str, sort_order: &SortOrder) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError> {
-                use sea_orm::{ query::* };
-
                 let sort_column = match sort_by {
                     #(#fields_match_name_to_columns)*
                     _ => panic!("Unknown column")
                 };
-                
-                let query = if sort_order.eq(&SortOrder::Asc) {
+
+                let mut query = if sort_order.eq(&SortOrder::Asc) {
                     Entity::find().order_by_asc(sort_column)
                 } else {
                     Entity::find().order_by_desc(sort_column)
                 };
 
-                let paginator = query
+                if (#has_searchable_fields) {
+                    query = query
                     .filter(
                         Condition::any()
                         #(#fields_searchable)*
                     )
-                    .paginate(db, posts_per_page);
+                }
+
+                let paginator = query.paginate(db, posts_per_page);
                 let num_pages = paginator.num_pages().await?;
+
                 let mut model_entities = Vec::new();
                 if (num_pages == 0) { return Ok((num_pages, model_entities)) };
                 let entities = paginator
@@ -290,7 +314,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                         ActixAdminModel::from(entity)
                     );
                 }
- 
+
                 Ok((num_pages, model_entities))
             }
 

@@ -5,7 +5,7 @@ use actix_web::{web, App, HttpServer, middleware};
 use sea_orm::{ConnectOptions, DatabaseConnection};
 use std::time::Duration;
 mod entity;
-use entity::{Post, Comment};
+use entity::{Post, Comment, User};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -33,13 +33,14 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
     
-
     let post_view_model = ActixAdminViewModel::from(Post);
     admin_builder.add_entity::<AppState, Post>(&post_view_model);
 
-    let some_category = "Groupings";
+    let some_category = "Group";
     let comment_view_model = ActixAdminViewModel::from(Comment);
     admin_builder.add_entity_to_category::<AppState, Comment>(&comment_view_model, some_category);
+    let user_view_model = ActixAdminViewModel::from(User);
+    admin_builder.add_entity_to_category::<AppState, User>(&user_view_model, some_category);
 
     admin_builder
 }

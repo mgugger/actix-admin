@@ -39,8 +39,14 @@
         }
     }
 
-    function sort_by(column, order) {
-        document.getElementsByName("sort_order").forEach((e) => e.value = order);
+    function sort_by(column) {
+        console.log(column);
+        current_sort_order = document.getElementsByName("sort_order")[0].value;
+        if (current_sort_order == "Asc") {
+            document.getElementsByName("sort_order").forEach((e) => e.value = "Desc");
+        } else {
+            document.getElementsByName("sort_order").forEach((e) => e.value = "Asc");
+        }
         document.getElementsByName("sort_by").forEach((e) => e.value = column);
         document.getElementById('table_form').requestSubmit();
     }
