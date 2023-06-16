@@ -66,15 +66,17 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                     entity_name: entity.table_name().to_string(),
                     fields: Entity::get_fields(),
                     show_search: #has_searchable_fields,
-                    user_can_access: None
+                    user_can_access: None,
+                    default_show_aside: Entity::get_filter().len() > 0
                 }
             }
         }
 
         #[actix_admin::prelude::async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
-            async fn list(db: &DatabaseConnection, page: u64, entities_per_page: u64, search: &str, sort_by: &str, sort_order: &SortOrder) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError> {
-                let entities = Entity::list_model(db, page, entities_per_page, search, sort_by, sort_order).await;
+            async fn list(db: &DatabaseConnection, page: u64, entities_per_page: u64, viewmodel_filter: Vec<ActixAdminViewModelFilter>, search: &str, sort_by: &str, sort_order: &SortOrder) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError> {
+                let filter_values: HashMap<String, Option<String>> = viewmodel_filter.iter().map(|f| (f.name.to_string(), f.value.clone())).collect();
+                let entities = Entity::list_model(db, page, entities_per_page, filter_values, search, sort_by, sort_order).await;
                 entities
             }
 
@@ -94,6 +96,15 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 model.primary_key = Some(insert_operation.last_insert_id.to_string());
 
                 Ok(model)
+            }
+
+            async fn get_viewmodel_filter() -> HashMap<String, ActixAdminViewModelFilter> {
+                Entity::get_filter().iter().map(|f| 
+                    (f.name.to_string(), ActixAdminViewModelFilter { 
+                        name: f.name.to_string(), 
+                        value: None 
+                    })
+                ).collect()
             }
 
             async fn get_entity(db: &DatabaseConnection, id: i32) -> Result<ActixAdminModel, ActixAdminError> {
@@ -281,7 +292,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
 
         #[actix_admin::prelude::async_trait]
         impl ActixAdminModelTrait for Entity {
-            async fn list_model(db: &DatabaseConnection, page: u64, posts_per_page: u64, search: &str, sort_by: &str, sort_order: &SortOrder) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError> {
+            async fn list_model(db: &DatabaseConnection, page: u64, posts_per_page: u64, filter_values: HashMap<String, Option<String>>, search: &str, sort_by: &str, sort_order: &SortOrder) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError> {
                 let sort_column = match sort_by {
                     #(#fields_match_name_to_columns)*
                     _ => panic!("Unknown column")
@@ -299,6 +310,13 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                         Condition::any()
                         #(#fields_searchable)*
                     )
+                }
+
+                let filters = Entity::get_filter();
+                for filter in filters {
+                    let myfn = filter.filter;
+                    let value = filter_values.get(&filter.name).unwrap_or_else(|| &None);
+                    query = myfn(query, value.clone());
                 }
 
                 let paginator = query.paginate(db, posts_per_page);

@@ -24,11 +24,11 @@ pub mod view_model;
 
 pub mod prelude {
     pub use crate::builder::{ActixAdminBuilder, ActixAdminBuilderTrait};
-    pub use crate::model::{ActixAdminModel, ActixAdminModelTrait, ActixAdminModelValidationTrait};
+    pub use crate::model::{ActixAdminModel, ActixAdminModelTrait, ActixAdminModelValidationTrait, ActixAdminModelFilter, ActixAdminModelFilterTrait};
     pub use crate::routes::{create_or_edit_post, get_admin_ctx, SortOrder};
     pub use crate::view_model::{
         ActixAdminViewModel, ActixAdminViewModelField, ActixAdminViewModelFieldType,
-        ActixAdminViewModelSerializable, ActixAdminViewModelTrait,
+        ActixAdminViewModelSerializable, ActixAdminViewModelTrait, ActixAdminViewModelFilter
     };
     pub use crate::{hashmap, ActixAdminSelectListTrait};
     pub use crate::{ActixAdmin, ActixAdminAppDataTrait, ActixAdminConfiguration, ActixAdminError};

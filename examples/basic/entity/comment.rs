@@ -1,6 +1,6 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
-use actix_admin::prelude::*;
+use actix_admin::{prelude::*};
 use super::Post;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel)]
@@ -50,3 +50,23 @@ impl ActixAdminModelValidationTrait<ActiveModel> for Entity {
         errors
     }
 }
+
+impl ActixAdminModelFilterTrait<Entity> for Entity {
+    fn get_filter() -> Vec<ActixAdminModelFilter<Entity>> {
+        vec![
+            ActixAdminModelFilter::<Entity> {
+                name: "Id".to_string(),
+                filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
+                    q.apply_if(v, | query, val: String| query.filter(Column::Id.eq(val)))
+                }
+            },
+            ActixAdminModelFilter::<Entity> {
+                name: "User".to_string(),
+                filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
+                    q.apply_if(v, | query, val: String| query.filter(Column::User.eq(val)))
+                }
+            }
+        ]
+    }
+}
+

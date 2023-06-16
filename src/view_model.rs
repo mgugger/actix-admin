@@ -14,6 +14,7 @@ pub trait ActixAdminViewModelTrait {
         db: &DatabaseConnection,
         page: u64,
         entities_per_page: u64,
+        viewmodel_filter: Vec<ActixAdminViewModelFilter>,
         search: &str,
         sort_by: &str,
         sort_order: &SortOrder
@@ -25,6 +26,7 @@ pub trait ActixAdminViewModelTrait {
     async fn get_entity(db: &DatabaseConnection, id: i32) -> Result<ActixAdminModel, ActixAdminError>;
     async fn edit_entity(db: &DatabaseConnection, id: i32, model: ActixAdminModel) -> Result<ActixAdminModel, ActixAdminError>;
     async fn get_select_lists(db: &DatabaseConnection) -> Result<HashMap<String, Vec<(String, String)>>, ActixAdminError>;
+    async fn get_viewmodel_filter() -> HashMap<String, ActixAdminViewModelFilter>;
     fn validate_entity(model: &mut ActixAdminModel);
 
     fn get_entity_name() -> String;
@@ -40,7 +42,8 @@ pub struct ActixAdminViewModel {
     pub primary_key: String,
     pub fields: &'static[ActixAdminViewModelField],
     pub show_search: bool,
-    pub user_can_access: Option<fn(&Session) -> bool>
+    pub user_can_access: Option<fn(&Session) -> bool>,
+    pub default_show_aside: bool
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -48,7 +51,14 @@ pub struct ActixAdminViewModelSerializable {
     pub entity_name: String,
     pub primary_key: String,
     pub fields: &'static [ActixAdminViewModelField],
-    pub show_search: bool
+    pub show_search: bool,
+    pub default_show_aside: bool
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ActixAdminViewModelFilter {
+    pub name: String,
+    pub value: Option<String>
 }
 
 // TODO: better alternative to serialize only specific fields for ActixAdminViewModel
@@ -58,11 +68,11 @@ impl From<ActixAdminViewModel> for ActixAdminViewModelSerializable {
             entity_name: entity.entity_name,
             primary_key: entity.primary_key,
             fields: entity.fields,
-            show_search: entity.show_search
+            show_search: entity.show_search,
+            default_show_aside: entity.default_show_aside
         }
     }
 }
-
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum ActixAdminViewModelFieldType {

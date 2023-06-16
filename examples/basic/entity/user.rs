@@ -1,6 +1,6 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
-use actix_admin::prelude::*;
+use actix_admin::{prelude::*};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel)]
 #[sea_orm(table_name = "user")]
@@ -18,3 +18,5 @@ impl ActiveModelBehavior for ActiveModel {}
 pub enum Relation {}
 
 impl ActixAdminModelValidationTrait<ActiveModel> for Entity {}
+
+impl ActixAdminModelFilterTrait<Entity> for Entity {}

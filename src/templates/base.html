@@ -27,7 +27,7 @@
 
         <div id="content">
             <div class="columns">
-                <aside id="nav_aside" class="column is-2 is-hidden is-narrow-mobile is-fullheight is-hidden-mobile">
+                <aside id="nav_aside" class="column is-2 {% if not view_model.default_show_aside %}is-hidden{% endif %} is-narrow-mobile is-fullheight is-hidden-mobile">
                     {% block aside %}
                     {% endblock aside %}
                 </aside>

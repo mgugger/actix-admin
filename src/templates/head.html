@@ -80,11 +80,13 @@
         });
     });
 
+    let error =  "<div class=\"notification mb-4 is-light is-danger\"><button class=\"delete\" onclick=\"this.parentElement.remove()\"></button>An Error occurred</div>";
     htmx.on("htmx:responseError", function () {
-        document.getElementById("notifications").insertAdjacentHTML(
-            "afterend",
-            "<div class=\"notification mb-4 is-light is-danger\"><button class=\"delete\" onclick=\"this.parentElement.remove()\"></button>An Error occurred</div>");
-    })
+        document.getElementById("notifications").insertAdjacentHTML("afterend", error)
+    });
+    htmx.on("htmx:sendError", function () {
+        document.getElementById("notifications").insertAdjacentHTML("afterend", error)
+    });
 </script>
 
 <style>

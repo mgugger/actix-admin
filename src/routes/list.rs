@@ -1,5 +1,5 @@
 use std::fmt;
-
+use urlencoding::decode;
 use crate::prelude::*;
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use serde::Deserialize;
@@ -81,7 +81,20 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
         .unwrap_or(view_model.primary_key.to_string());
     let sort_order = params.sort_order.as_ref().unwrap_or(&SortOrder::Asc);
 
-    let result = E::list(db, page, entities_per_page, &search, &sort_by, &sort_order).await;
+    let decoded_querystring = decode(req.query_string()).unwrap();
+    let actixadminfilters: Vec<ActixAdminViewModelFilter> = decoded_querystring
+        .split("&")
+        .filter(|qf| qf.starts_with("filter_"))
+        .map(|f| {
+            let mut kv = f.split("=");
+            let af = ActixAdminViewModelFilter {
+                name: kv.next().unwrap().strip_prefix("filter_").unwrap_or_default().to_string(),
+                value: kv.next().map(|s| s.to_string()).filter(|f| !f.is_empty()),
+            };
+            af
+        }).collect();
+
+    let result = E::list(db, page, entities_per_page, actixadminfilters, &search, &sort_by, &sort_order).await;
 
     match result {
         Ok(res) => {
@@ -130,6 +143,7 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     ctx.insert("notifications", &notifications);
     ctx.insert("entities_per_page", &entities_per_page);
     ctx.insert("render_partial", &render_partial);
+    ctx.insert("viewmodel_filter", &E::get_viewmodel_filter().await);
     ctx.insert(
         "view_model",
         &ActixAdminViewModelSerializable::from(view_model.clone()),
@@ -138,7 +152,8 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     ctx.insert("sort_by", &sort_by);
     ctx.insert("sort_order", &sort_order);
 
-    let body = actix_admin.tera
+    let body = actix_admin
+        .tera
         .render("list.html", &ctx)
         .map_err(|err| error::ErrorInternalServerError(err))?;
     Ok(http_response_code.content_type("text/html").body(body))

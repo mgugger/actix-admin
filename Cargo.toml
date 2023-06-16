@@ -35,6 +35,7 @@ sea-orm = { version = "^0.11.3", features = [], default-features = false }
 actix-admin-macros = { version = "0.4.0", path = "actix_admin_macros" }
 derive_more = "0.99.17"
 regex = "1.8.4"
+urlencoding = "2.1.2"
 
 [dev-dependencies]
 sea-orm = { version = "^0.11.3", features = [ "sqlx-sqlite", "runtime-actix-native-tls", "macros" ], default-features = true }

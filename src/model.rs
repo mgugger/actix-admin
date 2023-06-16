@@ -1,11 +1,12 @@
 use crate::routes::SortOrder;
+use crate::view_model::ActixAdminViewModelFilter;
 use crate::{ActixAdminError, ActixAdminViewModelField};
 use actix_multipart::{Multipart, MultipartError};
 use actix_web::web::Bytes;
 use async_trait::async_trait;
 use chrono::{NaiveDate, NaiveDateTime};
 use futures_util::stream::StreamExt as _;
-use sea_orm::DatabaseConnection;
+use sea_orm::{DatabaseConnection, EntityTrait};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fs::File;
@@ -18,6 +19,7 @@ pub trait ActixAdminModelTrait {
         db: &DatabaseConnection,
         page: u64,
         posts_per_page: u64,
+        filter_values: HashMap<String, Option<String>>,
         search: &str,
         sort_by: &str,
         sort_order: &SortOrder
@@ -29,6 +31,26 @@ pub trait ActixAdminModelTrait {
 pub trait ActixAdminModelValidationTrait<T> {
     fn validate(_model: &T) -> HashMap<String, String> {
         return HashMap::new();
+    }
+}
+
+pub struct ActixAdminModelFilter<E: EntityTrait> {
+    pub name: String,
+    pub filter: fn(sea_orm::Select<E>, Option<String>) -> sea_orm::Select<E>
+}
+
+pub trait ActixAdminModelFilterTrait<E: EntityTrait> {
+    fn get_filter() -> Vec<ActixAdminModelFilter<E>> {
+        Vec::new()
+    }
+}
+
+impl<T: EntityTrait> From<ActixAdminModelFilter<T>> for ActixAdminViewModelFilter {
+    fn from(filter: ActixAdminModelFilter<T>) -> Self {
+        ActixAdminViewModelFilter {
+            name: filter.name,
+            value: None
+        }
     }
 }
 

@@ -1,3 +1,4 @@
+use actix_admin::model::ActixAdminModelFilterTrait;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use actix_admin::prelude::*; 
@@ -72,3 +73,5 @@ impl FromStr for Tea {
 }
 
 impl ActixAdminModelValidationTrait<ActiveModel> for Entity {}
+
+impl ActixAdminModelFilterTrait<Entity> for Entity {}
