@@ -97,6 +97,7 @@ pub fn create_actix_admin_builder() -> ActixAdminBuilder {
         login_link: None,
         logout_link: None,
         file_upload_directory: "./file_uploads",
+        navbar_title: "test"
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);

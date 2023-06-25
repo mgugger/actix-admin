@@ -150,7 +150,7 @@ fn get_html_input_type<S: BuildHasher>(
 }
 
 fn get_tera() -> Tera {
-    let mut tera = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "*")).unwrap();
+    let mut tera = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/src/templates/*.html")).unwrap();
     tera.register_filter("get_html_input_type", get_html_input_type);
     tera.register_filter("get_html_input_class", get_html_input_class);
     tera.register_filter("get_icon", get_icon);

@@ -52,3 +52,5 @@ impl ActixAdminModelValidationTrait<ActiveModel> for Entity {
         errors
     }
 }
+
+impl ActixAdminModelFilterTrait<Entity> for Entity {}

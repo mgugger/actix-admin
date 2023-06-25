@@ -68,3 +68,5 @@ impl FromStr for Tea {
 }
 
 impl ActixAdminModelValidationTrait<ActiveModel> for Entity {}
+
+impl ActixAdminModelFilterTrait<Entity> for Entity {}
