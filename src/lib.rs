@@ -31,7 +31,7 @@ pub mod prelude {
         ActixAdminViewModelSerializable, ActixAdminViewModelTrait, ActixAdminViewModelFilter
     };
     pub use crate::{hashmap, ActixAdminSelectListTrait};
-    pub use crate::{ActixAdmin, ActixAdminAppDataTrait, ActixAdminConfiguration, ActixAdminError};
+    pub use crate::{ActixAdmin, ActixAdminConfiguration, ActixAdminError};
     pub use actix_admin_macros::{
         DeriveActixAdmin, DeriveActixAdminEnumSelectList, DeriveActixAdminModel,
         DeriveActixAdminModelSelectList, DeriveActixAdminViewModel,
@@ -51,12 +51,6 @@ macro_rules! hashmap {
          $( map.insert($key.to_string(), $val); )*
          map
     }}
-}
-
-// AppDataTrait
-pub trait ActixAdminAppDataTrait {
-    fn get_db(&self) -> &DatabaseConnection;
-    fn get_actix_admin(&self) -> &ActixAdmin;
 }
 
 // SelectListTrait

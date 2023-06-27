@@ -1,13 +1,14 @@
 use actix_web::{web, error, Error, HttpResponse, HttpRequest};
 use actix_session::{Session};
+use sea_orm::DatabaseConnection;
 use tera::{Context};
 use crate::prelude::*;
 
 use super::{ user_can_access_page, render_unauthorized};
 
-pub async fn download<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(req: HttpRequest, session: Session, data: web::Data<T>, params: web::Path<(i32, String)>) -> Result<HttpResponse, Error> {
-    let actix_admin = data.get_actix_admin();
-    let db = &data.get_db();
+pub async fn download<E: ActixAdminViewModelTrait>(req: HttpRequest, session: Session, data: web::Data<ActixAdmin>, db: web::Data<DatabaseConnection>, params: web::Path<(i32, String)>) -> Result<HttpResponse, Error> {
+    let actix_admin = &data.into_inner();
+    let db = &db.into_inner();
 
     let ctx = Context::new();
     let entity_name = E::get_entity_name();
@@ -41,9 +42,8 @@ pub async fn download<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(re
     
 }
 
-pub async fn delete_file<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(session: Session, data: web::Data<T>, params: web::Path<(i32, String)>) -> Result<HttpResponse, Error> {
-    let actix_admin = data.get_actix_admin();
-    let db = &data.get_db();
+pub async fn delete_file<E: ActixAdminViewModelTrait>(session: Session, data: web::Data<ActixAdmin>, db: web::Data<DatabaseConnection>, params: web::Path<(i32, String)>) -> Result<HttpResponse, Error> {
+    let actix_admin = &data.into_inner();
 
     let mut ctx = Context::new();
     let entity_name = E::get_entity_name();
@@ -54,7 +54,7 @@ pub async fn delete_file<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     
     let (id, column_name) = params.into_inner();
     let mut errors: Vec<crate::ActixAdminError> = Vec::new();
-    let result = E::get_entity(db, id).await;
+    let result = E::get_entity(db.get_ref(), id).await;
     let mut model;
     match result {
         Ok(res) => {
@@ -70,7 +70,7 @@ pub async fn delete_file<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
     let file_path = format!("{}/{}/{}", actix_admin.configuration.file_upload_directory, E::get_entity_name(), file_name.unwrap_or_default());
     std::fs::remove_file(file_path).unwrap();
     model.values.remove(&column_name);
-    let _edit_res = E::edit_entity(db, id, model.clone()).await;
+    let _edit_res = E::edit_entity(db.get_ref(), id, model.clone()).await;
 
     let view_model_field = &view_model.fields.iter().find(|field| field.field_name == column_name).unwrap();
     ctx.insert("model_field", view_model_field);

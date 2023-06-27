@@ -22,16 +22,16 @@ A custom *custom_index.html* view can be defined as follows by extending the bas
 To display the *custom_index.html*, define the corresponding function which extends the current tera context from actix-admin and also uses the actix-admin tera instance to render the custom index function.
 
 ```rust
-async fn custom_index<T: ActixAdminAppDataTrait + AppDataTrait>(
+async fn custom_index(
     session: Session,
-    data: web::Data<T>
+    data: web::Data<AppState>
+    actix_admin: web::Data<ActixAdmin>
 ) -> Result<HttpResponse, Error> {
     
     let mut ctx = Context::new();
-    ctx.extend(get_admin_ctx(session, &data));
+    ctx.extend(get_admin_ctx(session, &actix_admin));
 
-    let body = data.get_tmpl()
-    .render("custom_index.html", &ctx).unwrap();
+    let body = data.tmpl.render("custom_index.html", &ctx).unwrap();
     
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
@@ -40,8 +40,8 @@ async fn custom_index<T: ActixAdminAppDataTrait + AppDataTrait>(
 After this in the builder, pass your custom index function defined above:
 ```rust
 let mut admin_builder = ActixAdminBuilder::new(configuration);
-admin_builder.add_custom_handler_for_index::<AppState>(
-    web::get().to(custom_index::<AppState>)
+admin_builder.add_custom_handler_for_index(
+    web::get().to(custom_index)
 );
 ```
 
@@ -53,7 +53,7 @@ Similarly to the custom index above, the builder accepts additional routes to be
 ```rust
 // This will be shown in the top level menu
 let show_in_menu = true;
-admin_builder.add_custom_handler("Custom Route in Menu", "/custom_route_in_menu", web::get().to       custom_index::<AppState>), show_in_menu); 
+admin_builder.add_custom_handler("Custom Route in Menu", "/custom_route_in_menu", web::get().to(custom_index), show_in_menu); 
 ```
 
 ### Tied to a specific entity
@@ -61,11 +61,11 @@ admin_builder.add_custom_handler("Custom Route in Menu", "/custom_route_in_menu"
 // this will expose a menu item which links to /admin/comment/custom_handler and is shown in the NavBar menu
 let show_in_menu = true;
 let some_category = "Some Category";
-admin_builder.add_entity_to_category::<AppState, Comment>(&comment_view_model, some_category);
-admin_builder.add_custom_handler_for_entity::<AppState, Comment>(
+admin_builder.add_entity_to_category::<Comment>(&comment_view_model, some_category);
+admin_builder.add_custom_handler_for_entity::<Comment>(
     "My custom handler",
     "/custom_handler", 
-    web::get().to(custom_handler::<AppState, Comment>),
+    web::get().to(custom_handler::<Comment>),
     show_in_menu
 );
 ```
@@ -75,11 +75,11 @@ admin_builder.add_custom_handler_for_entity::<AppState, Comment>(
 // this will expose a menu item which links to /admin/comment/custom_handler and is shown in the NavBar menu in the group "Some Category"
 let show_in_menu = true;
 let some_category = "Some Category";
-admin_builder.add_entity_to_category::<AppState, Comment>(&comment_view_model, some_category);
-admin_builder.add_custom_handler_for_entity_in_category::<AppState, Comment>(
+admin_builder.add_entity_to_category::<Comment>(&comment_view_model, some_category);
+admin_builder.add_custom_handler_for_entity_in_category::<Comment>(
     "My custom handler",
     "/custom_handler", 
-    web::get().to(custom_handler::<AppState, Comment>),
+    web::get().to(custom_handler::<Comment>),
     some_category,
     show_in_menu
 );

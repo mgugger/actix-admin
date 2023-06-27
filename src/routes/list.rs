@@ -1,4 +1,5 @@
 use std::fmt;
+use sea_orm::DatabaseConnection;
 use urlencoding::decode;
 use crate::prelude::*;
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
@@ -46,12 +47,13 @@ pub fn replace_regex(view_model: &ActixAdminViewModel, models: &mut Vec<ActixAdm
         });
 }
 
-pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+pub async fn list<E: ActixAdminViewModelTrait>(
     session: Session,
     req: HttpRequest,
-    data: web::Data<T>,
+    data: web::Data<ActixAdmin>,
+    db: web::Data<DatabaseConnection>
 ) -> Result<HttpResponse, Error> {
-    let actix_admin = data.get_actix_admin();
+    let actix_admin = &data.into_inner();
     let entity_name = E::get_entity_name();
     let view_model: &ActixAdminViewModel = actix_admin.view_models.get(&entity_name).unwrap();
     let mut errors: Vec<ActixAdminError> = Vec::new();
@@ -74,7 +76,6 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     let render_partial = req.headers().contains_key("HX-Target");
     let search = params.search.clone().unwrap_or(String::new());
 
-    let db = data.get_db();
     let sort_by = params
         .sort_by
         .clone()
@@ -94,7 +95,7 @@ pub async fn list<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
             af
         }).collect();
 
-    let result = E::list(db, page, entities_per_page, actixadminfilters, &search, &sort_by, &sort_order).await;
+    let result = E::list(&db, page, entities_per_page, actixadminfilters, &search, &sort_by, &sort_order).await;
 
     match result {
         Ok(res) => {

@@ -3,16 +3,18 @@ use crate::prelude::*;
 use actix_session::Session;
 use actix_web::http::header;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
+use sea_orm::DatabaseConnection;
 use tera::Context;
 
-pub async fn delete<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+pub async fn delete<E: ActixAdminViewModelTrait>(
     session: Session,
     _req: HttpRequest,
-    data: web::Data<T>,
+    data: web::Data<ActixAdmin>,
+    db: web::Data<DatabaseConnection>,
     _text: String,
     id: web::Path<i32>,
 ) -> Result<HttpResponse, Error> {
-    let actix_admin = data.get_actix_admin();
+    let actix_admin = &data.into_inner();
     let entity_name = E::get_entity_name();
 
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
@@ -23,7 +25,7 @@ pub async fn delete<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
         return render_unauthorized(&ctx, &actix_admin);
     }
 
-    let db = &data.get_db();
+    let db = &db.get_ref();
     let id = id.into_inner();
     let model_result = E::get_entity(db, id).await;
     let delete_result = E::delete_entity(db, id).await;
@@ -53,13 +55,14 @@ pub async fn delete<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     }
 }
 
-pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+pub async fn delete_many<E: ActixAdminViewModelTrait>(
     session: Session,
     _req: HttpRequest,
-    data: web::Data<T>,
+    data: web::Data<ActixAdmin>,
+    db: web::Data<DatabaseConnection>,
     form: web::Form<Vec<(String, String)>>,
 ) -> Result<HttpResponse, Error> {
-    let actix_admin = data.get_actix_admin();
+    let actix_admin = data.get_ref();
     let entity_name = E::get_entity_name();
 
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
@@ -71,7 +74,7 @@ pub async fn delete_many<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
         return render_unauthorized(&ctx, &actix_admin);
     }
 
-    let db = &data.get_db();
+    let db = &db.get_ref();
     let entity_name = E::get_entity_name();
 
     let ids: Vec<i32> = form.iter().filter(|el| el.0 == "ids").map(|el| el.1.parse::<i32>().unwrap()).collect();

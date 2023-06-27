@@ -1,6 +1,7 @@
 use actix_web::HttpRequest;
 use actix_web::{error, web, Error, HttpResponse};
 use actix_session::{Session};
+use sea_orm::DatabaseConnection;
 use tera::{Context};
 
 use crate::ActixAdminNotification;
@@ -9,9 +10,10 @@ use crate::prelude::*;
 use super::{Params, DEFAULT_ENTITIES_PER_PAGE};
 use super::{ add_auth_context, user_can_access_page, render_unauthorized};
 
-pub async fn show<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(session: Session, req: HttpRequest, data: web::Data<T>, id: web::Path<i32>) -> Result<HttpResponse, Error> {
-    let actix_admin = data.get_actix_admin();
-    let db = &data.get_db();
+pub async fn show<E: ActixAdminViewModelTrait>(
+    session: Session, req: HttpRequest, data: web::Data<ActixAdmin>, id: web::Path<i32>, db: web::Data<DatabaseConnection>
+) -> Result<HttpResponse, Error> {
+    let actix_admin = &data.into_inner();
 
     let mut ctx = Context::new();
     let entity_name = E::get_entity_name();
@@ -21,7 +23,7 @@ pub async fn show<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(sessio
     }
     
     let mut errors: Vec<crate::ActixAdminError> = Vec::new();
-    let result = E::get_entity(db, id.into_inner()).await;
+    let result = E::get_entity(&db, id.into_inner()).await;
     let model;
     match result {
         Ok(res) => {

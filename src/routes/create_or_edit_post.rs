@@ -8,16 +8,18 @@ use actix_multipart::MultipartError;
 use actix_session::Session;
 use actix_web::http::header;
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
+use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
 use tera::Context;
 
-pub async fn create_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+pub async fn create_post<E: ActixAdminViewModelTrait>(
     session: Session,
     req: HttpRequest,
-    data: web::Data<T>,
+    data: web::Data<ActixAdmin>,
+    db: web::Data<DatabaseConnection>,
     payload: Multipart,
 ) -> Result<HttpResponse, Error> {
-    let actix_admin = data.get_actix_admin();
+    let actix_admin = data.get_ref();
     let model = ActixAdminModel::create_from_payload(
         payload,
         &format!(
@@ -27,17 +29,18 @@ pub async fn create_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>
         ),
     )
     .await;
-    create_or_edit_post::<T, E>(&session, req, &data, model, None, actix_admin).await
+    create_or_edit_post::<E>(&session, req, db, model, None, actix_admin).await
 }
 
-pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+pub async fn edit_post<E: ActixAdminViewModelTrait>(
     session: Session,
     req: HttpRequest,
-    data: web::Data<T>,
+    data: web::Data<ActixAdmin>,
+    db: web::Data<DatabaseConnection>,
     payload: Multipart,
     id: web::Path<i32>,
 ) -> Result<HttpResponse, Error> {
-    let actix_admin = data.get_actix_admin();
+    let actix_admin = &data.get_ref();
     let model = ActixAdminModel::create_from_payload(
         payload,
         &format!(
@@ -47,10 +50,10 @@ pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
         ),
     )
     .await;
-    create_or_edit_post::<T, E>(
+    create_or_edit_post::<E>(
         &session,
         req,
-        &data,
+        db, 
         model,
         Some(id.into_inner()),
         actix_admin,
@@ -58,10 +61,10 @@ pub async fn edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
     .await
 }
 
-pub async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
     session: &Session,
     req: HttpRequest,
-    data: &web::Data<T>,
+    db: web::Data<DatabaseConnection>,
     model_res: Result<ActixAdminModel, MultipartError>,
     id: Option<i32>,
     actix_admin: &ActixAdmin,
@@ -76,7 +79,7 @@ pub async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewMod
         ctx.insert("render_partial", &true);
         return render_unauthorized(&ctx, &actix_admin);
     }
-    let db = &data.get_db();
+    let db = db.get_ref();
 
     let mut model = model_res.unwrap();
     E::validate_entity(&mut model);
@@ -87,7 +90,7 @@ pub async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewMod
             req,
             actix_admin,
             view_model,
-            db,
+            &db,
             entity_name,
             &model,
             errors,
@@ -127,7 +130,7 @@ pub async fn create_or_edit_post<T: ActixAdminAppDataTrait, E: ActixAdminViewMod
                     req,
                     actix_admin,
                     view_model,
-                    db,
+                    &db,
                     entity_name,
                     &model,
                     errors,

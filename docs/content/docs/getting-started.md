@@ -12,30 +12,7 @@ weight: 1
 Cargo.toml:
 ```cargo
 [dependencies]
-actix-admin = "0.3.0"
-```
-
-## Implement the Trait for AppState
-
-Actix-Admin requires to get the database connection and its configuration from the actix AppState. The trait "ActixAdminAppDataTrait" must be implemented for your AppState:
-
-```rust
-use actix_admin::prelude::*;
-
-#[derive(Clone)]
-pub struct AppState {
-    pub db: DatabaseConnection,
-    pub actix_admin: ActixAdmin,
-}
-
-impl ActixAdminAppDataTrait for AppState {
-    fn get_db(&self) -> &DatabaseConnection {
-        &self.db
-    }
-    fn get_actix_admin(&self) -> &ActixAdmin {
-        &self.actix_admin
-    }
-}
+actix-admin = "0.4.0"
 ```
 
 ## Build the Actix-Admin Configuration
@@ -65,15 +42,13 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
 The AppState and the configuration can be passed to Actix-Web like in the following snippet. The ActixAdminBuilder creates an own */admin/* Scope which is registered as a service in the Actix-Web app.
 
 ```rust
+let conn = sea_orm::Database::connect(opt).await.unwrap();
 let actix_admin_builder = create_actix_admin_builder();
-
-let app_state = AppState {
-    db: conn.clone(),
-    actix_admin: actix_admin_builder.get_actix_admin(),
-};
 
 let app = App::new()
     .app_data(web::Data::new(app_state))
+    .app_data(web::Data::new(conn.clone()))
+    .app_data(web::Data::new(actix_admin_builder.get_actix_admin()))
     .service(
         actix_admin_builder.get_scope::<AppState>()
     )

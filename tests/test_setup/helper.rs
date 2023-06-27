@@ -57,35 +57,16 @@ macro_rules! create_app (
         let conn = $db.clone();
         let actix_admin_builder = super::create_actix_admin_builder();
         let actix_admin = actix_admin_builder.get_actix_admin();
-        let app_state = super::AppState {
-            db: conn,
-            actix_admin,
-        };
 
         test::init_service(
             App::new()
-                .app_data(actix_web::web::Data::new(app_state.clone()))
-                .service(actix_admin_builder.get_scope::<super::AppState>())
+                .app_data(actix_web::web::Data::new(actix_admin))
+                .app_data(actix_web::web::Data::new(conn))
+                .service(actix_admin_builder.get_scope())
         )
         .await
     });
 );
-
-#[derive(Clone)]
-pub struct AppState {
-    pub db: DatabaseConnection,
-    pub actix_admin: ActixAdmin,
-}
-
-impl ActixAdminAppDataTrait for AppState {
-    fn get_db(&self) -> &DatabaseConnection {
-        &self.db
-    }
-
-    fn get_actix_admin(&self) -> &ActixAdmin {
-        &self.actix_admin
-    }
-}
 
 pub fn create_actix_admin_builder() -> ActixAdminBuilder {
     let post_view_model = ActixAdminViewModel::from(Post);
@@ -101,64 +82,66 @@ pub fn create_actix_admin_builder() -> ActixAdminBuilder {
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
-    admin_builder.add_entity::<AppState, Post>(&post_view_model);
-    admin_builder.add_entity::<AppState, Comment>(&comment_view_model);
+    admin_builder.add_entity::<Post>(&post_view_model);
+    admin_builder.add_entity::<Comment>(&comment_view_model);
 
-    admin_builder.add_custom_handler_for_entity::<AppState, Comment>(
+    admin_builder.add_custom_handler_for_entity::<Comment>(
         "Create Comment From Plaintext",
         "/create_post_from_plaintext",
-        web::post().to(create_post_from_plaintext::<AppState, Comment>),
+        web::post().to(create_post_from_plaintext::<Comment>),
         false,
     );
 
-    admin_builder.add_custom_handler_for_entity::<AppState, Post>(
+    admin_builder.add_custom_handler_for_entity::<Post>(
         "Create Post From Plaintext",
         "/create_post_from_plaintext",
-        web::post().to(create_post_from_plaintext::<AppState, Post>),
+        web::post().to(create_post_from_plaintext::<Post>),
         false,
     );
 
-    admin_builder.add_custom_handler_for_entity::<AppState, Post>(
+    admin_builder.add_custom_handler_for_entity::<Post>(
         "Edit Post From Plaintext",
         "/edit_post_from_plaintext/{id}",
-        web::post().to(edit_post_from_plaintext::<AppState, Post>),
+        web::post().to(edit_post_from_plaintext::<Post>),
         false,
     );
 
-    admin_builder.add_custom_handler_for_entity::<AppState, Comment>(
+    admin_builder.add_custom_handler_for_entity::<Comment>(
         "Edit Comment From Plaintext",
         "/edit_post_from_plaintext/{id}",
-        web::post().to(edit_post_from_plaintext::<AppState, Comment>),
+        web::post().to(edit_post_from_plaintext::<Comment>),
         false,
     );
 
     admin_builder
 }
 
-async fn create_post_from_plaintext<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+async fn create_post_from_plaintext<E: ActixAdminViewModelTrait>(
     session: Session,
     req: HttpRequest,
-    data: web::Data<T>,
+    data: web::Data<ActixAdmin>,
+    db: web::Data<DatabaseConnection>,
     text: String,
 ) -> Result<HttpResponse, Error> {
-    let actix_admin = data.get_actix_admin();
+    let actix_admin = data.get_ref();
     let model = ActixAdminModel::from(text);
-    create_or_edit_post::<T, E>(&session, req, &data, Ok(model), None, actix_admin).await
+    create_or_edit_post::<E>(&session, req, db, Ok(model), None, actix_admin).await
 }
 
-async fn edit_post_from_plaintext<T: ActixAdminAppDataTrait, E: ActixAdminViewModelTrait>(
+async fn edit_post_from_plaintext<E: ActixAdminViewModelTrait>(
     session: Session,
     req: HttpRequest,
-    data: web::Data<T>,
+    data: web::Data<ActixAdmin>,
+    db: web::Data<DatabaseConnection>,
     text: String,
     id: web::Path<i32>,
 ) -> Result<HttpResponse, Error> {
-    let actix_admin = data.get_actix_admin();
+    let actix_admin = data.get_ref();
     let model = ActixAdminModel::from(text);
-    create_or_edit_post::<T, E>(
+    create_or_edit_post::<E>(
         &session,
         req,
-        &data,
+        db,
         Ok(model),
         Some(id.into_inner()),
         actix_admin,

@@ -20,12 +20,11 @@ pub struct ActixAdminBuilder {
 /// The trait to work with ActixAdminBuilder
 pub trait ActixAdminBuilderTrait {
     fn new(configuration: ActixAdminConfiguration) -> Self;
-    fn add_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
+    fn add_entity<E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         view_model: &ActixAdminViewModel,
     );
     fn add_entity_to_category<
-        T: ActixAdminAppDataTrait + 'static,
         E: ActixAdminViewModelTrait + 'static,
     >(
         &mut self,
@@ -40,7 +39,6 @@ pub trait ActixAdminBuilderTrait {
         add_to_menu: bool,
     );
     fn add_custom_handler_for_entity<
-        T: ActixAdminAppDataTrait + 'static,
         E: ActixAdminViewModelTrait + 'static,
     >(
         &mut self,
@@ -50,7 +48,6 @@ pub trait ActixAdminBuilderTrait {
         add_to_menu: bool
     );
     fn add_custom_handler_for_entity_in_category<
-        T: ActixAdminAppDataTrait + 'static,
         E: ActixAdminViewModelTrait + 'static,
     >(
         &mut self,
@@ -60,8 +57,8 @@ pub trait ActixAdminBuilderTrait {
         category_name: &str,
         add_to_menu: bool,
     );
-    fn add_custom_handler_for_index<T: ActixAdminAppDataTrait + 'static>(&mut self, route: Route);
-    fn get_scope<T: ActixAdminAppDataTrait + 'static>(self) -> actix_web::Scope;
+    fn add_custom_handler_for_index(&mut self, route: Route);
+    fn get_scope(self) -> actix_web::Scope;
     fn get_actix_admin(&self) -> ActixAdmin;
 }
 
@@ -207,15 +204,14 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         }
     }
 
-    fn add_entity<T: ActixAdminAppDataTrait + 'static, E: ActixAdminViewModelTrait + 'static>(
+    fn add_entity<E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         view_model: &ActixAdminViewModel,
     ) {
-        let _ = &self.add_entity_to_category::<T, E>(view_model, "");
+        let _ = &self.add_entity_to_category::<E>(view_model, "");
     }
 
     fn add_entity_to_category<
-        T: ActixAdminAppDataTrait + 'static,
         E: ActixAdminViewModelTrait + 'static,
     >(
         &mut self,
@@ -225,17 +221,17 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         self.scopes.insert(
             E::get_entity_name(),
             web::scope(&format!("/{}", E::get_entity_name()))
-                .route("/list", web::get().to(list::<T, E>))
-                .route("/create", web::get().to(create_get::<T, E>))
-                .route("/create", web::post().to(create_post::<T, E>))
-                .route("/edit/{id}", web::get().to(edit_get::<T, E>))
-                .route("/edit/{id}", web::post().to(edit_post::<T, E>))
-                .route("/delete", web::delete().to(delete_many::<T, E>))
-                .route("/delete/{id}", web::delete().to(delete::<T, E>))
-                .route("/show/{id}", web::get().to(show::<T, E>))
-                .route("/file/{id}/{column_name}", web::get().to(download::<T, E>))
-                .route("/file/{id}/{column_name}", web::delete().to(delete_file::<T, E>))
-                .default_service(web::to(not_found::<T>))
+                .route("/list", web::get().to(list::<E>))
+                .route("/create", web::get().to(create_get::<E>))
+                .route("/create", web::post().to(create_post::<E>))
+                .route("/edit/{id}", web::get().to(edit_get::<E>))
+                .route("/edit/{id}", web::post().to(edit_post::<E>))
+                .route("/delete", web::delete().to(delete_many::<E>))
+                .route("/delete/{id}", web::delete().to(delete::<E>))
+                .route("/show/{id}", web::get().to(show::<E>))
+                .route("/file/{id}/{column_name}", web::get().to(download::<E>))
+                .route("/file/{id}/{column_name}", web::delete().to(delete_file::<E>))
+                .default_service(web::to(not_found))
             );
 
         fs::create_dir_all(format!("{}/{}", &self.actix_admin.configuration.file_upload_directory, E::get_entity_name())).unwrap();
@@ -261,7 +257,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         self.actix_admin.view_models.insert(key, view_model.clone());
     }
 
-    fn add_custom_handler_for_index<T: ActixAdminAppDataTrait + 'static>(&mut self, route: Route) {
+    fn add_custom_handler_for_index(&mut self, route: Route) {
         self.custom_index = Some(route);
     }
 
@@ -293,7 +289,6 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
     }
 
     fn add_custom_handler_for_entity<
-        T: ActixAdminAppDataTrait + 'static,
         E: ActixAdminViewModelTrait + 'static,
     >(
         &mut self,
@@ -302,7 +297,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         route: Route,
         add_to_menu: bool,
     ) {
-        let _ = &self.add_custom_handler_for_entity_in_category::<T, E>(
+        let _ = &self.add_custom_handler_for_entity_in_category::<E>(
             menu_element_name,
             path,
             route,
@@ -312,7 +307,6 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
     }
 
     fn add_custom_handler_for_entity_in_category<
-        T: ActixAdminAppDataTrait + 'static,
         E: ActixAdminViewModelTrait + 'static,
     >(
         &mut self,
@@ -356,14 +350,14 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         }
     }
 
-    fn get_scope<T: ActixAdminAppDataTrait + 'static>(self) -> actix_web::Scope {
+    fn get_scope(self) -> actix_web::Scope {
         let index_handler = match self.custom_index {
             Some(handler) => handler,
-            _ => web::get().to(index::<T>),
+            _ => web::get().to(index),
         };
         let mut admin_scope = web::scope("/admin")
             .route("/", index_handler)
-            .default_service(web::to(not_found::<T>));
+            .default_service(web::to(not_found));
 
         for (_entity, scope) in self.scopes {
             admin_scope = admin_scope.service(scope);

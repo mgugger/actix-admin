@@ -6,7 +6,7 @@ use actix_web::{cookie::Key, web, App, HttpResponse, HttpServer, middleware};
 use azure_auth::{AppDataTrait as AzureAuthAppDataTrait, AzureAuth, UserInfo};
 use oauth2::basic::BasicClient;
 use oauth2::RedirectUrl;
-use sea_orm::{ConnectOptions, DatabaseConnection};
+use sea_orm::{ConnectOptions};
 use std::env;
 use std::time::Duration;
 use tera::{Context, Tera};
@@ -18,28 +18,7 @@ use entity::{Post, Comment};
 #[derive(Clone)]
 pub struct AppState {
     pub oauth: BasicClient,
-    pub tmpl: Tera,
-    pub db: DatabaseConnection,
-    pub actix_admin: ActixAdmin,
-}
-
-impl ActixAdminAppDataTrait for AppState {
-    fn get_db(&self) -> &DatabaseConnection {
-        &self.db
-    }
-    fn get_actix_admin(&self) -> &ActixAdmin {
-        &self.actix_admin
-    }
-}
-
-trait AppDataTrait {
-    fn get_tmpl(&self) -> &Tera;
-}
-
-impl AppDataTrait for AppState {
-    fn get_tmpl(&self) -> &Tera {
-        &self.tmpl
-    }
+    pub tmpl: Tera
 }
 
 impl AzureAuthAppDataTrait for AppState {
@@ -48,41 +27,35 @@ impl AzureAuthAppDataTrait for AppState {
     }
 }
 
-async fn custom_handler<
-    T: ActixAdminAppDataTrait + AppDataTrait,
-    E: ActixAdminViewModelTrait,
->(
+async fn custom_handler(
     session: Session,
-    data: web::Data<T>,
+    data: web::Data<AppState>,
+    actix_admin: web::Data<ActixAdmin>,
     _text: String
 ) -> Result<HttpResponse, Error> {
     
     let mut ctx = Context::new();
-    ctx.extend(get_admin_ctx(session, &data));
+    ctx.extend(get_admin_ctx(session, &actix_admin));
 
-    let body = data.get_tmpl()
-    .render("custom_handler.html", &ctx).unwrap();
+    let body = data.tmpl.render("custom_handler.html", &ctx).unwrap();
     
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
-async fn custom_index<
-    T: ActixAdminAppDataTrait + AppDataTrait
->(
+async fn custom_index(
     session: Session,
-    data: web::Data<T>,
+    data: web::Data<AppState>,
+    actix_admin: web::Data<ActixAdmin>,
     _text: String
 ) -> Result<HttpResponse, Error> {
     
     let mut ctx = Context::new();
-    ctx.extend(get_admin_ctx(session, &data));
+    ctx.extend(get_admin_ctx(session, &actix_admin));
 
-    let body = data.get_tmpl()
-    .render("custom_index.html", &ctx).unwrap();
+    let body = data.tmpl.render("custom_index.html", &ctx).unwrap();
     
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
-
 
 async fn index(session: Session, data: web::Data<AppState>) -> HttpResponse {
     let login = session.get::<UserInfo>("user_info").unwrap();
@@ -115,19 +88,19 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
-    admin_builder.add_custom_handler_for_index::<AppState>(
-         web::get().to(custom_index::<AppState>)
+    admin_builder.add_custom_handler_for_index(
+         web::get().to(custom_index)
     );
-    admin_builder.add_entity::<AppState, Post>(&post_view_model);
-    admin_builder.add_custom_handler("Custom Route in Menu", "/custom_route_in_menu", web::get().to(custom_index::<AppState>), true);
-    admin_builder.add_custom_handler("Custom Route not in Menu", "/custom_route_not_in_menu", web::get().to(custom_index::<AppState>), false);
+    admin_builder.add_entity::<Post>(&post_view_model);
+    admin_builder.add_custom_handler("Custom Route in Menu", "/custom_route_in_menu", web::get().to(custom_index), true);
+    admin_builder.add_custom_handler("Custom Route not in Menu", "/custom_route_not_in_menu", web::get().to(custom_index), false);
 
     let some_category = "Some Category";
-    admin_builder.add_entity_to_category::<AppState, Comment>(&comment_view_model, some_category);
-    admin_builder.add_custom_handler_for_entity_in_category::<AppState, Comment>(
+    admin_builder.add_entity_to_category::<Comment>(&comment_view_model, some_category);
+    admin_builder.add_custom_handler_for_entity_in_category::<Comment>(
         "My custom handler",
         "/custom_handler", 
-        web::get().to(custom_handler::<AppState, Comment>),
+        web::get().to(custom_handler),
         some_category,
         true
     );
@@ -179,18 +152,18 @@ async fn main() {
         
         let app_state = AppState {
             oauth: client.clone(),
-            tmpl: tera.clone(),
-            db: conn.clone(),
-            actix_admin: actix_admin,
+            tmpl: tera.clone()
         };
 
         App::new()
             .app_data(web::Data::new(app_state.clone()))
+            .app_data(web::Data::new(conn.clone()))
+            .app_data(web::Data::new(actix_admin.clone()))
             .wrap(SessionMiddleware::new(CookieSessionStore::default(), cookie_secret_key.clone()))
             .route("/", web::get().to(index))
             .service(azure_auth.clone().create_scope::<AppState>())
             .service(
-                actix_admin_builder.get_scope::<AppState>()
+                actix_admin_builder.get_scope()
             )
             .wrap(middleware::Logger::default())
     })

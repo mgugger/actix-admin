@@ -24,7 +24,10 @@ pub struct Model {
     pub comment: String
 }
 
+// Custom Validation Functions
 impl ActixAdminModelValidationTrait<ActiveModel> for Entity {}
+// Custom Search Filters
+impl ActixAdminModelFilterTrait<Entity> for Entity {}
 ```
 
 ## Derive Implementations
@@ -65,7 +68,7 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     let mut admin_builder = ActixAdminBuilder::new(configuration);
 
     let comment_view_model = ActixAdminViewModel::from(Comment);
-    admin_builder.add_entity::<AppState, Comment>(&comment_view_model);
+    admin_builder.add_entity::<Comment>(&comment_view_model);
 
     admin_builder
 }
@@ -75,8 +78,8 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
 
 Views / Models can be grouped in the Navbar by using the following functions instead of ```admin_builder.add_entity```:
 ```rust
-admin_builder.add_entity::<AppState, Comment>(&comment_view_model);
-admin_builder.add_entity_to_category::<AppState, Comment>(&comment_view_model, "Group 1");
+admin_builder.add_entity::<Comment>(&comment_view_model);
+admin_builder.add_entity_to_category::<Comment>(&comment_view_model, "Group 1");
 ```
 
 ## Additional Model Attributes

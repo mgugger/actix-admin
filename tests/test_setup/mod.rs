@@ -10,8 +10,7 @@ pub use post::Entity as Post;
 pub mod prelude {
     pub use crate::test_setup::helper::{
         create_actix_admin_builder, 
-        setup_db, 
-        AppState,
+        setup_db,
         BodyTest
     };
     pub use super::comment;
