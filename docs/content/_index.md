@@ -24,7 +24,7 @@ Check the [examples](https://github.com/mgugger/actix-admin/tree/main/examples) 
 [package]
 name = "actix-admin-example"
 description = "An admin interface for actix-web"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 
 [[bin]]
@@ -40,6 +40,6 @@ chrono = "0.4.23"
 tera = "^1.17.1"
 serde = "^1.0.152"
 serde_derive = "^1.0.152"
-actix-admin = { version = "0.4.0", path = "../../" }
+actix-admin = { version = "0.5.0", path = "../../" }
 regex = "1.7.1"
 ```

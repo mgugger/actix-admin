@@ -2,7 +2,7 @@
 name = "actix-admin"
 description = "An admin interface for actix-web"
 license = "MIT OR Apache-2.0"
-version = "0.4.0"
+version = "0.5.0"
 repository = "https://github.com/mgugger/actix-admin"
 edition = "2021"
 exclude = [
@@ -32,7 +32,7 @@ itertools = "^0.10.5"
 serde = "^1.0.164"
 serde_derive = "^1.0.164"
 sea-orm = { version = "^0.11.3", features = [], default-features = false }
-actix-admin-macros = { version = "0.4.0", path = "actix_admin_macros" }
+actix-admin-macros = { version = "0.5.0", path = "actix_admin_macros" }
 derive_more = "0.99.17"
 regex = "1.8.4"
 urlencoding = "2.1.2"

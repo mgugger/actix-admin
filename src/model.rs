@@ -36,12 +36,27 @@ pub trait ActixAdminModelValidationTrait<T> {
 
 pub struct ActixAdminModelFilter<E: EntityTrait> {
     pub name: String,
-    pub filter: fn(sea_orm::Select<E>, Option<String>) -> sea_orm::Select<E>
+    pub filter_type: ActixAdminModelFilterType,
+    pub filter: fn(sea_orm::Select<E>, Option<String>) -> sea_orm::Select<E>,
+    pub values: Option<Vec<(String, String)>>
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub enum ActixAdminModelFilterType {
+    Text,
+    SelectList,
+    Date,
+    DateTime,
+    Checkbox
+}
+
+#[async_trait]
 pub trait ActixAdminModelFilterTrait<E: EntityTrait> {
     fn get_filter() -> Vec<ActixAdminModelFilter<E>> {
         Vec::new()
+    }
+    async fn get_filter_values(_filter: &ActixAdminModelFilter<E>, _db: &DatabaseConnection)-> Option<Vec<(String, String)>> {
+        None
     }
 }
 
@@ -49,7 +64,9 @@ impl<T: EntityTrait> From<ActixAdminModelFilter<T>> for ActixAdminViewModelFilte
     fn from(filter: ActixAdminModelFilter<T>) -> Self {
         ActixAdminViewModelFilter {
             name: filter.name,
-            value: None
+            value: None,
+            values: None,
+            filter_type: Some(filter.filter_type)
         }
     }
 }

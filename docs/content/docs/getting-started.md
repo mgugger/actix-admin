@@ -12,7 +12,7 @@ weight: 1
 Cargo.toml:
 ```cargo
 [dependencies]
-actix-admin = "0.4.0"
+actix-admin = "0.5.0"
 ```
 
 ## Build the Actix-Admin Configuration
@@ -50,7 +50,7 @@ let app = App::new()
     .app_data(web::Data::new(conn.clone()))
     .app_data(web::Data::new(actix_admin_builder.get_actix_admin()))
     .service(
-        actix_admin_builder.get_scope::<AppState>()
+        actix_admin_builder.get_scope()
     )
     .wrap(middleware::Logger::default())
 ```

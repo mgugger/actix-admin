@@ -7,11 +7,42 @@
     <ul class="menu-list">
         {% for key, value in viewmodel_filter %}
         <li>
-            <div class="field">
+            <div class="field mt-3">
                 <label class="label">{{key}}</label>
+                {% if value.filter_type == "Text" %}
                 <div class="control">
-                    <input class="input" type="text" placeholder="" name="filter_{{key}}">
+                    <input class="input" value="{{ value.value }}" type="text" placeholder="" name="filter_{{key}}">
                 </div>
+                {% elif value.filter_type == "DateTime" %}
+                <div class="control">
+                    <input class="input" value="{{ value.value }}" type="datetime-local" placeholder="" name="filter_{{key}}">
+                </div>
+                {% elif value.filter_type == "Checkbox" %}
+                <div class="select is-fullwidth">
+                    <select name="filter_{{key}}" id="filter_{{key}}">
+                        <option value=""></option>
+                        <option value="1">&#10003;</option>
+                        <option value="0">&#10060;</option>
+                    </select>
+                </div>
+                {% elif value.filter_type == "Date" %}
+                <div class="control">
+                    <input class="input" type="date" placeholder="" name="filter_{{key}}">
+                </div>
+                {% elif value.filter_type == "SelectList" %}
+                <div class="select is-fullwidth">
+                    <select name="filter_{{key}}" id="filter_{{key}}">
+                        <option value=""></option>
+                        {% for selectval in value.values %}
+                            <option value="{{ selectval[0] }}">{{ selectval[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% else %}
+                <div class="control">
+                    <input class="input" value="{{ value.value }}" type="text" placeholder="" name="filter_{{key}}">
+                </div>
+                {% endif %}
             </div>
         </li>
         {% endfor %}
@@ -59,7 +90,8 @@
             </div>
         </div>
         <form id="search_form" action="/admin/{{ entity_name }}/list" hx-boost="true" hx-indicator="#loading"
-            hx-target="#{{ entity_name }}table" hx-trigger="reload_table from:#entities_per_page" hx-include="[id='filter_form']">
+            hx-target="#{{ entity_name }}table" hx-trigger="reload_table from:#entities_per_page"
+            hx-include="[id='filter_form']">
             <input type="hidden" id="sort_by" name="sort_by" value="{{ sort_by }}">
             <input type="hidden" id="sort_order" name="sort_order" value="{{ sort_order }}">
             <input type="hidden" name="page" value="{{ page }}">

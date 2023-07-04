@@ -90,6 +90,8 @@ pub async fn list<E: ActixAdminViewModelTrait>(
             let af = ActixAdminViewModelFilter {
                 name: kv.next().unwrap().strip_prefix("filter_").unwrap_or_default().to_string(),
                 value: kv.next().map(|s| s.to_string()).filter(|f| !f.is_empty()),
+                values: None,
+                filter_type: None
             };
             af
         }).collect();
@@ -143,7 +145,7 @@ pub async fn list<E: ActixAdminViewModelTrait>(
     ctx.insert("notifications", &notifications);
     ctx.insert("entities_per_page", &entities_per_page);
     ctx.insert("render_partial", &render_partial);
-    ctx.insert("viewmodel_filter", &E::get_viewmodel_filter().await);
+    ctx.insert("viewmodel_filter", &E::get_viewmodel_filter(&db).await);
     ctx.insert(
         "view_model",
         &ActixAdminViewModelSerializable::from(view_model.clone()),

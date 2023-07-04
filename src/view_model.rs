@@ -3,7 +3,7 @@ use regex::Regex;
 use sea_orm::DatabaseConnection;
 use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
-use crate::{ActixAdminModel, SortOrder};
+use crate::{ActixAdminModel, SortOrder, model::ActixAdminModelFilterType};
 use actix_session::{Session};
 use std::convert::From;
 use crate::ActixAdminError;
@@ -26,7 +26,7 @@ pub trait ActixAdminViewModelTrait {
     async fn get_entity(db: &DatabaseConnection, id: i32) -> Result<ActixAdminModel, ActixAdminError>;
     async fn edit_entity(db: &DatabaseConnection, id: i32, model: ActixAdminModel) -> Result<ActixAdminModel, ActixAdminError>;
     async fn get_select_lists(db: &DatabaseConnection) -> Result<HashMap<String, Vec<(String, String)>>, ActixAdminError>;
-    async fn get_viewmodel_filter() -> HashMap<String, ActixAdminViewModelFilter>;
+    async fn get_viewmodel_filter(db: &DatabaseConnection) -> HashMap<String, ActixAdminViewModelFilter>;
     fn validate_entity(model: &mut ActixAdminModel);
 
     fn get_entity_name() -> String;
@@ -58,7 +58,9 @@ pub struct ActixAdminViewModelSerializable {
 #[derive(Clone, Debug, Serialize)]
 pub struct ActixAdminViewModelFilter {
     pub name: String,
-    pub value: Option<String>
+    pub value: Option<String>,
+    pub values: Option<Vec<(String, String)>>,
+    pub filter_type: Option<ActixAdminModelFilterType>
 }
 
 // TODO: better alternative to serialize only specific fields for ActixAdminViewModel

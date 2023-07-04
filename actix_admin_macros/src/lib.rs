@@ -98,13 +98,22 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 Ok(model)
             }
 
-            async fn get_viewmodel_filter() -> HashMap<String, ActixAdminViewModelFilter> {
-                Entity::get_filter().iter().map(|f| 
-                    (f.name.to_string(), ActixAdminViewModelFilter { 
-                        name: f.name.to_string(), 
-                        value: None 
-                    })
-                ).collect()
+            async fn get_viewmodel_filter(db: &DatabaseConnection) -> HashMap<String, ActixAdminViewModelFilter> {
+                let mut hashmap: HashMap<String, ActixAdminViewModelFilter> = HashMap::new();
+
+                for filter in Entity::get_filter() {
+                    hashmap.insert(
+                        filter.name.to_string(),
+                        ActixAdminViewModelFilter {
+                            name: filter.name.to_string(),
+                            value: None,
+                            values: Entity::get_filter_values(&filter, db).await,
+                            filter_type: Some(filter.filter_type)
+                        }
+                    );
+                };
+
+                hashmap
             }
 
             async fn get_entity(db: &DatabaseConnection, id: i32) -> Result<ActixAdminModel, ActixAdminError> {

@@ -1,7 +1,7 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use actix_admin::{prelude::*};
-use super::Post;
+use super::{Post, post};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel)]
 #[sea_orm(table_name = "comment")]
@@ -51,22 +51,61 @@ impl ActixAdminModelValidationTrait<ActiveModel> for Entity {
     }
 }
 
+#[async_trait]
 impl ActixAdminModelFilterTrait<Entity> for Entity {
     fn get_filter() -> Vec<ActixAdminModelFilter<Entity>> {
         vec![
             ActixAdminModelFilter::<Entity> {
-                name: "Id".to_string(),
-                filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
-                    q.apply_if(v, | query, val: String| query.filter(Column::Id.eq(val)))
-                }
-            },
-            ActixAdminModelFilter::<Entity> {
                 name: "User".to_string(),
+                filter_type: ActixAdminModelFilterType::Text,
                 filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
                     q.apply_if(v, | query, val: String| query.filter(Column::User.eq(val)))
-                }
+                },
+                values: None
+            },
+            ActixAdminModelFilter::<Entity> {
+                name: "Insert Date After".to_string(),
+                filter_type: ActixAdminModelFilterType::DateTime,
+                filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
+                    q.apply_if(v, | query, val: String| query.filter(Column::InsertDate.gte(val)))
+                },
+                values: None
+            },
+            ActixAdminModelFilter::<Entity> {
+                name: "Insert Date After".to_string(),
+                filter_type: ActixAdminModelFilterType::DateTime,
+                filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
+                    q.apply_if(v, | query, val: String| query.filter(Column::InsertDate.gte(val)))
+                },
+                values: None
+            },
+            ActixAdminModelFilter::<Entity> {
+                name: "Is Visible".to_string(),
+                filter_type: ActixAdminModelFilterType::Checkbox,
+                filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
+                    q.apply_if(v, | query, val: String| query.filter(Column::IsVisible.eq(val)))
+                },
+                values: None
+            },
+            ActixAdminModelFilter::<Entity> {
+                name: "Post".to_string(),
+                filter_type: ActixAdminModelFilterType::SelectList,
+                filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
+                    q.apply_if(v, | query, val: String| query.filter(Column::PostId.eq(val)))
+                },
+                values: None
             }
         ]
+    }
+
+    async fn get_filter_values(filter: &ActixAdminModelFilter<Entity>, db: &DatabaseConnection) -> Option<Vec<(String, String)>> { 
+        match filter.name.as_str() {
+            "Post" => Some({
+                Post::find().order_by_asc(post::Column::Id).all(db).await.unwrap()
+                    .iter().map(|p| (p.id.to_string(), p.title.to_string())).collect()
+            }),
+            _ => None
+        }
     }
 }
 
