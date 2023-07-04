@@ -3,8 +3,7 @@ use sea_orm::DatabaseConnection;
 use urlencoding::decode;
 use crate::prelude::*;
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
-use serde::Deserialize;
-use serde::Serialize;
+use serde_derive::{Serialize, Deserialize};
 use tera::Context;
 
 use super::{

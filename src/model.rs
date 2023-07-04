@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use chrono::{NaiveDate, NaiveDateTime};
 use futures_util::stream::StreamExt as _;
 use sea_orm::{DatabaseConnection, EntityTrait};
-use serde::Serialize;
+use serde_derive::Serialize;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use regex::Regex;
 use sea_orm::DatabaseConnection;
-use serde::{Serialize, Deserialize};
+use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
 use crate::{ActixAdminModel, SortOrder};
 use actix_session::{Session};

@@ -13,7 +13,7 @@ use actix_web::{
 use async_trait::async_trait;
 use derive_more::{Display, Error};
 use sea_orm::DatabaseConnection;
-use serde::Serialize;
+use serde_derive::{Serialize};
 use tera::Tera;
 use std::collections::HashMap;
 
