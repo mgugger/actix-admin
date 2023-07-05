@@ -1,7 +1,8 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
-use actix_admin::{prelude::*};
+use actix_admin::prelude::*;
 use super::{Post, post};
+use chrono::NaiveDateTime;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel)]
 #[sea_orm(table_name = "comment")]
@@ -67,15 +68,7 @@ impl ActixAdminModelFilterTrait<Entity> for Entity {
                 name: "Insert Date After".to_string(),
                 filter_type: ActixAdminModelFilterType::DateTime,
                 filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
-                    q.apply_if(v, | query, val: String| query.filter(Column::InsertDate.gte(val)))
-                },
-                values: None
-            },
-            ActixAdminModelFilter::<Entity> {
-                name: "Insert Date After".to_string(),
-                filter_type: ActixAdminModelFilterType::DateTime,
-                filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
-                    q.apply_if(v, | query, val: String| query.filter(Column::InsertDate.gte(val)))
+                    q.apply_if(v, | query, val: String| query.filter(Column::InsertDate.gte(NaiveDateTime::parse_from_str(&val, "%Y-%m-%dT%H:%M").unwrap())))
                 },
                 values: None
             },
