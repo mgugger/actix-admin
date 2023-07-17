@@ -38,6 +38,14 @@ pub trait ActixAdminBuilderTrait {
         route: Route,
         add_to_menu: bool,
     );
+    fn add_custom_handler_to_category(
+        &mut self,
+        menu_element_name: &str,
+        path: &str,
+        route: Route,
+        add_to_menu: bool,
+        category: &str
+    );
     fn add_custom_handler_for_entity<
         E: ActixAdminViewModelTrait + 'static,
     >(
@@ -261,31 +269,48 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         self.custom_index = Some(route);
     }
 
-    fn add_custom_handler(
-            &mut self,
-            menu_element_name: &str,
-            path: &str,
-            route: Route,
-            add_to_menu: bool,
-        ) {
-            self.custom_routes.push((path.to_string(), route));
+    fn add_custom_handler_to_category(
+        &mut self,
+        menu_element_name: &str,
+        path: &str,
+        route: Route,
+        add_to_menu: bool,
+        category_name: &str
+    ) {
+        self.custom_routes.push((path.to_string(), route));
 
-            if add_to_menu {
-                let menu_element = ActixAdminMenuElement {
-                    name: menu_element_name.to_string(),
-                    link: path.replacen("/", "", 1),
-                    is_custom_handler: true,
-                };
-                let category = self.actix_admin.entity_names.get_mut("");
-                match category {
-                    Some(entity_list) => {
-                        if !entity_list.contains(&menu_element) {
-                            entity_list.push(menu_element);
-                        }
+        if add_to_menu {
+            let menu_element = ActixAdminMenuElement {
+                name: menu_element_name.to_string(),
+                link: path.replacen("/", "", 1),
+                is_custom_handler: true,
+            };
+            let category = self.actix_admin.entity_names.get_mut(category_name);
+            match category {
+                Some(entity_list) => {
+                    if !entity_list.contains(&menu_element) {
+                        entity_list.push(menu_element);
                     }
-                    _ => (),
                 }
+                None => {
+                    let mut entity_list = Vec::new();
+                    entity_list.push(menu_element);
+                    self.actix_admin
+                        .entity_names
+                        .insert(category_name.to_string(), entity_list);
+                },
             }
+        }
+    }
+
+    fn add_custom_handler(
+        &mut self,
+        menu_element_name: &str,
+        path: &str,
+        route: Route,
+        add_to_menu: bool
+    ) {
+        self.add_custom_handler_to_category(menu_element_name, path, route, add_to_menu, "");
     }
 
     fn add_custom_handler_for_entity<
