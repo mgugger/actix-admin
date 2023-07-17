@@ -9,6 +9,14 @@ weight: 3
 
 While the derived models create predefined routes and views, custom routes can be added to the admin interface and also base templates can be extended.
 
+## Extend tera instances with base templates from actix-admin
+
+```rust
+let mut tera = Tera::parse("templates/**/*.html").unwrap();
+tera.extend(&actix_admin_builder.get_actix_admin().tera).unwrap();
+let _tera_res = tera.build_inheritance_chains();        
+```
+
 ## Custom Index
 
 A custom *custom_index.html* view can be defined as follows by extending the base template:
@@ -22,16 +30,18 @@ A custom *custom_index.html* view can be defined as follows by extending the bas
 To display the *custom_index.html*, define the corresponding function which extends the current tera context from actix-admin and also uses the actix-admin tera instance to render the custom index function.
 
 ```rust
+use actix_admin::prelude::*;
+
 async fn custom_index(
     session: Session,
-    data: web::Data<AppState>
+    tera: web::Data<Tera>,
     actix_admin: web::Data<ActixAdmin>
 ) -> Result<HttpResponse, Error> {
     
-    let mut ctx = Context::new();
-    ctx.extend(get_admin_ctx(session, &actix_admin));
+    let mut ctx = get_admin_ctx(session, &actix_admin);
+    ctx.insert("your_own_key", "your_own_value");
 
-    let body = data.tmpl.render("custom_index.html", &ctx).unwrap();
+    let body = tera.render("custom_index.html", &ctx).unwrap();
     
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
