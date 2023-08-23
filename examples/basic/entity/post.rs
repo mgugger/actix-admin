@@ -51,7 +51,7 @@ impl Related<super::comment::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-#[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize, DeriveActixAdminEnumSelectList)]
+#[derive(Debug, Clone, PartialEq, EnumIter, DeriveDisplay, DeriveActiveEnum, Deserialize, Serialize, DeriveActixAdminEnumSelectList)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "tea")]
 pub enum Tea {
     #[sea_orm(string_value = "EverydayTea")]

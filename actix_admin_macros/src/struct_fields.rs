@@ -187,7 +187,7 @@ pub fn get_actix_admin_fields_searchable(fields: &Vec<ModelField>) -> Vec<TokenS
             let column_name = capitalize_first_letter(&model_field.ident.to_string());
             let column_ident = Ident::new(&column_name, Span::call_site());
             quote! {
-                .add(Column::#column_ident.contains(&search))
+                .add(Column::#column_ident.contains(search))
             }
         })
         .collect::<Vec<_>>()
