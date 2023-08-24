@@ -13,7 +13,7 @@ use actix_web::{
 use async_trait::async_trait;
 use derive_more::{Display, Error};
 use sea_orm::DatabaseConnection;
-use serde_derive::{Serialize};
+use serde_derive::Serialize;
 use tera::Tera;
 use std::collections::HashMap;
 
@@ -21,6 +21,7 @@ pub mod builder;
 pub mod model;
 pub mod routes;
 pub mod view_model;
+pub mod tera_templates;
 
 pub mod prelude {
     pub use crate::builder::{ActixAdminBuilder, ActixAdminBuilderTrait};

@@ -18,6 +18,10 @@ exclude = [
 name = "actix_admin"
 path = "src/lib.rs"
 
+[features]
+default = ["bulma_css"]
+bulma_css = []
+
 [dependencies]
 actix-web = "^4.3.1"
 actix-session = { version = "^0.7.2", features = [] }
