@@ -214,6 +214,7 @@ impl From<String> for ActixAdminModel {
             values: hashmap,
             errors: HashMap::new(),
             custom_errors: HashMap::new(),
+            fk_values: HashMap::new(),
         }
     }
 }

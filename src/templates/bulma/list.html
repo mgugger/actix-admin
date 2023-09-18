@@ -155,7 +155,7 @@
                             value=false) |
                             sort(attribute="list_sort_position") -%}
                             <th onclick="sort_by('{{ model_field.field_name }}');" class="is-clickable">{{
-                                model_field.field_name | split(pat="_") | join(sep=" ") | title }}
+                                model_field.field_name | split(pat="_") | join(sep=" ") | title | replace(from=" Id", to="") }}
                                 {% if sort_by == model_field.field_name %}
                                 {% if sort_order == "Asc" %}
                                 <i class="ml-1 fa-solid fa-caret-up"></i>
@@ -196,7 +196,14 @@
                             entity.values
                             | get(key=model_field.field_name) }}</a></td>
                     {% else %}
-                    <td>{{ entity.values | get(key=model_field.field_name) }}</td>
+
+                        {% set model_value = entity.values[model_field.field_name] %}
+                        {% if entity.fk_values is containing(model_value) %}
+                        <td>{{ entity.fk_values | get(key=model_value) }}</td>
+                        {% else %}
+                        <td>{{ model_value }}</td>
+                        {% endif %}
+
                     {% endif %}
                     {%- endfor %}
                     <td class="has-text-right">

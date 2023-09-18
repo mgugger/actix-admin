@@ -117,7 +117,6 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
             }
 
             async fn get_entity(db: &DatabaseConnection, id: i32) -> Result<ActixAdminModel, ActixAdminError> {
-                // TODO: separate primary key from other keys
                 let entity = Entity::find_by_id(id).one(db).await?;
                 match entity {
                     Some(e) => Ok(ActixAdminModel::from(e)),
@@ -173,6 +172,9 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let field_html_input_type = get_fields_as_tokenstream(&fields, |model_field| -> String {
         model_field.html_input_type.to_string()
     });
+    let field_foreign_key = get_fields_as_tokenstream(&fields, |model_field| -> String {
+        model_field.foreign_key.clone().unwrap_or("".to_string())
+    });
     let field_list_regex_mask = get_fields_as_tokenstream(&fields, |model_field| -> String {
         model_field.list_regex_mask.to_string()
     });
@@ -183,6 +185,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
         get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.is_option() });
     let fields_for_create_model = get_fields_for_create_model(&fields);
     let fields_for_from_model = get_fields_for_from_model(&fields);
+    let fields_for_load_foreign_key = get_fields_for_load_foreign_key(&fields);
     let field_for_primary_key = get_field_for_primary_key(&fields);
     let fields_for_validate_model = get_fields_for_validate_model(&fields);
     let fields_type_path = get_fields_as_tokenstream(&fields, |model_field| -> String {
@@ -214,6 +217,11 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
 
                 let html_input_types = stringify!(
                     #(#field_html_input_type),*
+                ).split(",")
+                .collect::<Vec<_>>();
+
+                let foreign_keys = stringify!(
+                    #(#field_foreign_key),*
                 ).split(",")
                 .collect::<Vec<_>>();
 
@@ -250,7 +258,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     #(#field_list_regex_mask),*
                 ];
 
-                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea, is_file_upload, list_sort_position, list_hide_column, list_regex_mask) in actix_admin::prelude::izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas, fields_fileupload, list_sort_positions, list_hide_columns, list_regex_masks) {
+                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea, is_file_upload, list_sort_position, list_hide_column, list_regex_mask, foreign_key) in actix_admin::prelude::izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas, fields_fileupload, list_sort_positions, list_hide_columns, list_regex_masks, &foreign_keys) {
 
                     let select_list = select_list.replace('"', "").replace(' ', "").to_string();
                     let field_name = field_name.replace('"', "").replace(' ', "").to_string();
@@ -268,7 +276,8 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                         list_sort_position: list_sort_position,
                         field_type: ActixAdminViewModelFieldType::get_field_type(fields_type_path, select_list, is_textarea, is_file_upload),
                         list_hide_column: list_hide_column,
-                        list_regex_mask: list_regex_mask_regex
+                        list_regex_mask: list_regex_mask_regex,
+                        foreign_key: foreign_key.to_string()
                     });
                 }
                 vec
@@ -284,6 +293,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     ],
                     errors: HashMap::new(),
                     custom_errors: HashMap::new(),
+                    fk_values: HashMap::new()
                 }
             }
         }
@@ -342,7 +352,41 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     );
                 }
 
+                let _load_fks = Self::load_foreign_keys(&mut model_entities, db).await;
+
                 Ok((num_pages, model_entities))
+            }
+
+            async fn load_foreign_keys(models: &mut Vec<ActixAdminModel>, db: &DatabaseConnection) {
+                for field in Self::get_fields().iter() {
+
+                    if field.foreign_key != "" {
+                        let ids_to_select: Vec<i32> = models.iter()
+                            .map(|m| m.values.get(&field.field_name))
+                            .filter_map(|value| {
+                                value.and_then(|s| s.parse().ok())
+                            })
+                            .collect();
+
+                        let foreign_key_entity = field.foreign_key.trim_start_matches("'").trim_end_matches("'").replace('"', "").replace(' ', "").replace('\\', "").replace(' ', "").to_string();
+  
+                        let foreign_key_values_opt: Option<HashMap<String, String>> = match foreign_key_entity.as_str() {
+                            #(#fields_for_load_foreign_key)*
+                            _ => None
+                        };
+
+                        if foreign_key_values_opt.is_some() {
+                            let foreign_key_values = foreign_key_values_opt.unwrap();
+                            for model in models.iter_mut() {
+                                let fk_id = model.values.get(&field.field_name).unwrap();
+                                let fk_val = foreign_key_values.get(fk_id);
+                                if fk_val.is_some() {
+                                    model.fk_values.insert(fk_id.to_string(), fk_val.unwrap().to_string());
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             fn validate_model(model: &mut ActixAdminModel) {

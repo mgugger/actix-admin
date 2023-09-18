@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use actix_admin::prelude::*;
@@ -11,15 +13,21 @@ pub struct Model {
     #[serde(skip_deserializing)]
     #[actix_admin(primary_key)]
     pub id: i32,
+    
     pub comment: String,
+    
     #[sea_orm(column_type = "Text")]
     #[actix_admin(html_input_type = "email", list_regex_mask= "^([a-zA-Z]*)")]
     pub user: String,
+    
     #[sea_orm(column_type = "DateTime")]
     pub insert_date: DateTime,
+    
     pub is_visible: bool,
-    #[actix_admin(select_list="Post")]
+    
+    #[actix_admin(select_list="Post", foreign_key="Post")]
     pub post_id: Option<i32>,
+    
     pub my_decimal: Decimal
 }
 
@@ -49,6 +57,14 @@ impl ActixAdminModelValidationTrait<ActiveModel> for Entity {
         }
 
         errors
+    }
+}
+
+impl Display for Model {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        match &*self {
+           _ => write!(formatter, "{} {}", &self.insert_date, &self.user),
+        }
     }
 }
 

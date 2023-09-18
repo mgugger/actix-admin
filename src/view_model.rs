@@ -4,7 +4,7 @@ use sea_orm::DatabaseConnection;
 use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
 use crate::{ActixAdminModel, SortOrder, model::ActixAdminModelFilterType};
-use actix_session::{Session};
+use actix_session::Session;
 use std::convert::From;
 use crate::ActixAdminError;
 
@@ -99,7 +99,8 @@ pub struct ActixAdminViewModelField {
     pub list_sort_position: usize,
     pub list_hide_column: bool,
     #[serde(skip_serializing, skip_deserializing)]
-    pub list_regex_mask: Option<Regex>
+    pub list_regex_mask: Option<Regex>,
+    pub foreign_key: String
 }
 
 impl ActixAdminViewModelFieldType {

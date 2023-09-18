@@ -26,6 +26,7 @@ pub trait ActixAdminModelTrait {
     ) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError>;
     fn get_fields() -> &'static [ActixAdminViewModelField];
     fn validate_model(model: &mut ActixAdminModel);
+    async fn load_foreign_keys(models: &mut Vec<ActixAdminModel>, db: &DatabaseConnection);
 }
 
 pub trait ActixAdminModelValidationTrait<T> {
@@ -75,6 +76,7 @@ impl<T: EntityTrait> From<ActixAdminModelFilter<T>> for ActixAdminViewModelFilte
 pub struct ActixAdminModel {
     pub primary_key: Option<String>,
     pub values: HashMap<String, String>,
+    pub fk_values: HashMap<String, String>,
     pub errors: HashMap<String, String>,
     pub custom_errors: HashMap<String, String>,
 }
@@ -86,6 +88,7 @@ impl ActixAdminModel {
             values: HashMap::new(),
             errors: HashMap::new(),
             custom_errors: HashMap::new(),
+            fk_values: HashMap::new()
         }
     }
 
@@ -139,6 +142,7 @@ impl ActixAdminModel {
             values: hashmap,
             errors: HashMap::new(),
             custom_errors: HashMap::new(),
+            fk_values: HashMap::new()
         })
     }
 

@@ -6,8 +6,6 @@ use crate::model_fields::{ ModelField };
 use proc_macro2::{Span};
 
 pub fn get_select_list_from_model(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    //let ast: DeriveInput = syn::parse(input).unwrap();
-    //let (_vis, _ty, _generics) = (&ast.vis, &ast.ident, &ast.generics);
 
     let expanded = quote! {
         #[async_trait]

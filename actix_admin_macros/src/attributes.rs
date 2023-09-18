@@ -11,6 +11,7 @@ pub mod derive_attr {
     )]
     pub struct ActixAdmin {
         pub primary_key: Option<()>,
+        pub foreign_key: Option<syn::LitStr>,
         pub html_input_type: Option<syn::LitStr>,
         pub select_list: Option<syn::LitStr>,
         pub searchable: Option<()>,

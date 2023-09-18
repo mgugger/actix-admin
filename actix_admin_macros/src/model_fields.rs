@@ -9,6 +9,7 @@ pub struct ModelField {
     pub ty: Type,
     pub inner_type: Option<Type>,
     pub primary_key: bool,
+    pub foreign_key: Option<String>,
     pub html_input_type: String,
     pub select_list: String,
     pub searchable: bool,

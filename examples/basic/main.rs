@@ -2,7 +2,7 @@ extern crate serde_derive;
 
 use actix_admin::prelude::*;
 use actix_web::{web, App, HttpServer, middleware};
-use sea_orm::{ConnectOptions};
+use sea_orm::ConnectOptions;
 use std::time::Duration;
 mod entity;
 use entity::{Post, Comment, User};

@@ -2,7 +2,7 @@ use crate::attributes::derive_attr;
 use crate::model_fields::ModelField;
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
-use syn::{DeriveInput, Fields, LitStr, Ident};
+use syn::{DeriveInput, Fields, LitStr, Ident, parse_str, Type};
 
 pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::Vec<ModelField> {
     let ast: DeriveInput = syn::parse(input).unwrap();
@@ -41,6 +41,12 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let is_primary_key = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.primary_key.is_some());
+                let foreign_key = actix_admin_attr.clone().map_or(None, |attr| {
+                    attr.foreign_key
+                        .map_or(None, |attr_field| {
+                            Some((LitStr::from(attr_field)).value())
+                        })
+                });
                 let is_searchable = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.searchable.is_some());
@@ -89,6 +95,7 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     ty: field_ty,
                     inner_type: inner_type,
                     primary_key: is_primary_key,
+                    foreign_key: foreign_key,
                     html_input_type: html_input_type,
                     select_list: select_list,
                     searchable: is_searchable,
@@ -215,6 +222,43 @@ pub fn get_primary_key_field_name(fields: &Vec<ModelField>) -> String {
         .expect("model must have a single primary key");
 
     primary_key_model_field.ident.to_string()
+}
+
+pub fn get_fields_for_load_foreign_key(fields: &Vec<ModelField>) -> Vec<TokenStream> {
+    fields
+        .iter()
+        .filter(|model_field| model_field.foreign_key.is_some())
+        .map(|model_field| {
+            let foreign_key = model_field.foreign_key.to_owned();
+
+            match foreign_key {
+                Some(fk) => {
+                    let ty: Result<Type, syn::Error> = parse_str(&fk);
+                    let ty2: Type = parse_str(&fk.clone().to_lowercase()).unwrap();
+                    match ty {
+                        Ok(ty) => {
+                            quote! {
+                                #fk => {
+                                    let models = #ty::find().filter(#ty2::Column::Id.is_in(ids_to_select)).all(db).await;
+                                    Some(models.unwrap_or_default().iter().map(|m| (m.id.to_string(), format!("{}", m))).collect::<HashMap<_, _>>())
+                                },
+                            }
+                        },  
+                        Err(_) => {
+                            quote! {
+                                #fk => None,
+                            }
+                        }
+                    }
+                },
+                None => {
+                    quote! {
+                        #foreign_key => None,
+                    }
+                }
+            }
+        })
+        .collect::<Vec<_>>()
 }
 
 pub fn get_fields_for_from_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {

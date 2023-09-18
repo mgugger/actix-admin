@@ -75,15 +75,15 @@ fn get_regex_val<S: BuildHasher>(
     let s = args.get("values");
     let field_val = s.unwrap().get(&field.field_name);
 
-    println!(
-        "field {} regex {:?}",
-        field.field_name, field.list_regex_mask
-    );
+    // println!(
+    //     "field {} regex {:?}",
+    //     field.field_name, field.list_regex_mask
+    // );
     match (field_val, field.list_regex_mask) {
         (Some(val), Some(r)) => {
             let val_str = val.to_string();
-            let is_match = r.is_match(&val_str);
-            println!("is match: {}, regex {}", is_match, r.to_string());
+            //let is_match = r.is_match(&val_str);
+            //println!("is match: {}, regex {}", is_match, r.to_string());
             let result_str = r.replace_all(&val_str, "*");
             return Ok(to_value(result_str).unwrap());
         }
