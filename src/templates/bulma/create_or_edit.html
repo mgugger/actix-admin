@@ -2,50 +2,71 @@
 
 {% block content %}
 {% include "loader.html" %}
-<form hx-boost="true" hx-indicator="#loading" hx-push-url="true" hx-encoding="multipart/form-data" method="post" enctype="multipart/form-data">
+
+<form hx-boost="true" hx-indicator="#loading" hx-push-url="true" hx-encoding="multipart/form-data" method="post"
+    enctype="multipart/form-data">
     <input type="hidden" id="sort_by" name="sort_by" value="{{ sort_by }}">
     <input type="hidden" id="sort_order" name="sort_order" value="{{ sort_order }}">
     <input type="hidden" name="entities_per_page" value="{{ entities_per_page }}">
     <input type="hidden" name="search" value="{{ search }}">
     <input type="hidden" name="page" value="{{ page }}">
-    {% for model_field in view_model.fields -%}
-    <div class="field">
-        <label class="{{ model_field | get_html_input_type }}" for="{{ model_field.field_name }}">
-            {{ model_field.field_name | replace(from="_id", to="") | split(pat="_") | join(sep=" ") | title }}{% if not model_field.is_option %} *{% endif %}
-        </label>
-        <div class="control">
-        {% if model_field.field_type == "SelectList" %}      
-            {% include "form_elements/selectlist.html" %}
-        {% elif model_field.field_type == "Checkbox" %}
-            {% include "form_elements/checkbox.html" %}
-        {% else %}
-            {% include "form_elements/input.html" %}
-        {% endif %}
-        </div>
-        {% if model.errors | get(key=model_field.field_name, default="" ) !="" %}
-            <p class="help is-danger">{{ model.errors | get(key=model_field.field_name) }}</p>
-        {% endif %}
-        {% if model.custom_errors | get(key=model_field.field_name, default="" ) !="" %}
-        <p class="help is-danger">{{ model.custom_errors | get(key=model_field.field_name) }}</p>
-        {% endif %}
-    </div>
-    {%- endfor %}
-    <div class="field is-grouped">
-        <div class="control">
-            <button class="button is-link" type="submit">Save</i></button>
-        </div>
-        <div class="control">
-            <a hx-vals='{ 
+
+    <div id="modal" class="modal is-active">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Modal title</p>
+                <button class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+
+                {% for model_field in view_model.fields -%}
+                <div class="field">
+                    <label class="{{ model_field | get_html_input_type }}" for="{{ model_field.field_name }}">
+                        {{ model_field.field_name | replace(from="_id", to="") | split(pat="_") | join(sep=" ") | title
+                        }}{% if not model_field.is_option %} *{% endif %}
+                    </label>
+                    <div class="control">
+                        {% if model_field.field_type == "SelectList" %}
+                        {% include "form_elements/selectlist.html" %}
+                        {% elif model_field.field_type == "Checkbox" %}
+                        {% include "form_elements/checkbox.html" %}
+                        {% else %}
+                        {% include "form_elements/input.html" %}
+                        {% endif %}
+                    </div>
+                    {% if model.errors | get(key=model_field.field_name, default="" ) !="" %}
+                    <p class="help is-danger">{{ model.errors | get(key=model_field.field_name) }}</p>
+                    {% endif %}
+                    {% if model.custom_errors | get(key=model_field.field_name, default="" ) !="" %}
+                    <p class="help is-danger">{{ model.custom_errors | get(key=model_field.field_name) }}</p>
+                    {% endif %}
+                </div>
+                {%- endfor %}
+            </section>
+            <footer class="modal-card-foot">
+                <div class="field is-grouped">
+                    <div class="control">
+                        <button class="button is-link" type="submit">Save</i></button>
+                    </div>
+                    <div class="control">
+                        <a hx-vals='{ 
                 "entities_per_page" : "{{ entities_per_page }}",
                 "search" : "{{ search }}",
                 "sort_by" : "{{ sort_by }}",
                 "sort_order" : "{{ sort_order }}",
                 "page" : "{{ page }}"
-                }' hx-boost="true" hx-push-url="true" hx-indicator="#loading"
-                class="button is-link is-light" href="{{ base_path }}/list">
-                Cancel
-            </a>
+                }' hx-boost="true" hx-push-url="true" hx-indicator="#loading" class="button is-link is-light"
+                            href="{{ base_path }}/list">
+                            Cancel
+                        </a>
+                    </div>
+                </div>
+            </footer>
         </div>
     </div>
+
 </form>
+
+
 {% endblock content %}

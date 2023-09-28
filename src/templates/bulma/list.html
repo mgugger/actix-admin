@@ -15,7 +15,8 @@
                 </div>
                 {% elif value.filter_type == "DateTime" %}
                 <div class="control">
-                    <input class="input" value="{{ value.value }}" type="datetime-local" placeholder="" name="filter_{{key}}">
+                    <input class="input" value="{{ value.value }}" type="datetime-local" placeholder=""
+                        name="filter_{{key}}">
                 </div>
                 {% elif value.filter_type == "Checkbox" %}
                 <div class="select is-fullwidth">
@@ -34,7 +35,7 @@
                     <select name="filter_{{key}}" id="filter_{{key}}">
                         <option value=""></option>
                         {% for selectval in value.values %}
-                            <option value="{{ selectval[0] }}">{{ selectval[1] }}</option>
+                        <option value="{{ selectval[0] }}">{{ selectval[1] }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -59,13 +60,16 @@
 
 {% block content %}
 
+<div id="{{ entity_name }}modal"></div>
+
 {% if not render_partial or render_partial == false %}
 <div class="column">
     <div class="columns">
         <div class="column">
             <div class="buttons">
                 <a class="button is-primary" href="/admin/{{ entity_name }}/create" hx-boost="true"
-                    hx-indicator="#loading"><i class="fa-solid fa-circle-plus"></i></a>
+                    hx-target="#{{ entity_name }}modal" hx-indicator="#loading"><i
+                        class="fa-solid fa-circle-plus"></i></a>
                 {% if viewmodel_filter | length > 0 %}
                 <button class="button" onclick="toggle_aside()"><i class="fa-solid fa-filter"></i></button>
                 {% endif %}
@@ -155,7 +159,8 @@
                             value=false) |
                             sort(attribute="list_sort_position") -%}
                             <th onclick="sort_by('{{ model_field.field_name }}');" class="is-clickable">{{
-                                model_field.field_name | split(pat="_") | join(sep=" ") | title | replace(from=" Id", to="") }}
+                                model_field.field_name | split(pat="_") | join(sep=" ") | title | replace(from=" Id",
+                                to="") }}
                                 {% if sort_by == model_field.field_name %}
                                 {% if sort_order == "Asc" %}
                                 <i class="ml-1 fa-solid fa-caret-up"></i>
@@ -197,17 +202,18 @@
                             | get(key=model_field.field_name) }}</a></td>
                     {% else %}
 
-                        {% set model_value = entity.values[model_field.field_name] %}
-                        {% if entity.fk_values is containing(model_value) %}
-                        <td>{{ entity.fk_values | get(key=model_value) }}</td>
-                        {% else %}
-                        <td>{{ model_value }}</td>
-                        {% endif %}
+                    {% set model_value = entity.values[model_field.field_name] %}
+                    {% if entity.fk_values is containing(model_value) %}
+                    <td>{{ entity.fk_values | get(key=model_value) }}</td>
+                    {% else %}
+                    <td>{{ model_value }}</td>
+                    {% endif %}
 
                     {% endif %}
                     {%- endfor %}
                     <td class="has-text-right">
-                        <a hx-target="body" href="/admin/{{ entity_name }}/edit/{{ entity.primary_key }}" hx-vals='{ 
+                        <a hx-target="#{{ entity_name }}modal"
+                            href="/admin/{{ entity_name }}/edit/{{ entity.primary_key }}" hx-vals='{ 
                                 "page" : "{{ page }}",
                                 "entities_per_page" : "{{ entities_per_page }}",
                                 "search" : "{{ search }}",
