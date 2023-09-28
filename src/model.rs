@@ -17,13 +17,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub trait ActixAdminModelTrait {
     async fn list_model(
         db: &DatabaseConnection,
-        page: u64,
-        posts_per_page: u64,
+        page: Option<u64>,
+        posts_per_page: Option<u64>,
         filter_values: HashMap<String, Option<String>>,
         search: &str,
         sort_by: &str,
         sort_order: &SortOrder
-    ) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError>;
+    ) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError>;
     fn get_fields() -> &'static [ActixAdminViewModelField];
     fn validate_model(model: &mut ActixAdminModel);
     async fn load_foreign_keys(models: &mut Vec<ActixAdminModel>, db: &DatabaseConnection);

@@ -85,6 +85,14 @@
                     <div class="dropdown-menu" id="dropdown-menu4">
                         <div class="dropdown-content">
                             <div class="dropdown-item">
+                                <a hx-include="[id='filter_form'], [id='table_form']" hx-vals='{ 
+                                    "search" : "{{ search }}",
+                                    "sort_by" : "{{ sort_by }}",
+                                    "sort_order" : "{{ sort_order }}"
+                                }' hx-indicator="#loading" href="export_csv">Export as CSV</a>
+                            </div>
+                            <hr class="dropdown-divider">
+                            <div class="dropdown-item">
                                 <a hx-include="#table_form" hx-target="#{{ entity_name }}table" href="#"
                                     hx-indicator="#loading" hx-confirm="Are you sure?" hx-delete="delete">Delete</a>
                             </div>
@@ -203,8 +211,8 @@
                     {% else %}
 
                     {% set model_value = entity.values[model_field.field_name] %}
-                    {% if entity.fk_values is containing(model_value) %}
-                    <td>{{ entity.fk_values | get(key=model_value) }}</td>
+                    {% if entity.fk_values is containing(model_field.field_name) %}
+                    <td>{{ entity.fk_values | get(key=model_field.field_name) }}</td>
                     {% else %}
                     <td>{{ model_value }}</td>
                     {% endif %}

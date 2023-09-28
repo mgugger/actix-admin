@@ -74,7 +74,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
 
         #[actix_admin::prelude::async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
-            async fn list(db: &DatabaseConnection, page: u64, entities_per_page: u64, viewmodel_filter: Vec<ActixAdminViewModelFilter>, search: &str, sort_by: &str, sort_order: &SortOrder) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError> {
+            async fn list(db: &DatabaseConnection, page: Option<u64>, entities_per_page: Option<u64>, viewmodel_filter: Vec<ActixAdminViewModelFilter>, search: &str, sort_by: &str, sort_order: &SortOrder) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError> {
                 let filter_values: HashMap<String, Option<String>> = viewmodel_filter.iter().map(|f| (f.name.to_string(), f.value.clone())).collect();
                 let entities = Entity::list_model(db, page, entities_per_page, filter_values, search, sort_by, sort_order).await;
                 entities
@@ -311,7 +311,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
 
         #[actix_admin::prelude::async_trait]
         impl ActixAdminModelTrait for Entity {
-            async fn list_model(db: &DatabaseConnection, page: u64, posts_per_page: u64, filter_values: HashMap<String, Option<String>>, search: &str, sort_by: &str, sort_order: &SortOrder) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError> {
+            async fn list_model(db: &DatabaseConnection, page: Option<u64>, entities_per_page: Option<u64>, filter_values: HashMap<String, Option<String>>, search: &str, sort_by: &str, sort_order: &SortOrder) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError> {
                 let sort_column = match sort_by {
                     #(#fields_match_name_to_columns)*
                     _ => panic!("Unknown column")
@@ -338,14 +338,26 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     query = myfn(query, value.clone());
                 }
 
-                let paginator = query.paginate(db, posts_per_page);
-                let num_pages = paginator.num_pages().await?;
-
+                let mut entities;
                 let mut model_entities = Vec::new();
-                if (num_pages == 0) { return Ok((num_pages, model_entities)) };
-                let entities = paginator
-                    .fetch_page(std::cmp::min(num_pages - 1, page - 1))
-                    .await?;
+                let num_pages: Option<u64>;
+                
+                match (page, entities_per_page) {
+                    (Some(p), Some(e)) => {
+                        let paginator = query.paginate(db, e);
+                        num_pages = Some(paginator.num_pages().await?);
+        
+                        if (num_pages.unwrap() == 0) { return Ok((num_pages, model_entities)) };
+                        entities = paginator
+                            .fetch_page(std::cmp::min(num_pages.unwrap() - 1, p - 1))
+                            .await?;
+                    },
+                    (_, _) => {
+                        entities = query.all(db).await?;
+                        num_pages = None;
+                    }
+                };
+                
                 for entity in entities {
                     model_entities.push(
                         ActixAdminModel::from(entity)
@@ -381,7 +393,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                                 let fk_id = model.values.get(&field.field_name).unwrap();
                                 let fk_val = foreign_key_values.get(fk_id);
                                 if fk_val.is_some() {
-                                    model.fk_values.insert(fk_id.to_string(), fk_val.unwrap().to_string());
+                                    model.fk_values.insert(field.field_name.to_string(), fk_val.unwrap().to_string());
                                 }
                             }
                         }

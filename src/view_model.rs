@@ -12,13 +12,13 @@ use crate::ActixAdminError;
 pub trait ActixAdminViewModelTrait {
     async fn list(
         db: &DatabaseConnection,
-        page: u64,
-        entities_per_page: u64,
+        page: Option<u64>,
+        entities_per_page: Option<u64>,
         viewmodel_filter: Vec<ActixAdminViewModelFilter>,
         search: &str,
         sort_by: &str,
         sort_order: &SortOrder
-    ) -> Result<(u64, Vec<ActixAdminModel>), ActixAdminError>;
+    ) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError>;
     
     // TODO: Replace return value with proper Result Type containing Ok or Err
     async fn create_entity(db: &DatabaseConnection, model: ActixAdminModel) -> Result<ActixAdminModel, ActixAdminError>;

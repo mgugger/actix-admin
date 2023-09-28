@@ -55,6 +55,14 @@ mod get_request_is_success {
     }
 
     #[actix_web::test]
+    async fn get_post_csv_export() {
+        let db = super::setup_db(true).await;
+        let url = format!("/admin/{}/export_csv", crate::Post::get_entity_name());
+
+        test_response_contains(url.as_str(), &db, vec!("Test 155".to_string(), "some content".to_string(), "EverydayTea".to_string())).await
+    }
+
+    #[actix_web::test]
     async fn get_comment_list_search() {
         let db = super::setup_db(true).await;
         let search_string_encoded = "Test%2015";
