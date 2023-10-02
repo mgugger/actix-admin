@@ -1,4 +1,4 @@
-use super::{render_unauthorized, user_can_access_page};
+use super::{render_unauthorized, user_can_access_page, add_auth_context};
 use super::{Params, DEFAULT_ENTITIES_PER_PAGE};
 use crate::prelude::*;
 use crate::ActixAdminError;
@@ -87,6 +87,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
     if model.has_errors() {
         errors.push(ActixAdminError::ValidationErrors);
         render_form::<E>(
+            session,
             req,
             actix_admin,
             view_model,
@@ -97,9 +98,14 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
         )
         .await
     } else {
+        let tenant_ref = actix_admin
+            .configuration
+            .user_tenant_ref
+            .map_or(None, |f| f(&session));
+
         let res = match id {
-            Some(id) => E::edit_entity(db, id, model.clone()).await,
-            None => E::create_entity(db, model.clone()).await,
+            Some(id) => E::edit_entity(db, id, model.clone(), tenant_ref).await,
+            None => E::create_entity(db, model.clone(), tenant_ref).await,
         };
 
         match res {
@@ -127,6 +133,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
             Err(e) => {
                 errors.push(e);
                 render_form::<E>(
+                    session,
                     req,
                     actix_admin,
                     view_model,
@@ -134,6 +141,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
                     entity_name,
                     &model,
                     errors,
+  
                 )
                 .await
             }
@@ -142,6 +150,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
 }
 
 async fn render_form<E: ActixAdminViewModelTrait>(
+    session: &Session,
     req: HttpRequest,
     actix_admin: &ActixAdmin,
     view_model: &ActixAdminViewModel,
@@ -151,6 +160,10 @@ async fn render_form<E: ActixAdminViewModelTrait>(
     errors: Vec<ActixAdminError>,
 ) -> Result<HttpResponse, Error> {
     let mut ctx = Context::new();
+
+    add_auth_context(&session, actix_admin, &mut ctx);
+
+    ctx.insert("entity_names", &actix_admin.entity_names);
 
     let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
 
@@ -166,6 +179,11 @@ async fn render_form<E: ActixAdminViewModelTrait>(
         .unwrap_or(view_model.primary_key.to_string());
     let sort_order = params.sort_order.as_ref().unwrap_or(&SortOrder::Asc);
 
+    let tenant_ref = actix_admin
+        .configuration
+        .user_tenant_ref
+        .map_or(None, |f| f(&session));
+
     ctx.insert("entities_per_page", &entities_per_page);
     ctx.insert("render_partial", &render_partial);
     ctx.insert("search", &search);
@@ -178,7 +196,7 @@ async fn render_form<E: ActixAdminViewModelTrait>(
         "view_model",
         &ActixAdminViewModelSerializable::from(view_model.clone()),
     );
-    ctx.insert("select_lists", &E::get_select_lists(db).await?);
+    ctx.insert("select_lists", &E::get_select_lists(db, tenant_ref).await?);
     ctx.insert("base_path", &E::get_base_path(&entity_name));
     ctx.insert("model", model);
 

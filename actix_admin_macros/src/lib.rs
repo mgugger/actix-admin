@@ -58,6 +58,10 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
 
     let select_lists = get_select_lists(&fields);
 
+    let tenant_ref_field = get_tenant_ref_field(&fields, false);
+
+    let set_tenant_ref_field = get_set_tenant_ref_field(&fields);
+
     let expanded = quote! {
         impl From<Entity> for ActixAdminViewModel {
             fn from(entity: Entity) -> Self {
@@ -74,9 +78,9 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
 
         #[actix_admin::prelude::async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
-            async fn list(db: &DatabaseConnection, page: Option<u64>, entities_per_page: Option<u64>, viewmodel_filter: Vec<ActixAdminViewModelFilter>, search: &str, sort_by: &str, sort_order: &SortOrder) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError> {
-                let filter_values: HashMap<String, Option<String>> = viewmodel_filter.iter().map(|f| (f.name.to_string(), f.value.clone())).collect();
-                let entities = Entity::list_model(db, page, entities_per_page, filter_values, search, sort_by, sort_order).await;
+            async fn list(db: &DatabaseConnection, params: &ActixAdminViewModelParams) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError> {
+                let filter_values: HashMap<String, Option<String>> = params.viewmodel_filter.iter().map(|f| (f.name.to_string(), f.value.clone())).collect();
+                let entities = Entity::list_model(db, params, filter_values).await;
                 entities
             }
 
@@ -90,9 +94,12 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 }
             }
 
-            async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel) -> Result<ActixAdminModel, ActixAdminError> {
-                let new_model = ActiveModel::from(model.clone());
-                let insert_operation = Entity::insert(new_model).exec(db).await?;
+            async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError> {
+                let mut active_model = ActiveModel::from(model.clone());
+
+                #set_tenant_ref_field
+
+                let insert_operation = Entity::insert(active_model).exec(db).await?;
                 model.primary_key = Some(insert_operation.last_insert_id.to_string());
 
                 Ok(model)
@@ -116,16 +123,25 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 hashmap
             }
 
-            async fn get_entity(db: &DatabaseConnection, id: i32) -> Result<ActixAdminModel, ActixAdminError> {
-                let entity = Entity::find_by_id(id).one(db).await?;
+            async fn get_entity(db: &DatabaseConnection, id: i32, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError> {
+                let mut query = Entity::find().filter(Column::Id.eq(id));
+
+                #tenant_ref_field
+ 
+                let entity = query.one(db).await?;
+
                 match entity {
                     Some(e) => Ok(ActixAdminModel::from(e)),
                     _ => Err(ActixAdminError::EntityDoesNotExistError)
                 }
             }
 
-            async fn edit_entity(db: &DatabaseConnection, id: i32, mut model: ActixAdminModel) -> Result<ActixAdminModel, ActixAdminError> {
-                let entity: Option<Model> = Entity::find_by_id(id).one(db).await?;
+            async fn edit_entity(db: &DatabaseConnection, id: i32, mut model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError> {
+                let mut query = Entity::find().filter(Column::Id.eq(id));
+
+                #tenant_ref_field
+ 
+                let entity = query.one(db).await?;
 
                 match entity {
                     Some(e) => {
@@ -138,16 +154,21 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 }
             }
 
-            async fn delete_entity(db: &DatabaseConnection, id: i32) -> Result<bool, ActixAdminError> {
-                let result = Entity::delete_by_id(id).exec(db).await;
+            async fn delete_entity(db: &DatabaseConnection, id: i32, tenant_ref: Option<i32>) -> Result<bool, ActixAdminError> {
+                let mut query = Entity::delete_many().filter(Column::Id.eq(id));
 
-                match result {
-                    Ok(_) => Ok(true),
-                    Err(_) => Err(ActixAdminError::DeleteError)
+                #tenant_ref_field
+   
+                let del_result = query.exec(db).await?;
+
+                if del_result.rows_affected > 0 {
+                    return Ok(true)
+                } else {
+                    return Err(ActixAdminError::DeleteError)
                 }
             }
 
-            async fn get_select_lists(db: &DatabaseConnection) -> Result<HashMap<String, Vec<(String, String)>>, ActixAdminError> {
+            async fn get_select_lists(db: &DatabaseConnection, tenant_ref: Option<i32>) -> Result<HashMap<String, Vec<(String, String)>>, ActixAdminError> {
                 Ok(hashmap![
                     #(#select_lists),*
                 ])
@@ -202,8 +223,12 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let fields_list_hide_column = get_fields_as_tokenstream(&fields, |model_field| -> bool {
         model_field.list_hide_column
     });
+    let fields_tenant_ref = get_fields_as_tokenstream(&fields, |model_field| -> bool {
+        model_field.tenant_ref
+    });
     let fields_searchable = get_actix_admin_fields_searchable(&fields);
     let has_searchable_fields = fields_searchable.len() > 0;
+    let tenant_ref_field = get_tenant_ref_field(&fields, true);
 
     let expanded = quote! {
         actix_admin::prelude::lazy_static! {
@@ -246,6 +271,10 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     #(#fields_file_upload),*
                 ];
 
+                let fields_tenant_refs = [
+                    #(#fields_tenant_ref),*
+                ];
+
                 let list_sort_positions = [
                     #(#fields_list_sort_positions),*
                 ];
@@ -258,7 +287,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     #(#field_list_regex_mask),*
                 ];
 
-                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea, is_file_upload, list_sort_position, list_hide_column, list_regex_mask, foreign_key) in actix_admin::prelude::izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas, fields_fileupload, list_sort_positions, list_hide_columns, list_regex_masks, &foreign_keys) {
+                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea, is_file_upload, list_sort_position, list_hide_column, list_regex_mask, foreign_key, tenant_ref) in actix_admin::prelude::izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas, fields_fileupload, list_sort_positions, list_hide_columns, list_regex_masks, &foreign_keys, fields_tenant_refs) {
 
                     let select_list = select_list.replace('"', "").replace(' ', "").to_string();
                     let field_name = field_name.replace('"', "").replace(' ', "").to_string();
@@ -277,7 +306,8 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                         field_type: ActixAdminViewModelFieldType::get_field_type(fields_type_path, select_list, is_textarea, is_file_upload),
                         list_hide_column: list_hide_column,
                         list_regex_mask: list_regex_mask_regex,
-                        foreign_key: foreign_key.to_string()
+                        foreign_key: foreign_key.to_string(),
+                        is_tenant_ref: tenant_ref
                     });
                 }
                 vec
@@ -311,13 +341,14 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
 
         #[actix_admin::prelude::async_trait]
         impl ActixAdminModelTrait for Entity {
-            async fn list_model(db: &DatabaseConnection, page: Option<u64>, entities_per_page: Option<u64>, filter_values: HashMap<String, Option<String>>, search: &str, sort_by: &str, sort_order: &SortOrder) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError> {
-                let sort_column = match sort_by {
+            async fn list_model(db: &DatabaseConnection, params: &ActixAdminViewModelParams, filter_values: HashMap<String, Option<String>>) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError> {
+
+                let sort_column = match params.sort_by.as_ref() {
                     #(#fields_match_name_to_columns)*
                     _ => panic!("Unknown column")
                 };
 
-                let mut query = if sort_order.eq(&SortOrder::Asc) {
+                let mut query = if params.sort_order.eq(&SortOrder::Asc) {
                     Entity::find().order_by_asc(sort_column)
                 } else {
                     Entity::find().order_by_desc(sort_column)
@@ -331,6 +362,8 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     )
                 }
 
+                #tenant_ref_field
+
                 let filters = Entity::get_filter();
                 for filter in filters {
                     let myfn = filter.filter;
@@ -339,10 +372,10 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                 }
 
                 let mut entities;
-                let mut model_entities = Vec::new();
+                let mut model_entities = Vec::<ActixAdminModel>::new();
                 let num_pages: Option<u64>;
                 
-                match (page, entities_per_page) {
+                match (params.page, params.entities_per_page) {
                     (Some(p), Some(e)) => {
                         let paginator = query.paginate(db, e);
                         num_pages = Some(paginator.num_pages().await?);
@@ -403,7 +436,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
 
             fn validate_model(model: &mut ActixAdminModel) {
                 let mut errors = HashMap::<String, String>::new();
-                #(#fields_for_validate_model);*;
+                #(#fields_for_validate_model);*
 
                 model.errors = errors;
             }

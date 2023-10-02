@@ -33,7 +33,13 @@ pub async fn edit_get<E: ActixAdminViewModelTrait>(
     id: web::Path<i32>
 ) -> Result<HttpResponse, Error> {
     let db = db.get_ref();
-    let model = E::get_entity(db, id.into_inner()).await;
+    let actix_admin = &data.get_ref();
+    let tenant_ref = actix_admin
+        .configuration
+        .user_tenant_ref
+        .map_or(None, |f| f(&session));
+
+    let model = E::get_entity(db, id.into_inner(), tenant_ref).await;
 
     create_or_edit_get::<E>(&session, req, &data, db, model).await
 }
@@ -83,8 +89,13 @@ async fn create_or_edit_get<E: ActixAdminViewModelTrait>(session: &Session, req:
     let sort_by = params.sort_by.clone().unwrap_or(view_model.primary_key.to_string());
     let sort_order = params.sort_order.as_ref().unwrap_or(&SortOrder::Asc);
 
+    let tenant_ref = actix_admin
+        .configuration
+        .user_tenant_ref
+        .map_or(None, |f| f(&session));
+
     ctx.insert("view_model", &ActixAdminViewModelSerializable::from(view_model.clone()));
-    ctx.insert("select_lists", &E::get_select_lists(db).await?);
+    ctx.insert("select_lists", &E::get_select_lists(db, tenant_ref).await?);
     ctx.insert("base_path", &E::get_base_path(&entity_name));
     ctx.insert("model", &model);
     ctx.insert("notifications", &notifications);

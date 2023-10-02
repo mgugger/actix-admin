@@ -9,6 +9,8 @@ use chrono::Local;
 use sea_orm::prelude::Decimal;
 use sea_orm::{ConnectOptions, DatabaseConnection, EntityTrait, Set};
 
+use super::SampleWithTenantId;
+use super::sample_with_tenant_id;
 use super::{comment, create_tables, post, Comment, Post};
 
 pub async fn setup_db(create_entities: bool) -> DatabaseConnection {
@@ -45,6 +47,17 @@ pub async fn setup_db(create_entities: bool) -> DatabaseConnection {
                 .exec(&db)
                 .await
                 .expect("could not insert comment");
+
+            let row = sample_with_tenant_id::ActiveModel {
+                    title: Set(format!("TestTenant{}", i % 2)),
+                    text: Set("me@home.com".to_string()),
+                    tenant_id: Set(i % 2),
+                    ..Default::default()
+                };
+                let _res = SampleWithTenantId::insert(row)
+                    .exec(&db)
+                    .await
+                    .expect("could not insert sample with tenant id");
         }
     }
 
@@ -53,9 +66,9 @@ pub async fn setup_db(create_entities: bool) -> DatabaseConnection {
 
 #[macro_export]
 macro_rules! create_app (
-    ($db: expr) => ({
+    ($db: expr, $enable_auth: expr, $tenant_ref: expr) => ({
         let conn = $db.clone();
-        let actix_admin_builder = super::create_actix_admin_builder();
+        let actix_admin_builder = super::create_actix_admin_builder($enable_auth, $tenant_ref);
         let actix_admin = actix_admin_builder.get_actix_admin();
 
         test::init_service(
@@ -68,12 +81,14 @@ macro_rules! create_app (
     });
 );
 
-pub fn create_actix_admin_builder() -> ActixAdminBuilder {
+pub fn create_actix_admin_builder(enable_auth: bool, tenant_ref: Option<for<'a> fn(&'a Session) -> Option<i32>>) -> ActixAdminBuilder {
     let post_view_model = ActixAdminViewModel::from(Post);
     let comment_view_model = ActixAdminViewModel::from(Comment);
+    let sample_with_tenant_id_view_model = ActixAdminViewModel::from(SampleWithTenantId);
 
     let configuration = ActixAdminConfiguration {
-        enable_auth: false,
+        enable_auth: enable_auth,
+        user_tenant_ref: tenant_ref,
         user_is_logged_in: None,
         login_link: None,
         logout_link: None,
@@ -84,6 +99,7 @@ pub fn create_actix_admin_builder() -> ActixAdminBuilder {
     let mut admin_builder = ActixAdminBuilder::new(configuration);
     admin_builder.add_entity::<Post>(&post_view_model);
     admin_builder.add_entity::<Comment>(&comment_view_model);
+    admin_builder.add_entity::<SampleWithTenantId>(&sample_with_tenant_id_view_model);
 
     admin_builder.add_custom_handler_for_entity::<Comment>(
         "Create Comment From Plaintext",
@@ -96,6 +112,13 @@ pub fn create_actix_admin_builder() -> ActixAdminBuilder {
         "Create Post From Plaintext",
         "/create_post_from_plaintext",
         web::post().to(create_post_from_plaintext::<Post>),
+        false,
+    );
+
+    admin_builder.add_custom_handler_for_entity::<SampleWithTenantId>(
+        "Create Sample With Tenant Id From Plaintext",
+        "/create_post_from_plaintext",
+        web::post().to(create_post_from_plaintext::<SampleWithTenantId>),
         false,
     );
 

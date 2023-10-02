@@ -20,21 +20,7 @@ pub mod derive_attr {
         pub not_empty: Option<()>,
         pub list_sort_position: Option<syn::LitStr>,
         pub list_hide_column: Option<()>,
-        pub list_regex_mask: Option<syn::LitStr>
-        //pub inner_type: Option<syn::Type>,
-
-        // Anything that implements `syn::parse::Parse` is supported.
-        //mandatory_type: syn::Type,
-        //mandatory_ident: syn::Ident,
-
-        // Fields wrapped in `Option` are optional and default to `None` if
-        // not specified in the attribute.
-        //optional_missing: Option<syn::Type>,
-        //optional_given: Option<syn::Type>,
-
-        // A "switch" is something that doesn't take arguments.
-        // All fields with type `Option<()>` are considered swiches.
-        // They default to `None`.
-        //switch: Option<()>,
+        pub list_regex_mask: Option<syn::LitStr>,
+        pub tenant_ref: Option<()>
     }
 }

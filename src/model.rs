@@ -1,5 +1,4 @@
-use crate::routes::SortOrder;
-use crate::view_model::ActixAdminViewModelFilter;
+use crate::view_model::{ActixAdminViewModelFilter, ActixAdminViewModelParams};
 use crate::{ActixAdminError, ActixAdminViewModelField};
 use actix_multipart::{Multipart, MultipartError};
 use actix_web::web::Bytes;
@@ -17,12 +16,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub trait ActixAdminModelTrait {
     async fn list_model(
         db: &DatabaseConnection,
-        page: Option<u64>,
-        posts_per_page: Option<u64>,
-        filter_values: HashMap<String, Option<String>>,
-        search: &str,
-        sort_by: &str,
-        sort_order: &SortOrder
+        params: &ActixAdminViewModelParams,
+        filter_values: HashMap<String, Option<String>>
     ) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError>;
     fn get_fields() -> &'static [ActixAdminViewModelField];
     fn validate_model(model: &mut ActixAdminModel);

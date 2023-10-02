@@ -13,44 +13,54 @@
 
   <div id="navbar" class="navbar-menu">
     <div class="navbar-start">
+      {% if enable_auth and user_is_logged_in or not enable_auth %}
       {% for category, entities in entity_names %}
-        {% if category == "" %}
-          {% for menu_element in entities %}
-            {% if menu_element.is_custom_handler %}
-            <a href="/admin/{{ menu_element.link }}" hx-boost="true" hx-indicator="#loading" class="navbar-item {% if entity_name and entity_name == menu_element.name %}is-active{% endif %}">{{ menu_element.name }}</a>
-            {% else %}
-            <a href="/admin/{{ menu_element.link }}/list" hx-boost="true" hx-indicator="#loading" class="navbar-item {% if entity_name and entity_name == menu_element.name %}is-active{% endif %}">{{ menu_element.name | title }}</a>
-            {% endif %}
-          {%- endfor %}
-        {% else %}
-          <div class="navbar-item has-dropdown is-hoverable">
-            <a class="navbar-link {% if entity_name and entity_name in entities %}is-active{% endif %}">
-              {{ category }}
-            </a>
-            <div class="navbar-dropdown">
-          {% for menu_element in entities %}
-            {% if menu_element.is_custom_handler %}
-            <a href="/admin/{{ menu_element.link }}" hx-boost="true" hx-indicator="#loading" class="navbar-item {% if entity_name and entity_name == menu_element.name %}is-active{% endif %}">{{ menu_element.name }}</a>
-            {% else %}
-            <a href="/admin/{{ menu_element.link }}/list" hx-boost="true" hx-indicator="#loading" class="navbar-item {% if entity_name and entity_name == menu_element.name %}is-active{% endif %}">{{ menu_element.name | title }}</a>
-            {% endif %}
-          {%- endfor %}
-            </div>
-          </div>
-        {% endif %}
+      {% if category == "" %}
+      {% for menu_element in entities %}
+      {% if menu_element.is_custom_handler %}
+      <a href="/admin/{{ menu_element.link }}" hx-boost="true" hx-indicator="#loading"
+        class="navbar-item {% if entity_name and entity_name == menu_element.name %}is-active{% endif %}">{{
+        menu_element.name }}</a>
+      {% else %}
+      <a href="/admin/{{ menu_element.link }}/list" hx-boost="true" hx-indicator="#loading"
+        class="navbar-item {% if entity_name and entity_name == menu_element.name %}is-active{% endif %}">{{
+        menu_element.name | split(pat="_") | join(sep=" ") | title }}</a>
+      {% endif %}
       {%- endfor %}
+      {% else %}
+      <div class="navbar-item has-dropdown is-hoverable">
+        <a class="navbar-link {% if entity_name and entity_name in entities %}is-active{% endif %}">
+          {{ category }}
+        </a>
+        <div class="navbar-dropdown">
+          {% for menu_element in entities %}
+          {% if menu_element.is_custom_handler %}
+          <a href="/admin/{{ menu_element.link }}" hx-boost="true" hx-indicator="#loading"
+            class="navbar-item {% if entity_name and entity_name == menu_element.name %}is-active{% endif %}">{{
+            menu_element.name }}</a>
+          {% else %}
+          <a href="/admin/{{ menu_element.link }}/list" hx-boost="true" hx-indicator="#loading"
+            class="navbar-item {% if entity_name and entity_name == menu_element.name %}is-active{% endif %}">{{
+            menu_element.name | split(pat="_") | join(sep=" ") | title }}</a>
+          {% endif %}
+          {%- endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {%- endfor %}
+      {% endif %}
     </div>
 
     <div class="navbar-end">
       <div class="navbar-item">
-        <div class="buttons">
+        <div hx-disable class="buttons">
           {% if enable_auth %}
           {% if user_is_logged_in %}
-          <a href="{{ logout_link }}" hx-boost="true" hx-indicator="#loading" class="button is-light">
+          <a href="{{ logout_link }}" class="button is-light">
             Log out
           </a>
           {% else %}
-          <a href="{{ login_link }}" hx-boost="true" hx-indicator="#loading" class="button is-light">
+          <a href="{{ login_link }}" class="button is-light">
             Log in
           </a>
           {% endif %}

@@ -38,7 +38,7 @@ mod post_create_and_edit_is_success {
     #[actix_web::test]
     async fn comment_create_and_edit() {
         let db = super::setup_db(false).await;
-        let app = create_app!(db);
+        let app = create_app!(db, false, None);
 
         // create entity
         let mut model = CommentModel {
@@ -112,7 +112,7 @@ mod post_create_and_edit_is_success {
     #[actix_web::test]
     async fn post_create_and_edit() {
         let db = super::setup_db(false).await;
-        let app = create_app!(db);
+        let app = create_app!(db, false, None);
 
         let mut model = PostModel {
             id: "0",

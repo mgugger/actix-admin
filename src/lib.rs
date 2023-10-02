@@ -28,7 +28,7 @@ pub mod prelude {
     pub use crate::model::{ActixAdminModel, ActixAdminModelTrait, ActixAdminModelValidationTrait, ActixAdminModelFilter, ActixAdminModelFilterTrait, ActixAdminModelFilterType};
     pub use crate::routes::{create_or_edit_post, get_admin_ctx, SortOrder};
     pub use crate::view_model::{
-        ActixAdminViewModel, ActixAdminViewModelField, ActixAdminViewModelFieldType,
+        ActixAdminViewModel, ActixAdminViewModelParams, ActixAdminViewModelField, ActixAdminViewModelFieldType,
         ActixAdminViewModelSerializable, ActixAdminViewModelTrait, ActixAdminViewModelFilter
     };
     pub use crate::{hashmap, ActixAdminSelectListTrait};
@@ -66,6 +66,7 @@ pub trait ActixAdminSelectListTrait {
 pub struct ActixAdminConfiguration {
     pub enable_auth: bool,
     pub user_is_logged_in: Option<for<'a> fn(&'a Session) -> bool>,
+    pub user_tenant_ref: Option<for<'a> fn(&'a Session) -> Option<i32>>,
     pub login_link: Option<String>,
     pub logout_link: Option<String>,
     pub file_upload_directory: &'static str,

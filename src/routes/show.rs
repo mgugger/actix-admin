@@ -22,8 +22,13 @@ pub async fn show<E: ActixAdminViewModelTrait>(
         return render_unauthorized(&ctx, &actix_admin);
     }
     
+    let tenant_ref = actix_admin
+        .configuration
+        .user_tenant_ref
+        .map_or(None, |f| f(&session));
+    
     let mut errors: Vec<crate::ActixAdminError> = Vec::new();
-    let result = E::get_entity(&db, id.into_inner()).await;
+    let result = E::get_entity(&db, id.into_inner(), tenant_ref).await;
     let model;
     match result {
         Ok(res) => {

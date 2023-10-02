@@ -60,15 +60,13 @@
 
 {% block content %}
 
-<div id="{{ entity_name }}modal"></div>
-
 {% if not render_partial or render_partial == false %}
 <div class="column">
     <div class="columns">
         <div class="column">
             <div class="buttons">
                 <a class="button is-primary" href="/admin/{{ entity_name }}/create" hx-boost="true"
-                    hx-target="#{{ entity_name }}modal" hx-indicator="#loading"><i
+                    hx-indicator="#loading"><i
                         class="fa-solid fa-circle-plus"></i></a>
                 {% if viewmodel_filter | length > 0 %}
                 <button class="button" onclick="toggle_aside()"><i class="fa-solid fa-filter"></i></button>
@@ -220,7 +218,7 @@
                     {% endif %}
                     {%- endfor %}
                     <td class="has-text-right">
-                        <a hx-target="#{{ entity_name }}modal"
+                        <a hx-target="body"
                             href="/admin/{{ entity_name }}/edit/{{ entity.primary_key }}" hx-vals='{ 
                                 "page" : "{{ page }}",
                                 "entities_per_page" : "{{ entities_per_page }}",

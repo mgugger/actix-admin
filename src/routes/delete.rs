@@ -27,8 +27,14 @@ pub async fn delete<E: ActixAdminViewModelTrait>(
 
     let db = &db.get_ref();
     let id = id.into_inner();
-    let model_result = E::get_entity(db, id).await;
-    let delete_result = E::delete_entity(db, id).await;
+
+    let tenant_ref = actix_admin
+        .configuration
+        .user_tenant_ref
+        .map_or(None, |f| f(&session));
+
+    let model_result = E::get_entity(db, id, tenant_ref).await;
+    let delete_result = E::delete_entity(db, id, tenant_ref).await;
 
     match (model_result, delete_result) {
         (Ok(model), Ok(_)) => {
@@ -80,9 +86,14 @@ pub async fn delete_many<E: ActixAdminViewModelTrait>(
     let ids: Vec<i32> = form.iter().filter(|el| el.0 == "ids").map(|el| el.1.parse::<i32>().unwrap()).collect();
 
     // TODO: implement delete_many
+        let tenant_ref = actix_admin
+        .configuration
+        .user_tenant_ref
+        .map_or(None, |f| f(&session));
+
     for id in ids {
-        let model_result = E::get_entity(db, id).await;
-        let delete_result = E::delete_entity(db, id).await;
+        let model_result = E::get_entity(db, id, tenant_ref).await;
+        let delete_result = E::delete_entity(db, id, tenant_ref).await;
         match (delete_result, model_result) {
             (Err(e), _) => errors.push(e),
             (Ok(_), Ok(model)) => {

@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::view_model::ActixAdminViewModelParams;
 use actix_web::http::header::ContentDisposition;
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use csv::WriterBuilder;
@@ -17,7 +18,7 @@ use crate::ActixAdminViewModel;
 use crate::ActixAdminViewModelTrait;
 use actix_session::Session;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum SortOrder {
     Asc,
     Desc,
@@ -71,7 +72,7 @@ pub async fn export_csv<E: ActixAdminViewModelTrait>(
         .sort_by
         .clone()
         .unwrap_or(view_model.primary_key.to_string());
-    let sort_order = params.sort_order.as_ref().unwrap_or(&SortOrder::Asc);
+    let sort_order = params.sort_order.clone().unwrap_or(SortOrder::Asc);
 
     let decoded_querystring = decode(req.query_string()).unwrap();
     let actixadminfilters: Vec<ActixAdminViewModelFilter> = decoded_querystring
@@ -94,16 +95,20 @@ pub async fn export_csv<E: ActixAdminViewModelTrait>(
         })
         .collect();
 
-    let result = E::list(
-        &db,
-        None,
-        None,
-        actixadminfilters,
-        &search,
-        &sort_by,
-        &sort_order,
-    )
-    .await;
+    let params = ActixAdminViewModelParams {
+        page: None,
+        entities_per_page: None,
+        viewmodel_filter: actixadminfilters,
+        search: search,
+        sort_by: sort_by,
+        sort_order: sort_order,
+        tenant_ref: actix_admin
+            .configuration
+            .user_tenant_ref
+            .map_or(None, |f| f(&session)),
+    };
+
+    let result = E::list(&db, &params).await;
 
     let mut entities;
     match result {
@@ -133,8 +138,12 @@ pub async fn export_csv<E: ActixAdminViewModelTrait>(
         values.push(entity.primary_key.unwrap_or_default());
         for field in view_model.fields.iter() {
             let empty_string = "".to_string();
-            
-            let model_value = entity.values.get(&field.field_name).unwrap_or(&empty_string).clone();
+
+            let model_value = entity
+                .values
+                .get(&field.field_name)
+                .unwrap_or(&empty_string)
+                .clone();
             // TODO: fk_values must be HashMap<Hashmap<String, String>> in case multiply FK share same index
             let fk_value = entity.fk_values.get(&field.field_name);
 
@@ -190,7 +199,7 @@ pub async fn list<E: ActixAdminViewModelTrait>(
         .sort_by
         .clone()
         .unwrap_or(view_model.primary_key.to_string());
-    let sort_order = params.sort_order.as_ref().unwrap_or(&SortOrder::Asc);
+    let sort_order = params.sort_order.clone().unwrap_or(SortOrder::Asc);
 
     let decoded_querystring = decode(req.query_string()).unwrap();
     let actixadminfilters: Vec<ActixAdminViewModelFilter> = decoded_querystring
@@ -213,16 +222,20 @@ pub async fn list<E: ActixAdminViewModelTrait>(
         })
         .collect();
 
-    let result = E::list(
-        &db,
-        Some(page),
-        Some(entities_per_page),
-        actixadminfilters,
-        &search,
-        &sort_by,
-        &sort_order,
-    )
-    .await;
+    let params = ActixAdminViewModelParams {
+        page: Some(page),
+        entities_per_page: Some(entities_per_page),
+        viewmodel_filter: actixadminfilters,
+        search: search,
+        sort_by: sort_by,
+        sort_order: sort_order,
+        tenant_ref: actix_admin
+            .configuration
+            .user_tenant_ref
+            .map_or(None, |f| f(&session)),
+    };
+
+    let result = E::list(&db, &params).await;
 
     match result {
         Ok(res) => {
@@ -276,9 +289,9 @@ pub async fn list<E: ActixAdminViewModelTrait>(
         "view_model",
         &ActixAdminViewModelSerializable::from(view_model.clone()),
     );
-    ctx.insert("search", &search);
-    ctx.insert("sort_by", &sort_by);
-    ctx.insert("sort_order", &sort_order);
+    ctx.insert("search", &params.search);
+    ctx.insert("sort_by", &params.sort_by);
+    ctx.insert("sort_order", &params.sort_order);
 
     let body = actix_admin
         .tera

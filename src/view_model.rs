@@ -7,25 +7,29 @@ use crate::{ActixAdminModel, SortOrder, model::ActixAdminModelFilterType};
 use actix_session::Session;
 use std::convert::From;
 use crate::ActixAdminError;
+pub struct ActixAdminViewModelParams {
+    pub page: Option<u64>,
+    pub entities_per_page: Option<u64>,
+    pub viewmodel_filter: Vec<ActixAdminViewModelFilter>,
+    pub search: String,
+    pub sort_by: String,
+    pub sort_order: SortOrder,
+    pub tenant_ref: Option<i32>
+}
 
 #[async_trait(?Send)]
 pub trait ActixAdminViewModelTrait {
     async fn list(
         db: &DatabaseConnection,
-        page: Option<u64>,
-        entities_per_page: Option<u64>,
-        viewmodel_filter: Vec<ActixAdminViewModelFilter>,
-        search: &str,
-        sort_by: &str,
-        sort_order: &SortOrder
+        params: &ActixAdminViewModelParams
     ) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError>;
     
     // TODO: Replace return value with proper Result Type containing Ok or Err
-    async fn create_entity(db: &DatabaseConnection, model: ActixAdminModel) -> Result<ActixAdminModel, ActixAdminError>;
-    async fn delete_entity(db: &DatabaseConnection, id: i32) -> Result<bool, ActixAdminError>;
-    async fn get_entity(db: &DatabaseConnection, id: i32) -> Result<ActixAdminModel, ActixAdminError>;
-    async fn edit_entity(db: &DatabaseConnection, id: i32, model: ActixAdminModel) -> Result<ActixAdminModel, ActixAdminError>;
-    async fn get_select_lists(db: &DatabaseConnection) -> Result<HashMap<String, Vec<(String, String)>>, ActixAdminError>;
+    async fn create_entity(db: &DatabaseConnection, model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError>;
+    async fn delete_entity(db: &DatabaseConnection, id: i32, tenant_ref: Option<i32>) -> Result<bool, ActixAdminError>;
+    async fn get_entity(db: &DatabaseConnection, id: i32, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError>;
+    async fn edit_entity(db: &DatabaseConnection, id: i32, model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError>;
+    async fn get_select_lists(db: &DatabaseConnection, tenant_ref: Option<i32>) -> Result<HashMap<String, Vec<(String, String)>>, ActixAdminError>;
     async fn get_viewmodel_filter(db: &DatabaseConnection) -> HashMap<String, ActixAdminViewModelFilter>;
     fn validate_entity(model: &mut ActixAdminModel);
 
@@ -100,7 +104,8 @@ pub struct ActixAdminViewModelField {
     pub list_hide_column: bool,
     #[serde(skip_serializing, skip_deserializing)]
     pub list_regex_mask: Option<Regex>,
-    pub foreign_key: String
+    pub foreign_key: String,
+    pub is_tenant_ref: bool
 }
 
 impl ActixAdminViewModelFieldType {

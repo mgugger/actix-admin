@@ -148,7 +148,7 @@ mod get_request_is_success {
     }
 
     async fn test_response_contains(url: &str, db: &DatabaseConnection, elements_to_verify: Vec<String>) {
-        let app = create_app!(db);     
+        let app = create_app!(db, false, None);     
 
         let req = test::TestRequest::get()
             .uri(url)
@@ -164,7 +164,7 @@ mod get_request_is_success {
     }
 
     async fn test_get_is_success(url: &str, db: &DatabaseConnection) {
-        let app = create_app!(db);     
+        let app = create_app!(db, false, None);     
 
         let req = test::TestRequest::get()
             .uri(url)

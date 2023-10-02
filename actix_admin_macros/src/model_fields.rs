@@ -18,7 +18,8 @@ pub struct ModelField {
     pub not_empty: bool,
     pub list_sort_position: usize,
     pub list_hide_column: bool,
-    pub list_regex_mask: String
+    pub list_regex_mask: String,
+    pub tenant_ref: bool
 }
 
 impl ModelField {

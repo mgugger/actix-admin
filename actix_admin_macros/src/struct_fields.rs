@@ -15,12 +15,18 @@ pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::V
 }
 
 fn capitalize_first_letter(s: &str) -> String {
-    if s.len() > 0 {
-        s[0..1].to_uppercase() + &s[1..]
-    } else {
-        String::new()
-    }
+    s.split('_')
+        .map(|word| {
+            if word.len() > 0 {
+                word[0..1].to_uppercase() + &word[1..]
+            } else {
+                String::new()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("")
 }
+
 
 fn to_camelcase(s: &str) -> String {
     s.split("_").fold(String::new(), |a, b| capitalize_first_letter(&a) + &capitalize_first_letter(b))
@@ -59,6 +65,9 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let is_list_hide_column = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.list_hide_column.is_some());
+                let is_tenant_ref = actix_admin_attr
+                    .clone()
+                    .map_or(false, |attr| attr.tenant_ref.is_some());
                 let is_not_empty = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.not_empty.is_some());
@@ -104,7 +113,8 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     not_empty: is_not_empty,
                     list_sort_position: list_sort_position,
                     list_hide_column: is_list_hide_column,
-                    list_regex_mask: list_regex_mask
+                    list_regex_mask: list_regex_mask,
+                    tenant_ref: is_tenant_ref
                 };
                 Some(model_field)
             } else {
@@ -162,6 +172,7 @@ pub fn get_fields_as_tokenstream<T: ToTokens>(fields: &Vec<ModelField>, accessor
     fields
     .iter()
     .filter(|model_field| !model_field.primary_key)
+    .filter(|model_field| !model_field.tenant_ref)
     .map(|model_field| {
         let ident_name = accessor(model_field);
 
@@ -190,14 +201,82 @@ pub fn get_actix_admin_fields_searchable(fields: &Vec<ModelField>) -> Vec<TokenS
     fields
         .iter()
         .filter(|model_field| model_field.searchable)
+        .filter(|model_field| !model_field.tenant_ref)
         .map(|model_field| {
             let column_name = capitalize_first_letter(&model_field.ident.to_string());
             let column_ident = Ident::new(&column_name, Span::call_site());
             quote! {
-                .add(Column::#column_ident.contains(search))
+                .add(Column::#column_ident.contains(&params.search))
             }
         })
         .collect::<Vec<_>>()
+}
+
+pub fn get_set_tenant_ref_field(fields: &Vec<ModelField>) -> TokenStream {
+    let tenant_ref_fields: Vec<&ModelField> = fields
+        .iter()
+        .filter(|model_field| model_field.tenant_ref)
+        .collect();
+
+    match tenant_ref_fields.len() {
+        0 => {
+            quote! {}
+        }
+        1 => {
+            let tenant_ref_field = tenant_ref_fields[0];
+
+            let column_name = &tenant_ref_field.ident.to_string();
+            let column_ident = Ident::new(&column_name, Span::call_site());
+
+            quote! {
+                if tenant_ref.is_some() {
+                    if tenant_ref.is_some() {
+                        active_model.#column_ident = Set(tenant_ref.unwrap());
+                    }
+                }
+            }
+        }
+        _ => {
+            panic!("Model has multiple tenant_ref fields, but only one is allowed");
+        }
+    }
+}
+
+pub fn get_tenant_ref_field(fields: &Vec<ModelField>, wrap_in_params: bool) -> TokenStream {
+    let tenant_ref_fields: Vec<&ModelField> = fields
+        .iter()
+        .filter(|model_field| model_field.tenant_ref)
+        .collect();
+
+    match tenant_ref_fields.len() {
+        0 => {
+            quote! {}
+        }
+        1 => {
+            let tenant_ref_field = tenant_ref_fields[0];
+
+            let column_name = capitalize_first_letter(&tenant_ref_field.ident.to_string());
+            let column_ident = Ident::new(&column_name, Span::call_site());
+
+            if wrap_in_params {
+                quote! {
+                    if params.tenant_ref.is_some() {
+                        query = query.filter(Column::#column_ident.eq(params.tenant_ref.unwrap()));
+                    }
+                }
+            } else {
+                quote! {
+                    if tenant_ref.is_some() {
+                        query = query.filter(Column::#column_ident.eq(tenant_ref.unwrap()));
+                    }
+                }
+            }
+
+        }
+        _ => {
+            panic!("Model has multiple tenant_ref fields, but only one is allowed");
+        }
+    }
 }
 
 pub fn get_field_for_primary_key(fields: &Vec<ModelField>) -> TokenStream {
@@ -228,6 +307,7 @@ pub fn get_fields_for_load_foreign_key(fields: &Vec<ModelField>) -> Vec<TokenStr
     fields
         .iter()
         .filter(|model_field| model_field.foreign_key.is_some())
+        .filter(|model_field| !model_field.tenant_ref)
         .map(|model_field| {
             let foreign_key = model_field.foreign_key.to_owned();
 
@@ -265,6 +345,7 @@ pub fn get_fields_for_from_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
     fields
         .iter()
         .filter(|model_field| !model_field.primary_key)
+        .filter(|model_field| !model_field.tenant_ref)
         .map(|model_field| {
             let ident_name = model_field.ident.to_string();
             let ident = model_field.ident.to_owned();
@@ -292,10 +373,13 @@ pub fn get_fields_for_validate_model(fields: &Vec<ModelField>) -> Vec<TokenStrea
     fields
     .iter()
     .filter(|model_field| !model_field.primary_key)
+    .filter(|model_field| !model_field.tenant_ref)
     .map(|model_field| {
         let ident_name = model_field.ident.to_string();
         let ty = model_field.ty.to_owned();
         let type_path = model_field.get_type_path_string();
+
+        print!("{:?}", ident_name);
 
         let is_option_or_string = model_field.is_option() || model_field.is_string();
         let is_allowed_to_be_empty = !model_field.not_empty;
@@ -303,29 +387,29 @@ pub fn get_fields_for_validate_model(fields: &Vec<ModelField>) -> Vec<TokenStrea
         let res = match (model_field.is_option(), type_path.as_str()) {
             (_, "DateTime") => {
                 quote! {
-                    model.get_datetime(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
+                    model.get_datetime(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok();
                 }
             },
             (_, "Date") => {
                 quote! {
-                    model.get_date(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
+                    model.get_date(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok();
                 }
             },
             (_, "bool") => {
                 quote! {
-                    model.get_bool(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
+                    model.get_bool(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok();
                 }
             },
             // generic
             (true, _) => {
                 let inner_ty = model_field.inner_type.to_owned().unwrap();
                 quote! {
-                    model.get_value::<#inner_ty>(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
+                    model.get_value::<#inner_ty>(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok();
                 }
             },
             (false, _) => {
                 quote! {
-                    model.get_value::<#ty>(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok()
+                    model.get_value::<#ty>(#ident_name, #is_option_or_string, #is_allowed_to_be_empty).map_err(|err| errors.insert(#ident_name.to_string(), err)).ok();
                 }
             }
         };
@@ -340,6 +424,7 @@ pub fn get_fields_for_create_model(fields: &Vec<ModelField>) -> Vec<TokenStream>
         .iter()
         // TODO: filter id attr based on struct attr or sea_orm primary_key attr
         .filter(|model_field| !model_field.primary_key)
+        .filter(|model_field| !model_field.tenant_ref)
         .map(|model_field| {
             let ident_name = model_field.ident.to_string();
             let ident = model_field.ident.to_owned();
