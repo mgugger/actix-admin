@@ -64,7 +64,7 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     .map_or(false, |attr| attr.file_upload.is_some());
                 let is_list_hide_column = actix_admin_attr
                     .clone()
-                    .map_or(false, |attr| attr.list_hide_column.is_some());
+                    .map_or(false, |attr| attr.list_hide_column.is_some() || attr.tenant_ref.is_some());
                 let is_tenant_ref = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.tenant_ref.is_some());
@@ -201,7 +201,6 @@ pub fn get_actix_admin_fields_searchable(fields: &Vec<ModelField>) -> Vec<TokenS
     fields
         .iter()
         .filter(|model_field| model_field.searchable)
-        .filter(|model_field| !model_field.tenant_ref)
         .map(|model_field| {
             let column_name = capitalize_first_letter(&model_field.ident.to_string());
             let column_ident = Ident::new(&column_name, Span::call_site());
@@ -307,7 +306,6 @@ pub fn get_fields_for_load_foreign_key(fields: &Vec<ModelField>) -> Vec<TokenStr
     fields
         .iter()
         .filter(|model_field| model_field.foreign_key.is_some())
-        .filter(|model_field| !model_field.tenant_ref)
         .map(|model_field| {
             let foreign_key = model_field.foreign_key.to_owned();
 
@@ -345,7 +343,6 @@ pub fn get_fields_for_from_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
     fields
         .iter()
         .filter(|model_field| !model_field.primary_key)
-        .filter(|model_field| !model_field.tenant_ref)
         .map(|model_field| {
             let ident_name = model_field.ident.to_string();
             let ident = model_field.ident.to_owned();
@@ -378,8 +375,6 @@ pub fn get_fields_for_validate_model(fields: &Vec<ModelField>) -> Vec<TokenStrea
         let ident_name = model_field.ident.to_string();
         let ty = model_field.ty.to_owned();
         let type_path = model_field.get_type_path_string();
-
-        print!("{:?}", ident_name);
 
         let is_option_or_string = model_field.is_option() || model_field.is_string();
         let is_allowed_to_be_empty = !model_field.not_empty;
@@ -492,6 +487,7 @@ pub fn get_fields_for_edit_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
         .iter()
         // TODO: filter id attr based on struct attr or sea_orm primary_key attr
         .filter(|model_field| !model_field.primary_key)
+        .filter(|model_field| !model_field.tenant_ref)
         .map(|model_field| {
             let ident_name = model_field.ident.to_string();
             let ident = model_field.ident.to_owned();

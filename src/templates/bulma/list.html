@@ -168,10 +168,8 @@
                                 {% for model_field in view_model.fields | filter(attribute="list_hide_column",
                                 value=false) |
                                 sort(attribute="list_sort_position") -%}
-                                <th onclick="sort_by('{{ model_field.field_name }}');" class="is-clickable">{{
-                                    model_field.field_name | split(pat="_") | join(sep=" ") | title | replace(from="
-                                    Id",
-                                    to="") }}
+                                <th onclick="sort_by('{{ model_field.field_name }}');" class="is-clickable">
+                                    {{ model_field.field_name | split(pat="_") | join(sep=" ") | title | replace(from="Id", to="") }}
                                     {% if sort_by == model_field.field_name %}
                                     {% if sort_order == "Asc" %}
                                     <i class="ml-1 fa-solid fa-caret-up"></i>
@@ -205,22 +203,21 @@
                         </td>
                         {% for model_field in view_model.fields | filter(attribute="list_hide_column", value=false) |
                         sort(attribute="list_sort_position") -%}
-                        {% if model_field.field_type == "Checkbox" %}
-                        <td>{{ entity.values | get(key=model_field.field_name) | get_icon | safe }}</td>
-                        {% elif model_field.field_type == "FileUpload" %}
-                        <td><a href="file/{{ entity.primary_key }}/{{ model_field.field_name }}">{{
-                                entity.values
-                                | get(key=model_field.field_name) }}</a></td>
-                        {% else %}
+                            {% if model_field.field_type == "Checkbox" %}
+                            <td>{{ entity.values | get(key=model_field.field_name) | get_icon | safe }}</td>
+                            {% elif model_field.field_type == "FileUpload" %}
+                            <td><a href="file/{{ entity.primary_key }}/{{ model_field.field_name }}">{{
+                                    entity.values
+                                    | get(key=model_field.field_name) }}</a></td>
+                            {% else %}
 
-                        {% set model_value = entity.values[model_field.field_name] %}
-                        {% if entity.fk_values is containing(model_field.field_name) %}
-                        <td>{{ entity.fk_values | get(key=model_field.field_name) }}</td>
-                        {% else %}
-                        <td>{{ model_value }}</td>
-                        {% endif %}
+                            {% if entity.fk_values is containing(model_field.field_name) %}
+                            <td>{{ entity.fk_values | get(key=model_field.field_name) }}</td>
+                            {% else %}
+                            <td>{{ entity.values[model_field.field_name] }}</td>
+                            {% endif %}
 
-                        {% endif %}
+                            {% endif %}
                         {%- endfor %}
                         <td class="has-text-right">
                             <a hx-target="#content" href="/admin/{{ entity_name }}/edit/{{ entity.primary_key }}"

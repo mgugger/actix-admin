@@ -15,7 +15,7 @@
         {% for select_list_item in select_lists[model_field.field_name] -%}
         <option {% if select_list_item[0]==model.values | get(key=model_field.field_name, default="" ) %} selected {%
             endif %} value="{{ select_list_item[0] }}">{{ select_list_item[1] | split(pat="_") |
-            join(sep=" ") | title }}</option>
+            join(sep=" ") }}</option>
         {%- endfor %}
     </select>
 </div>

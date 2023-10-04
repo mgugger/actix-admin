@@ -14,25 +14,29 @@ use async_trait::async_trait;
 use derive_more::{Display, Error};
 use sea_orm::DatabaseConnection;
 use serde_derive::Serialize;
+use std::{collections::HashMap, fmt, fmt::Display};
 use tera::Tera;
-use std::collections::HashMap;
 
 pub mod builder;
 pub mod model;
 pub mod routes;
-pub mod view_model;
 pub mod tera_templates;
+pub mod view_model;
 
 pub mod prelude {
     pub use crate::builder::{ActixAdminBuilder, ActixAdminBuilderTrait};
-    pub use crate::model::{ActixAdminModel, ActixAdminModelTrait, ActixAdminModelValidationTrait, ActixAdminModelFilter, ActixAdminModelFilterTrait, ActixAdminModelFilterType};
+    pub use crate::model::{
+        ActixAdminModel, ActixAdminModelFilter, ActixAdminModelFilterTrait,
+        ActixAdminModelFilterType, ActixAdminModelTrait, ActixAdminModelValidationTrait,
+    };
     pub use crate::routes::{create_or_edit_post, get_admin_ctx, SortOrder};
     pub use crate::view_model::{
-        ActixAdminViewModel, ActixAdminViewModelParams, ActixAdminViewModelField, ActixAdminViewModelFieldType,
-        ActixAdminViewModelSerializable, ActixAdminViewModelTrait, ActixAdminViewModelFilter
+        ActixAdminViewModel, ActixAdminViewModelField, ActixAdminViewModelFieldType,
+        ActixAdminViewModelFilter, ActixAdminViewModelParams, ActixAdminViewModelSerializable,
+        ActixAdminViewModelTrait,
     };
     pub use crate::{hashmap, ActixAdminSelectListTrait};
-    pub use crate::{ActixAdmin, ActixAdminConfiguration, ActixAdminError};
+    pub use crate::{ActixAdmin, ActixAdminConfiguration, ActixAdminError, ActixAdminErrorType};
     pub use actix_admin_macros::{
         DeriveActixAdmin, DeriveActixAdminEnumSelectList, DeriveActixAdminModel,
         DeriveActixAdminModelSelectList, DeriveActixAdminViewModel,
@@ -70,7 +74,7 @@ pub struct ActixAdminConfiguration {
     pub login_link: Option<String>,
     pub logout_link: Option<String>,
     pub file_upload_directory: &'static str,
-    pub navbar_title: &'static str
+    pub navbar_title: &'static str,
 }
 
 #[derive(Clone)]
@@ -78,7 +82,7 @@ pub struct ActixAdmin {
     pub entity_names: HashMap<String, Vec<ActixAdminMenuElement>>,
     pub view_models: HashMap<String, ActixAdminViewModel>,
     pub configuration: ActixAdminConfiguration,
-    pub tera: Tera
+    pub tera: Tera,
 }
 
 #[derive(PartialEq, Eq, Clone, Serialize)]
@@ -88,9 +92,23 @@ pub struct ActixAdminMenuElement {
     pub is_custom_handler: bool,
 }
 
+#[derive(Debug, Error)]
+pub struct ActixAdminError {
+    pub ty: ActixAdminErrorType,
+    pub msg: String,
+}
+
+impl Display for ActixAdminError {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        match &*self {
+            _ => write!(formatter, "{}: {}", &self.ty, &self.msg),
+        }
+    }
+}
+
 // Errors
 #[derive(Debug, Display, Error)]
-pub enum ActixAdminError {
+pub enum ActixAdminErrorType {
     #[display(fmt = "Internal error")]
     InternalError,
 
@@ -131,8 +149,11 @@ impl error::ResponseError for ActixAdminError {
 }
 
 impl std::convert::From<sea_orm::DbErr> for ActixAdminError {
-    fn from(_err: sea_orm::DbErr) -> ActixAdminError {
-        ActixAdminError::DatabaseError
+    fn from(err: sea_orm::DbErr) -> ActixAdminError {
+        ActixAdminError {
+            ty: ActixAdminErrorType::DatabaseError,
+            msg: err.to_string(),
+        }
     }
 }
 

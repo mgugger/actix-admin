@@ -132,7 +132,10 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
 
                 match entity {
                     Some(e) => Ok(ActixAdminModel::from(e)),
-                    _ => Err(ActixAdminError::EntityDoesNotExistError)
+                    _ => Err(ActixAdminError {
+                        ty: ActixAdminErrorType::EntityDoesNotExistError,
+                        msg: "".to_string()
+                    })
                 }
             }
 
@@ -150,7 +153,10 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                         let entity: Model = entity.update(db).await?;
                         Ok(model)
                     },
-                    _ => Err(ActixAdminError::EntityDoesNotExistError)
+                    _ => Err(ActixAdminError {
+                        ty: ActixAdminErrorType::EntityDoesNotExistError,
+                        msg: "".to_string()
+                    })
                 }
             }
 
@@ -164,7 +170,10 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 if del_result.rows_affected > 0 {
                     return Ok(true)
                 } else {
-                    return Err(ActixAdminError::DeleteError)
+                    return Err(ActixAdminError {
+                        ty: ActixAdminErrorType::DeleteError,
+                        msg: "".to_string()
+                    })
                 }
             }
 
@@ -235,10 +244,14 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
             pub static ref ACTIX_ADMIN_VIEWMODEL_FIELDS: Vec<ActixAdminViewModelField> = {
                 let mut vec = Vec::new();
 
-                let field_names = stringify!(
+                let mut field_names = stringify!(
                         #(#field_names),*
                 ).split(",")
+                .map(String::from)
                 .collect::<Vec<_>>();
+                for s in field_names.iter_mut() {
+                    *s = s.replace("\n", "");
+                }
 
                 let html_input_types = stringify!(
                     #(#field_html_input_type),*
@@ -296,8 +309,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     if list_regex_mask != "" {
                         list_regex_mask_regex = Some(Regex::new(list_regex_mask).unwrap());
                     };
-
-                    vec.push(ActixAdminViewModelField {
+                    let actix_admin_model_field = ActixAdminViewModelField {
                         field_name: field_name,
                         html_input_type: html_input_type,
                         select_list: select_list.clone(),
@@ -308,7 +320,9 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                         list_regex_mask: list_regex_mask_regex,
                         foreign_key: foreign_key.to_string(),
                         is_tenant_ref: tenant_ref
-                    });
+                    };
+
+                    vec.push(actix_admin_model_field);
                 }
                 vec
             };

@@ -1,6 +1,6 @@
 use super::{render_unauthorized, user_can_access_page, add_auth_context};
 use super::{Params, DEFAULT_ENTITIES_PER_PAGE};
-use crate::prelude::*;
+use crate::{prelude::*, ActixAdminErrorType};
 use crate::ActixAdminError;
 use crate::ActixAdminNotification;
 use actix_multipart::Multipart;
@@ -85,7 +85,8 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
     E::validate_entity(&mut model);
 
     if model.has_errors() {
-        errors.push(ActixAdminError::ValidationErrors);
+        let error = ActixAdminError { ty: ActixAdminErrorType::ValidationErrors, msg: "".to_owned() };
+        errors.push(error);
         render_form::<E>(
             session,
             req,
