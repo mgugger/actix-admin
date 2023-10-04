@@ -218,7 +218,7 @@
                     {% endif %}
                     {%- endfor %}
                     <td class="has-text-right">
-                        <a hx-target="body"
+                        <a hx-target="#content"
                             href="/admin/{{ entity_name }}/edit/{{ entity.primary_key }}" hx-vals='{ 
                                 "page" : "{{ page }}",
                                 "entities_per_page" : "{{ entities_per_page }}",
