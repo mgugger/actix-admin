@@ -302,6 +302,42 @@ pub fn get_primary_key_field_name(fields: &Vec<ModelField>) -> String {
     primary_key_model_field.ident.to_string()
 }
 
+fn split_at_uppercase(input: &str) -> Vec<&str> {
+    let mut parts = Vec::new();
+    let mut start = 0;
+
+    for (i, c) in input.char_indices() {
+        if i > start && c.is_ascii_uppercase() {
+            parts.push(&input[start..i]);
+            start = i;
+        }
+    }
+
+    if start < input.len() {
+        parts.push(&input[start..]);
+    }
+
+    parts
+}
+
+fn combine_uppercase_with_underscore(strings: Vec<&str>) -> String {
+    let mut result = Vec::new();
+
+    for (i, s) in strings.iter().enumerate() {
+        if s.chars().next().map(char::is_uppercase) == Some(true) && i > 0 {
+            if !result.last().map(|s: &String| s.ends_with("::")).unwrap_or(false) {
+                let combined = format!("{}_{}", result.pop().unwrap(), s);
+                result.push(combined);
+                continue;
+            }
+        }
+
+        result.push(s.to_string());
+    }
+
+    result.concat().to_lowercase()
+}
+
 pub fn get_fields_for_load_foreign_key(fields: &Vec<ModelField>) -> Vec<TokenStream> {
     fields
         .iter()
@@ -312,7 +348,8 @@ pub fn get_fields_for_load_foreign_key(fields: &Vec<ModelField>) -> Vec<TokenStr
             match foreign_key {
                 Some(fk) => {
                     let ty: Result<Type, syn::Error> = parse_str(&fk);
-                    let ty2: Type = parse_str(&fk.clone().to_lowercase()).unwrap();
+                    let split = combine_uppercase_with_underscore(split_at_uppercase(&fk));
+                    let ty2: Type = parse_str(&split).unwrap();
                     match ty {
                         Ok(ty) => {
                             quote! {
