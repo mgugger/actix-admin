@@ -3,7 +3,7 @@
 {% block content %}
 {% include "loader.html" %}
 
-<form hx-boost="true" hx-indicator="#loading" hx-push-url="true" hx-encoding="multipart/form-data" method="post"
+<form onsubmit="disableButton(this)" hx-boost="true" hx-indicator="#loading" hx-push-url="true" hx-encoding="multipart/form-data" method="post"
     enctype="multipart/form-data">
 
     <div class="columns">
@@ -41,7 +41,7 @@
             </div>
             <div class="field is-grouped">
                 <div class="control">
-                    <button class="button is-link" type="submit">Save</i></button>
+                    <button class="button is-link" name="submitBtn" type="submit">Save</i></button>
                 </div>
                 <div class="control">
                     <a hx-vals='{ 
