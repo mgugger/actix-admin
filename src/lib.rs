@@ -63,6 +63,7 @@ macro_rules! hashmap {
 pub trait ActixAdminSelectListTrait {
     async fn get_key_value(
         db: &DatabaseConnection,
+        tenant_ref: Option<i32>
     ) -> core::result::Result<Vec<(String, String)>, ActixAdminError>;
 }
 

@@ -2,16 +2,22 @@ use syn::{
     DeriveInput, Ident
 };
 use quote::quote;
-use crate::model_fields::{ ModelField };
+use crate::{model_fields::{ ModelField }, struct_fields::{get_fields_for_tokenstream, get_tenant_ref_field}};
 use proc_macro2::{Span};
 
-pub fn get_select_list_from_model(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn get_select_list_from_model(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let fields = get_fields_for_tokenstream(input);
+    let tenant_ref_field = get_tenant_ref_field(&fields, false);
 
     let expanded = quote! {
         #[async_trait]
         impl ActixAdminSelectListTrait for Entity {
-            async fn get_key_value(db: &DatabaseConnection) -> Result<Vec<(String, String)>, ActixAdminError> {
-                let entities = Entity::find().order_by_asc(Column::Id).all(db).await?;
+            async fn get_key_value(db: &DatabaseConnection, tenant_ref: Option<i32>) -> Result<Vec<(String, String)>, ActixAdminError> {
+                let mut query = Entity::find().order_by_asc(Column::Id);
+                #tenant_ref_field
+                
+                let entities = query.all(db).await?;
+
                 let mut key_value = Vec::new();
             
                 for entity in entities {
@@ -33,7 +39,7 @@ pub fn get_select_list_from_enum(input: proc_macro::TokenStream) -> proc_macro::
     let expanded = quote! {
         #[async_trait]
         impl ActixAdminSelectListTrait for #ty {
-            async fn get_key_value(db: &DatabaseConnection) -> Result<Vec<(String, String)>, ActixAdminError> {
+            async fn get_key_value(db: &DatabaseConnection, _tenant_ref: Option<i32>) -> Result<Vec<(String, String)>, ActixAdminError> {
                 let mut fields = Vec::new();
                 for field in #ty::iter() {
                     let field_val = field.to_string().trim_start_matches("'").trim_end_matches("'").to_string();
@@ -55,7 +61,7 @@ pub fn get_select_lists(fields: &Vec<ModelField>) -> Vec<proc_macro2::TokenStrea
         let ident_name = model_field.ident.to_string();
         let select_list_ident = Ident::new(&(model_field.select_list), Span::call_site());
         quote! {
-            #ident_name => #select_list_ident::get_key_value(db).await?
+            #ident_name => #select_list_ident::get_key_value(db, tenant_ref).await?
         }
     })
     .collect::<Vec<_>>()
