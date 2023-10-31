@@ -43,7 +43,6 @@ pub mod prelude {
     };
     pub use actix_session::Session;
     pub use async_trait::async_trait;
-    pub use itertools::izip;
     pub use lazy_static::lazy_static;
 }
 

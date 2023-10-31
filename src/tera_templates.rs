@@ -29,8 +29,31 @@ pub fn get_tera() -> Tera {
     tera.register_filter("get_html_input_class", get_html_input_class);
     tera.register_filter("get_icon", get_icon);
     tera.register_filter("get_regex_val", get_regex_val);
-
+    tera.register_filter("shorten", shorten_filter);
     tera
+}
+
+fn shorten_filter<S: BuildHasher>(
+    value: &tera::Value,
+    args: &HashMap<String, tera::Value, S>,
+) -> Result<tera::Value> {
+    let max_length = args
+        .get("max_length")
+        .and_then(|v| v.as_number())
+        .and_then(|s| s.as_u64());
+    let input = value.as_str().unwrap();
+
+    if let Some(max) = max_length {
+        if input.len() <= max as usize {
+            Ok(tera::Value::String(input.to_string()))
+        } else {
+            Ok(tera::Value::String(
+                input.chars().take(max as usize).collect(),
+            ))
+        }
+    } else {
+        Ok(tera::Value::String(input.to_string()))
+    }
 }
 
 fn get_html_input_class<S: BuildHasher>(
@@ -173,4 +196,3 @@ fn load_templates() -> Tera {
 
     tera
 }
-

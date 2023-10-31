@@ -13,6 +13,8 @@ pub mod derive_attr {
         pub primary_key: Option<()>,
         pub foreign_key: Option<syn::LitStr>,
         pub html_input_type: Option<syn::LitStr>,
+        pub round: Option<syn::LitStr>,
+        pub shorten: Option<syn::LitInt>,
         pub select_list: Option<syn::LitStr>,
         pub searchable: Option<()>,
         pub textarea: Option<()>,

@@ -97,3 +97,5 @@ More attributes can be added to the model struct properties:
 | list_sort_position=<usize> | optional | orders the columns in the list view by ascending position |
 | list_hide_column<bool> | optional | hides the column in the list view |
 | foreign_key=<entity_name> | optional | shows the display of the foreign key entity instead of the id |
+| round={"ceil" | "floor" } | optional | rounds a float |
+| shorten=<integer> | optional | shortens a string to the given length |

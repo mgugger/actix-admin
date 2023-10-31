@@ -2,8 +2,8 @@ use syn::{
     DeriveInput, Ident
 };
 use quote::quote;
-use crate::{model_fields::{ ModelField }, struct_fields::{get_fields_for_tokenstream, get_tenant_ref_field}};
-use proc_macro2::{Span};
+use crate::{model_fields::ModelField, struct_fields::{get_fields_for_tokenstream, get_tenant_ref_field}};
+use proc_macro2::Span;
 
 pub fn get_select_list_from_model(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let fields = get_fields_for_tokenstream(input);

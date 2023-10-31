@@ -212,9 +212,23 @@
                             {% else %}
 
                             {% if entity.fk_values is containing(model_field.field_name) %}
-                            <td>{{ entity.fk_values | get(key=model_field.field_name) }}</td>
+                                {%- set value = entity.fk_values[model_field.field_name] %}
+                                {%- if model_field.round %}
+                                    <td>{{ value | float | round(method=model_field.round) }}</td>
+                                {%- elif model_field.shorten %}
+                                    <td>{{ model_field.shorten }} {{ value | shorten(max_length=model_field.shorten) }}</td>
+                                {%- else %}
+                                    <td>{{ value }}</td>
+                                {%- endif %}
                             {% else %}
-                            <td>{{ entity.values[model_field.field_name] }}</td>
+                                {%- set value = entity.values[model_field.field_name] %}
+                                {%- if model_field.round %}
+                                    <td>{{ value | float | round(method=model_field.round) }}</td>
+                                {%- elif model_field.shorten %}
+                                    <td>{{ model_field.shorten }} {{ value | shorten(max_length=model_field.shorten) }}</td>
+                                {%- else %}
+                                    <td>{{ value }}</td>
+                                {%- endif %}
                             {% endif %}
 
                             {% endif %}

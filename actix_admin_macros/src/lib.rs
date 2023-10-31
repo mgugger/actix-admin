@@ -127,7 +127,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 let mut query = Entity::find().filter(Column::Id.eq(id));
 
                 #tenant_ref_field
- 
+
                 let entity = query.one(db).await?;
 
                 match entity {
@@ -143,7 +143,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 let mut query = Entity::find().filter(Column::Id.eq(id));
 
                 #tenant_ref_field
- 
+
                 let entity = query.one(db).await?;
 
                 match entity {
@@ -164,7 +164,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 let mut query = Entity::delete_many().filter(Column::Id.eq(id));
 
                 #tenant_ref_field
-   
+
                 let del_result = query.exec(db).await?;
 
                 if del_result.rows_affected > 0 {
@@ -202,6 +202,12 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let field_html_input_type = get_fields_as_tokenstream(&fields, |model_field| -> String {
         model_field.html_input_type.to_string()
     });
+    let field_round = get_fields_as_tokenstream(&fields, |model_field| -> String {
+        model_field.round.clone().unwrap_or("".to_string())
+    });
+    let field_shorten = get_fields_as_tokenstream(&fields, |model_field| -> String {
+        model_field.shorten.clone().unwrap_or("".to_string())
+    });
     let field_foreign_key = get_fields_as_tokenstream(&fields, |model_field| -> String {
         model_field.foreign_key.clone().unwrap_or("".to_string())
     });
@@ -232,9 +238,8 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let fields_list_hide_column = get_fields_as_tokenstream(&fields, |model_field| -> bool {
         model_field.list_hide_column
     });
-    let fields_tenant_ref = get_fields_as_tokenstream(&fields, |model_field| -> bool {
-        model_field.tenant_ref
-    });
+    let fields_tenant_ref =
+        get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.tenant_ref });
     let fields_searchable = get_actix_admin_fields_searchable(&fields);
     let has_searchable_fields = fields_searchable.len() > 0;
     let tenant_ref_field = get_tenant_ref_field(&fields, true);
@@ -244,88 +249,42 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
             pub static ref ACTIX_ADMIN_VIEWMODEL_FIELDS: Vec<ActixAdminViewModelField> = {
                 let mut vec = Vec::new();
 
-                let mut field_names = stringify!(
-                        #(#field_names),*
-                ).split(",")
-                .map(String::from)
-                .collect::<Vec<_>>();
-                for s in field_names.iter_mut() {
-                    *s = s.replace("\n", "");
-                }
+            #(
+                let field_name = stringify!(#field_names).replace("\"", "").replace(' ', "").replace('\n', "");
+                let html_input_type = stringify!(#field_html_input_type).replace("\"", "").replace(' ', "");
+                let select_list = stringify!(#field_select_list).replace("\"", "").replace(' ', "");
+                let list_regex_mask_regex = match &stringify!(#field_list_regex_mask) {
+                    s if !s.is_empty() => Some(Regex::new(s).unwrap()),
+                    _ => None,
+                };
+                let round = match &stringify!(#field_round).replace("\"", "").replace(' ', "").replace('\n', "") {
+                    s if !s.is_empty() => Some(s.to_string()),
+                    _ => None,
+                };
+                let shorten = match &stringify!(#field_shorten).replace("\"", "").replace(' ', "").replace('\n', "") {
+                    s if !s.is_empty() => s.parse::<u16>().ok(),
+                    _ => None,
+                };
 
-                let html_input_types = stringify!(
-                    #(#field_html_input_type),*
-                ).split(",")
-                .collect::<Vec<_>>();
+                vec.push(ActixAdminViewModelField {
+                    field_name: field_name.clone(),
+                    html_input_type: html_input_type.clone(),
+                    select_list: select_list.clone(),
+                    is_option: #is_option_list,
+                    list_sort_position: #fields_list_sort_positions,
+                    field_type: ActixAdminViewModelFieldType::get_field_type(#fields_type_path, select_list.clone(), #fields_textarea, #fields_file_upload),
+                    list_hide_column: #fields_list_hide_column,
+                    list_regex_mask: list_regex_mask_regex,
+                    foreign_key: stringify!(#field_foreign_key).to_string(),
+                    is_tenant_ref: #fields_tenant_ref,
+                    round: round,
+                    shorten: shorten
+                });
+            )*
 
-                let foreign_keys = stringify!(
-                    #(#field_foreign_key),*
-                ).split(",")
-                .collect::<Vec<_>>();
+            vec
+        };
 
-                let field_select_lists = stringify!(
-                    #(#field_select_list),*
-                ).split(",")
-                .collect::<Vec<_>>();
-
-                let is_option_lists = [
-                    #(#is_option_list),*
-                ];
-
-                let fields_type_paths = [
-                    #(#fields_type_path),*
-                ];
-
-                let fields_textareas = [
-                    #(#fields_textarea),*
-                ];
-
-                let fields_fileupload = [
-                    #(#fields_file_upload),*
-                ];
-
-                let fields_tenant_refs = [
-                    #(#fields_tenant_ref),*
-                ];
-
-                let list_sort_positions = [
-                    #(#fields_list_sort_positions),*
-                ];
-
-                let list_hide_columns = [
-                    #(#fields_list_hide_column),*
-                ];
-
-                let list_regex_masks = [
-                    #(#field_list_regex_mask),*
-                ];
-
-                for (field_name, html_input_type, select_list, is_option_list, fields_type_path, is_textarea, is_file_upload, list_sort_position, list_hide_column, list_regex_mask, foreign_key, tenant_ref) in actix_admin::prelude::izip!(&field_names, &html_input_types, &field_select_lists, is_option_lists, fields_type_paths, fields_textareas, fields_fileupload, list_sort_positions, list_hide_columns, list_regex_masks, &foreign_keys, fields_tenant_refs) {
-
-                    let select_list = select_list.replace('"', "").replace(' ', "").to_string();
-                    let field_name = field_name.replace('"', "").replace(' ', "").to_string();
-                    let html_input_type = html_input_type.replace('"', "").replace(' ', "").to_string();
-                    let mut list_regex_mask_regex = None;
-                    if list_regex_mask != "" {
-                        list_regex_mask_regex = Some(Regex::new(list_regex_mask).unwrap());
-                    };
-                    let actix_admin_model_field = ActixAdminViewModelField {
-                        field_name: field_name,
-                        html_input_type: html_input_type,
-                        select_list: select_list.clone(),
-                        is_option: is_option_list,
-                        list_sort_position: list_sort_position,
-                        field_type: ActixAdminViewModelFieldType::get_field_type(fields_type_path, select_list, is_textarea, is_file_upload),
-                        list_hide_column: list_hide_column,
-                        list_regex_mask: list_regex_mask_regex,
-                        foreign_key: foreign_key.to_string(),
-                        is_tenant_ref: tenant_ref
-                    };
-
-                    vec.push(actix_admin_model_field);
-                }
-                vec
-            };
         }
 
         impl From<Model> for ActixAdminModel {
@@ -362,10 +321,9 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     _ => panic!("Unknown column")
                 };
 
-                let mut query = if params.sort_order.eq(&SortOrder::Asc) {
-                    Entity::find().order_by_asc(sort_column)
-                } else {
-                    Entity::find().order_by_desc(sort_column)
+                let mut query = match params.sort_order {
+                    SortOrder::Asc => Entity::find().order_by_asc(sort_column),
+                    SortOrder::Desc =>  Entity::find().order_by_desc(sort_column),
                 };
 
                 if (#has_searchable_fields) {
@@ -388,12 +346,12 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                 let mut entities;
                 let mut model_entities = Vec::<ActixAdminModel>::new();
                 let num_pages: Option<u64>;
-                
+
                 match (params.page, params.entities_per_page) {
                     (Some(p), Some(e)) => {
                         let paginator = query.paginate(db, e);
                         num_pages = Some(paginator.num_pages().await?);
-        
+
                         if (num_pages.unwrap() == 0) { return Ok((num_pages, model_entities)) };
                         entities = paginator
                             .fetch_page(std::cmp::min(num_pages.unwrap() - 1, p - 1))
@@ -404,7 +362,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                         num_pages = None;
                     }
                 };
-                
+
                 for entity in entities {
                     model_entities.push(
                         ActixAdminModel::from(entity)
@@ -428,7 +386,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                             .collect();
 
                         let foreign_key_entity = field.foreign_key.trim_start_matches("'").trim_end_matches("'").replace('"', "").replace(' ', "").replace('\\', "").replace(' ', "").to_string();
-  
+
                         let foreign_key_values_opt: Option<HashMap<String, String>> = match foreign_key_entity.as_str() {
                             #(#fields_for_load_foreign_key)*
                             _ => None

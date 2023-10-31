@@ -105,7 +105,9 @@ pub struct ActixAdminViewModelField {
     #[serde(skip_serializing, skip_deserializing)]
     pub list_regex_mask: Option<Regex>,
     pub foreign_key: String,
-    pub is_tenant_ref: bool
+    pub is_tenant_ref: bool,
+    pub round: Option<String>,
+    pub shorten: Option<u16>,
 }
 
 impl ActixAdminViewModelFieldType {

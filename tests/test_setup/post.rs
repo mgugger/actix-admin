@@ -15,7 +15,7 @@ pub struct Model {
     #[actix_admin(searchable)]
     pub title: String,
     #[sea_orm(column_type = "Text")]
-    #[actix_admin(searchable, textarea)]
+    #[actix_admin(shorten="100", searchable, textarea)]
     pub text: String,
     #[actix_admin(select_list="Tea")]
     pub tea_mandatory: Tea,
