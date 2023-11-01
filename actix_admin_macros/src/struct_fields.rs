@@ -53,9 +53,12 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let is_searchable = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.searchable.is_some());
-                let round = actix_admin_attr.clone()
-                    .and_then(|attr| attr.round)
-                    .and_then(|attr_field| LitStr::from(attr_field).value().parse().ok());
+                let ceil = actix_admin_attr.clone()
+                    .and_then(|attr| attr.ceil)
+                    .and_then(|attr_field| LitInt::from(attr_field).base10_parse().ok());
+                let floor = actix_admin_attr.clone()
+                    .and_then(|attr| attr.floor)
+                    .and_then(|attr_field| LitInt::from(attr_field).base10_parse().ok());
                 let shorten = actix_admin_attr.clone()
                     .and_then(|attr| attr.shorten)
                     .and_then(|attr_field| attr_field.base10_parse().ok());
@@ -76,6 +79,12 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     .map_or(false, |attr| attr.not_empty.is_some());
                 let list_regex_mask = actix_admin_attr.clone().map_or("".to_string(), |attr| {
                     attr.list_regex_mask
+                        .map_or("".to_string(), |attr_field| {
+                            (LitStr::from(attr_field)).value()
+                        })
+                });
+                let dateformat = actix_admin_attr.clone().map_or("".to_string(), |attr| {
+                    attr.dateformat
                         .map_or("".to_string(), |attr_field| {
                             (LitStr::from(attr_field)).value()
                         })
@@ -118,7 +127,9 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     list_hide_column: is_list_hide_column,
                     list_regex_mask: list_regex_mask,
                     tenant_ref: is_tenant_ref,
-                    round: round,
+                    ceil: ceil,
+                    floor: floor,
+                    dateformat: dateformat,
                     shorten: shorten
                 };
                 Some(model_field)

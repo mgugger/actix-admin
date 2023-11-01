@@ -22,7 +22,7 @@ pub struct Model {
     pub is_visible: bool,
     #[actix_admin(select_list="Post")]
     pub post_id: Option<i32>,
-    #[actix_admin(round="ceil")]
+    #[actix_admin(ceil=2)]
     pub my_decimal: Decimal
 }
 

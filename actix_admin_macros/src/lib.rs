@@ -202,8 +202,14 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let field_html_input_type = get_fields_as_tokenstream(&fields, |model_field| -> String {
         model_field.html_input_type.to_string()
     });
-    let field_round = get_fields_as_tokenstream(&fields, |model_field| -> String {
-        model_field.round.clone().unwrap_or("".to_string())
+    let field_ceil = get_fields_as_tokenstream(&fields, |model_field| -> String {
+        model_field.ceil.clone().unwrap_or("".to_string())
+    });
+    let field_floor = get_fields_as_tokenstream(&fields, |model_field| -> String {
+        model_field.floor.clone().unwrap_or("".to_string())
+    });
+    let field_dateformat = get_fields_as_tokenstream(&fields, |model_field| -> String {
+        model_field.dateformat.to_string()
     });
     let field_shorten = get_fields_as_tokenstream(&fields, |model_field| -> String {
         model_field.shorten.clone().unwrap_or("".to_string())
@@ -257,8 +263,16 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     s if !s.is_empty() => Some(Regex::new(s).unwrap()),
                     _ => None,
                 };
-                let round = match &stringify!(#field_round).replace("\"", "").replace(' ', "").replace('\n', "") {
+                let dateformat = match &stringify!(#field_dateformat).replace("\"", "").trim_start().trim_end().replace('\n', "") {
                     s if !s.is_empty() => Some(s.to_string()),
+                    _ => None,
+                };
+                let ceil = match &stringify!(#field_ceil).replace("\"", "").replace(' ', "").replace('\n', "") {
+                    s if !s.is_empty() => s.parse::<u8>().ok(),
+                    _ => None,
+                };
+                let floor = match &stringify!(#field_floor).replace("\"", "").replace(' ', "").replace('\n', "") {
+                    s if !s.is_empty() => s.parse::<u8>().ok(),
                     _ => None,
                 };
                 let shorten = match &stringify!(#field_shorten).replace("\"", "").replace(' ', "").replace('\n', "") {
@@ -277,7 +291,9 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     list_regex_mask: list_regex_mask_regex,
                     foreign_key: stringify!(#field_foreign_key).to_string(),
                     is_tenant_ref: #fields_tenant_ref,
-                    round: round,
+                    ceil: ceil,
+                    floor: floor,
+                    dateformat: dateformat,
                     shorten: shorten
                 });
             )*

@@ -213,8 +213,12 @@
 
                             {% if entity.fk_values is containing(model_field.field_name) %}
                                 {%- set value = entity.fk_values[model_field.field_name] %}
-                                {%- if model_field.round %}
-                                    <td>{{ value | float | round(method=model_field.round) }}</td>
+                                {%- if model_field.ceil %}
+                                    <td>{{ value | float | round(method="ceil", precision=model_field.ceil) }}</td>
+                                {%- elif model_field.floor %}
+                                    <td>{{ value | float | round(method="floor", precision=model_field.floor) }}</td>
+                                {%- elif model_field.dateformat %}
+                                    <td>{{ value | date(format=model_field.dateformat) }}</td>
                                 {%- elif model_field.shorten %}
                                     <td>{{ model_field.shorten }} {{ value | shorten(max_length=model_field.shorten) }}</td>
                                 {%- else %}
@@ -222,8 +226,12 @@
                                 {%- endif %}
                             {% else %}
                                 {%- set value = entity.values[model_field.field_name] %}
-                                {%- if model_field.round %}
-                                    <td>{{ value | float | round(method=model_field.round) }}</td>
+                                {%- if model_field.ceil %}
+                                    <td>{{ value | float | round(method="ceil", precision=model_field.ceil) }}</td>
+                                {%- elif model_field.floor %}
+                                    <td>{{ value | float | round(method="floor", precision=model_field.floor) }}</td>
+                                {%- elif model_field.dateformat %}
+                                    <td>{{ value | date(format=model_field.dateformat) }}</td>
                                 {%- elif model_field.shorten %}
                                     <td>{{ model_field.shorten }} {{ value | shorten(max_length=model_field.shorten) }}</td>
                                 {%- else %}
@@ -261,6 +269,7 @@
                 </table>
                 </form>
             </div>
+            {% if num_pages > 1 %}
             <nav hx-boost="true" hx-push-url="true" hx-target="#{{ entity_name }}table" hx-vals='{ 
             "entities_per_page" : "{{ entities_per_page }}",
             "search" : "{{ search }}",
@@ -302,6 +311,7 @@
                     </ul>
         </div>
         </nav>
+        {% endif %}
     </div>
 </div>
 {% endblock content %}

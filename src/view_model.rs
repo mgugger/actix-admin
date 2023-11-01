@@ -98,6 +98,7 @@ pub struct ActixAdminViewModelField {
     pub field_name: String,
     pub html_input_type: String,
     pub select_list: String,
+    pub dateformat: Option<String>,
     pub is_option: bool,
     pub field_type: ActixAdminViewModelFieldType,
     pub list_sort_position: usize,
@@ -106,7 +107,8 @@ pub struct ActixAdminViewModelField {
     pub list_regex_mask: Option<Regex>,
     pub foreign_key: String,
     pub is_tenant_ref: bool,
-    pub round: Option<String>,
+    pub ceil: Option<u8>,
+    pub floor: Option<u8>,
     pub shorten: Option<u16>,
 }
 

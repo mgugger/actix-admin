@@ -4,7 +4,7 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use actix_admin::prelude::*;
 use super::{Post, post};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc, NaiveDateTime, TimeZone};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel)]
 #[sea_orm(table_name = "comment")]
@@ -21,7 +21,8 @@ pub struct Model {
     pub user: String,
     
     #[sea_orm(column_type = "DateTime")]
-    pub insert_date: DateTime,
+    #[actix_admin(dateformat="%Y-%m-%d %H:%M")]
+    pub insert_date: DateTime<Utc>,
     
     pub is_visible: bool,
     
@@ -84,7 +85,11 @@ impl ActixAdminModelFilterTrait<Entity> for Entity {
                 name: "Insert Date After".to_string(),
                 filter_type: ActixAdminModelFilterType::DateTime,
                 filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
-                    q.apply_if(v, | query, val: String| query.filter(Column::InsertDate.gte(NaiveDateTime::parse_from_str(&val, "%Y-%m-%dT%H:%M").unwrap())))
+                    q.apply_if(v, | query, val: String| { 
+                        let naive_dt = NaiveDateTime::parse_from_str(&val, "%Y-%m-%dT%H:%M").unwrap();
+                        let naive_utc = TimeZone::from_utc_datetime(&Utc, &naive_dt);
+                        query.filter(Column::InsertDate.gte(naive_utc))
+                    })
                 },
                 values: None
             },
