@@ -34,10 +34,6 @@ pub trait ActixAdminViewModelTrait {
     fn validate_entity(model: &mut ActixAdminModel);
 
     fn get_entity_name() -> String;
-
-    fn get_base_path(entity_name: &String) -> String {
-        format!("/admin/{}", entity_name)
-    }
 }
 
 #[derive(Clone)]

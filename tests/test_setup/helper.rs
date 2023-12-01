@@ -93,7 +93,8 @@ pub fn create_actix_admin_builder(enable_auth: bool, tenant_ref: Option<for<'a> 
         login_link: None,
         logout_link: None,
         file_upload_directory: "./file_uploads",
-        navbar_title: "test"
+        navbar_title: "test",
+        base_path: "/admin/"
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);

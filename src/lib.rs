@@ -75,6 +75,7 @@ pub struct ActixAdminConfiguration {
     pub logout_link: Option<String>,
     pub file_upload_directory: &'static str,
     pub navbar_title: &'static str,
+    pub base_path: &'static str,
 }
 
 #[derive(Clone)]

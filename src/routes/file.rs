@@ -118,7 +118,7 @@ pub async fn delete_file<E: ActixAdminViewModelTrait>(
         .find(|field| field.field_name == column_name)
         .unwrap();
     ctx.insert("model_field", view_model_field);
-    ctx.insert("base_path", &E::get_base_path(&entity_name));
+    ctx.insert("entity_name", &entity_name);
     ctx.insert("model", &model);
 
     let body = actix_admin

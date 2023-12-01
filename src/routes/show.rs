@@ -61,7 +61,7 @@ pub async fn show<E: ActixAdminViewModelTrait>(
 
     ctx.insert("model", &model);
     ctx.insert("view_model", &ActixAdminViewModelSerializable::from(view_model.clone()));
-    ctx.insert("base_path", &E::get_base_path(&entity_name));
+    ctx.insert("entity_name", &entity_name);
     ctx.insert("entity_names", &actix_admin.entity_names);
     ctx.insert("notifications", &notifications);
     ctx.insert("entities_per_page", &entities_per_page);

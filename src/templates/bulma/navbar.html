@@ -1,6 +1,6 @@
 <nav class="navbar has-shadow mb-4" role="navigation" aria-label="main navigation">
   <div class="navbar-brand">
-    <a class="navbar-item" href="/admin/">
+    <a class="navbar-item" href="{{ base_path }}">
       {{ navbar_title }}
     </a>
 
@@ -18,11 +18,11 @@
       {% if category == "" %}
       {% for menu_element in entities %}
       {% if menu_element.is_custom_handler %}
-      <a href="/admin/{{ menu_element.link }}" hx-boost="true" hx-indicator="#loading"
+      <a href="{{ base_path }}{{ menu_element.link }}" hx-boost="true" hx-indicator="#loading"
         class="navbar-item {% if entity_name and entity_name == menu_element.name %}is-active{% endif %}">{{
         menu_element.name }}</a>
       {% else %}
-      <a href="/admin/{{ menu_element.link }}/list" hx-boost="true" hx-indicator="#loading"
+      <a href="{{ base_path }}{{ menu_element.link }}/list" hx-boost="true" hx-indicator="#loading"
         class="navbar-item {% if entity_name and entity_name == menu_element.name %}is-active{% endif %}">{{
         menu_element.name | split(pat="_") | join(sep=" ") | title }}</a>
       {% endif %}
@@ -35,11 +35,11 @@
         <div class="navbar-dropdown">
           {% for menu_element in entities %}
           {% if menu_element.is_custom_handler %}
-          <a href="/admin/{{ menu_element.link }}" hx-boost="true" hx-indicator="#loading"
+          <a href="{{ base_path }}{{ menu_element.link }}" hx-boost="true" hx-indicator="#loading"
             class="navbar-item {% if entity_name and entity_name == menu_element.name %}is-active{% endif %}">{{
             menu_element.name }}</a>
           {% else %}
-          <a href="/admin/{{ menu_element.link }}/list" hx-boost="true" hx-indicator="#loading"
+          <a href="{{ base_path }}{{ menu_element.link }}/list" hx-boost="true" hx-indicator="#loading"
             class="navbar-item {% if entity_name and entity_name == menu_element.name %}is-active{% endif %}">{{
             menu_element.name | split(pat="_") | join(sep=" ") | title }}</a>
           {% endif %}

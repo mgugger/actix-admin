@@ -6,7 +6,7 @@ use actix_web::{cookie::Key, web, App, HttpResponse, HttpServer, middleware};
 use azure_auth::{AppDataTrait as AzureAuthAppDataTrait, AzureAuth, UserInfo};
 use oauth2::basic::BasicClient;
 use oauth2::RedirectUrl;
-use sea_orm::{ConnectOptions};
+use sea_orm::ConnectOptions;
 use std::env;
 use std::time::Duration;
 use tera::{Context, Tera};
@@ -85,7 +85,8 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
         logout_link: Some("/azure-auth/logout".to_string()),
         file_upload_directory: "./file_uploads",
         navbar_title: "ActixAdmin Example",
-        user_tenant_ref: None
+        user_tenant_ref: None,
+        base_path: "/code/proxy/5000/admin/"
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);

@@ -127,7 +127,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
                 Ok(HttpResponse::SeeOther()
                 .append_header((
                     header::LOCATION,
-                    format!("/admin/{0}/list?page={1}&search={2}&sort_by={3}&sort_order={4}&entities_per_page={5}", view_model.entity_name, page, search, sort_by, sort_order, entities_per_page),
+                    format!("list?page={0}&search={1}&sort_by={2}&sort_order={3}&entities_per_page={4}", page, search, sort_by, sort_order, entities_per_page),
                 ))
                 .finish())
             }
@@ -198,7 +198,7 @@ async fn render_form<E: ActixAdminViewModelTrait>(
         &ActixAdminViewModelSerializable::from(view_model.clone()),
     );
     ctx.insert("select_lists", &E::get_select_lists(db, tenant_ref).await?);
-    ctx.insert("base_path", &E::get_base_path(&entity_name));
+    ctx.insert("entity_name", &entity_name);
     ctx.insert("model", model);
 
     let notifications: Vec<ActixAdminNotification> = errors

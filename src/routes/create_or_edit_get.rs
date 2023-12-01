@@ -96,7 +96,7 @@ async fn create_or_edit_get<E: ActixAdminViewModelTrait>(session: &Session, req:
 
     ctx.insert("view_model", &ActixAdminViewModelSerializable::from(view_model.clone()));
     ctx.insert("select_lists", &E::get_select_lists(db, tenant_ref).await?);
-    ctx.insert("base_path", &E::get_base_path(&entity_name));
+    ctx.insert("entity_name", &entity_name);
     ctx.insert("model", &model);
     ctx.insert("notifications", &notifications);
     ctx.insert("entities_per_page", &entities_per_page);
