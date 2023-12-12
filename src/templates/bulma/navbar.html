@@ -52,21 +52,31 @@
     </div>
 
     <div class="navbar-end">
-      <div class="navbar-item">
-        <div hx-disable class="buttons">
-          {% if enable_auth %}
-          {% if user_is_logged_in %}
-          <a href="{{ logout_link }}" class="button is-light">
-            Log out
+      {% if enable_auth %}
+      {% if user_is_logged_in %}
+      <div class="navbar-item has-dropdown is-hoverable">
+        <a class="navbar-link">
+          <span class="icon">
+            <i class="fas fa-user"></i>
+          </span>
+        </a>
+
+        <div class="navbar-dropdown is-right">
+          <a href="{{ logout_link }}" class="navbar-item is-right">
+            Sign Out
           </a>
-          {% else %}
-          <a href="{{ login_link }}" class="button is-light">
-            Log in
-          </a>
-          {% endif %}
-          {% endif %}
         </div>
       </div>
+      {% else %}
+      <div class="navbar-item">
+        <div hx-disable class="buttons">
+          <a href="{{ login_link }}" class="button is-primary">
+            Sign In
+          </a>
+        </div>
+      </div>
+      {% endif %}
+      {% endif %}
     </div>
   </div>
 </nav>
