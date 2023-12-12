@@ -81,7 +81,6 @@ pub async fn delete_many<E: ActixAdminViewModelTrait>(
     }
 
     let db = &db.get_ref();
-    let entity_name = E::get_entity_name();
 
     let ids: Vec<i32> = form.iter().filter(|el| el.0 == "ids").map(|el| el.1.parse::<i32>().unwrap()).collect();
 
