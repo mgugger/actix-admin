@@ -1,26 +1,38 @@
 extern crate serde_derive;
 
 use actix_admin::prelude::*;
-use actix_web::{web, App, HttpServer, middleware};
+use actix_web::{http::Error, middleware, web, App, HttpResponse, HttpServer};
 use sea_orm::ConnectOptions;
 use std::time::Duration;
+use tera::{Tera, Context};
 mod entity;
-use entity::{Post, Comment, User};
+use entity::{Comment, Post, User};
+
+async fn profile(
+    session: Session,
+    tera: web::Data<Tera>,
+    actix_admin: web::Data<ActixAdmin>,
+) -> Result<HttpResponse, Error> {
+    let mut ctx = Context::new();
+    ctx.extend(get_admin_ctx(session, &actix_admin));
+    let body = tera.into_inner().render("profile.html", &ctx).unwrap();
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+}
 
 fn create_actix_admin_builder() -> ActixAdminBuilder {
     let configuration = ActixAdminConfiguration {
-        enable_auth: false,
-        user_is_logged_in: None,
+        enable_auth: true,
+        user_is_logged_in: Some(|_session: &Session| -> bool { true }),
         login_link: None,
         logout_link: None,
         file_upload_directory: "./file_uploads",
         navbar_title: "ActixAdmin Example",
         user_tenant_ref: None,
-        base_path: "/admin/"
+        base_path: "/admin/",
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
-    
+
     let post_view_model = ActixAdminViewModel::from(Post);
     admin_builder.add_entity::<Post>(&post_view_model);
 
@@ -29,6 +41,15 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     admin_builder.add_entity_to_category::<Comment>(&comment_view_model, some_category);
     let user_view_model = ActixAdminViewModel::from(User);
     admin_builder.add_entity_to_category::<User>(&user_view_model, some_category);
+
+    let navbar_end_category = "navbar-end";
+    admin_builder.add_custom_handler_to_category(
+        "Profile",
+        "/profile",
+        web::get().to(profile),
+        true,
+        navbar_end_category,
+    );
 
     admin_builder
 }
@@ -53,15 +74,19 @@ async fn main() {
     println!("The admin interface is available at http://localhost:5000/admin/");
 
     HttpServer::new(move || {
-
         let actix_admin_builder = create_actix_admin_builder();
 
+        // create new tera instance and extend with actix admin templates
+        let mut tera = Tera::parse(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/basic/templates/*.html")).unwrap();
+        tera.extend(&actix_admin_builder.get_actix_admin().tera)
+            .unwrap();
+        let _tera_res = tera.build_inheritance_chains();
+
         App::new()
+            .app_data(web::Data::new(tera))
             .app_data(web::Data::new(actix_admin_builder.get_actix_admin()))
             .app_data(web::Data::new(conn.clone()))
-            .service(
-                actix_admin_builder.get_scope()
-            )
+            .service(actix_admin_builder.get_scope())
             .wrap(middleware::Logger::default())
     })
     .bind("127.0.0.1:5000")

@@ -27,7 +27,7 @@
         menu_element.name | split(pat="_") | join(sep=" ") | title }}</a>
       {% endif %}
       {%- endfor %}
-      {% else %}
+      {% elif category != "navbar-end" %}
       <div class="navbar-item has-dropdown is-hoverable">
         <a class="navbar-link {% if entity_name and entity_name in entities %}is-active{% endif %}">
           {{ category }}
@@ -62,6 +62,22 @@
         </a>
 
         <div class="navbar-dropdown is-right">
+          {% for category, entities in entity_names %}
+          {% if category == "navbar-end" %}
+          {% for menu_element in entities %}
+          {% if menu_element.is_custom_handler %}
+          <a href="{{ base_path }}{{ menu_element.link }}" hx-boost="true" hx-indicator="#loading"
+            class="navbar-item {% if entity_name and entity_name == menu_element.name %}is-active{% endif %}">{{
+            menu_element.name }}</a>
+          {% else %}
+          <a href="{{ base_path }}{{ menu_element.link }}/list" hx-boost="true" hx-indicator="#loading"
+            class="navbar-item {% if entity_name and entity_name == menu_element.name %}is-active{% endif %}">{{
+            menu_element.name | split(pat="_") | join(sep=" ") | title }}</a>
+          {% endif %}
+          {% endfor %}
+          {% endif %}
+          {% endfor %}
+          <hr class="dropdown-divider">
           <a href="{{ logout_link }}" class="navbar-item is-right">
             Sign Out
           </a>

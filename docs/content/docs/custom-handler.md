@@ -80,6 +80,8 @@ admin_builder.add_custom_handler_for_entity::<Comment>(
 );
 ```
 
+> **_NOTE:_**  the category "navbar-end" is used for the dropdown containing the sign out button and will show only when auth is enabled.
+
 ### Added to an entity but shown grouped in a Category
 ```rust
 // this will expose a menu item which links to /admin/comment/custom_handler and is shown in the NavBar menu in the group "Some Category"
@@ -94,3 +96,4 @@ admin_builder.add_custom_handler_for_entity_in_category::<Comment>(
     show_in_menu
 );
 ```
+
