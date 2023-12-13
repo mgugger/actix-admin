@@ -11,7 +11,9 @@ exclude = [
     "tests/*",
     "docs/*",
     "README.md",
-    ".gitignore"
+    ".gitignore",
+    ".gitmodules",
+    ".github"
 ]
 
 [lib]
