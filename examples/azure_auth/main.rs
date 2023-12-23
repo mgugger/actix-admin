@@ -86,7 +86,7 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
         file_upload_directory: "./file_uploads",
         navbar_title: "ActixAdmin Example",
         user_tenant_ref: None,
-        base_path: "/admin/"
+        base_path: "/admin"
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
