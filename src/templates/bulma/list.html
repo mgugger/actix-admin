@@ -8,7 +8,7 @@
     <aside id="nav_aside"
         class="column is-2 {% if not view_model.default_show_aside %}is-hidden{% endif %} is-narrow-mobile is-fullheight is-hidden-mobile">
         <p class="menu-label is-hidden-touch">Filter</p>
-        <form id="filter_form" hx-indicator="#loading" hx-get="{{ base_path }}{{ entity_name }}/list"
+        <form id="filter_form" hx-indicator="#loading" hx-get="{{ base_path }}/{{ entity_name }}/list"
             hx-target="#{{ entity_name }}table" hx-push-url="true" hx-include="[id='{{ entity_name }}table']">
             <ul class="menu-list">
                 {% for key, value in viewmodel_filter %}
@@ -70,7 +70,7 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons">
-                    <a class="button is-primary" href="{{ base_path }}{{ entity_name }}/create" hx-boost="true"
+                    <a class="button is-primary" href="{{ base_path }}/{{ entity_name }}/create" hx-boost="true"
                         hx-indicator="#loading"><i class="fa-solid fa-circle-plus"></i></a>
                     {% if viewmodel_filter | length > 0 %}
                     <button class="button" onclick="toggle_aside()"><i class="fa-solid fa-filter"></i></button>
@@ -103,7 +103,7 @@
                     </div>
                 </div>
             </div>
-            <form id="search_form" action="{{ base_path }}{{ entity_name }}/list" hx-boost="true" hx-indicator="#loading"
+            <form id="search_form" action="{{ base_path }}/{{ entity_name }}/list" hx-boost="true" hx-indicator="#loading"
                 hx-target="#{{ entity_name }}table" hx-trigger="reload_table from:#entities_per_page"
                 hx-include="[id='filter_form']">
                 <input type="hidden" id="sort_by" name="sort_by" value="{{ sort_by }}">
@@ -114,7 +114,7 @@
                         {% if view_model.show_search %}
                         <p class="control has-icons-left has-icons-right">
                             <input class="input is-rounded" type="search" id="search" value="{{ search }}" name="search"
-                                placeholder="Search" hx-get="{{ base_path }}{{ entity_name }}/list"
+                                placeholder="Search" hx-get="{{ base_path }}/{{ entity_name }}/list"
                                 hx-trigger="keyup changed delay:500ms, search">
                             <span class="icon is-small is-left">
                                 <i class="fas fa-search"></i>
@@ -142,7 +142,7 @@
         <div id="{{ entity_name }}table">
             <div class="is-relative">
                 {% include "loader.html" %}
-                <form id="table_form" hx-indicator="#loading" hx-get="{{ base_path }}{{ entity_name }}/list"
+                <form id="table_form" hx-indicator="#loading" hx-get="{{ base_path }}/{{ entity_name }}/list"
                     hx-target="#{{ entity_name }}table" hx-include="[id='filter_form']">
                     <input type="hidden" id="sort_by" name="sort_by" value="{{ sort_by }}">
                     <input type="hidden" id="sort_order" name="sort_order" value="{{ sort_order }}">
@@ -191,7 +191,7 @@
                     <tr>
                         <td><input type="checkbox" name="ids" value="{{ entity.primary_key }}"></td>
                         <td>
-                            <a href="{{ base_path }}{{ entity_name }}/show/{{ entity.primary_key }}" hx-vals='{ 
+                            <a href="{{ base_path }}/{{ entity_name }}/show/{{ entity.primary_key }}" hx-vals='{ 
                                 "page" : "{{ page }}",
                                 "entities_per_page" : "{{ entities_per_page }}",
                                 "search" : "{{ search }}",
@@ -242,7 +242,7 @@
                             {% endif %}
                         {%- endfor %}
                         <td class="has-text-right">
-                            <a hx-target="#content" href="{{ base_path }}{{ entity_name }}/edit/{{ entity.primary_key }}"
+                            <a hx-target="#content" href="{{ base_path }}/{{ entity_name }}/edit/{{ entity.primary_key }}"
                                 hx-vals='{ 
                                 "page" : "{{ page }}",
                                 "entities_per_page" : "{{ entities_per_page }}",
@@ -278,18 +278,18 @@
             "render_partial" : "true"
         }' hx-indicator="#loading" class="pagination is-rounded is-centered" role="pagination" aria-label="pagination">
                 {% if page > 1 %}
-                <a href="{{ base_path }}{{ entity_name }}/list?&page={{ page - 1 }}"
+                <a href="{{ base_path }}/{{ entity_name }}/list?&page={{ page - 1 }}"
                     class="pagination-previous left-arrow-click"><i class="fa-solid fa-arrow-left"></i>
                 </a>
                 {% endif %}
-                {% if page < num_pages %} <a href="{{ base_path }}{{ entity_name }}/list?page={{ page + 1 }}"
+                {% if page < num_pages %} <a href="{{ base_path }}/{{ entity_name }}/list?page={{ page + 1 }}"
                     class="pagination-next right-arrow-click"><i class="fa-solid fa-arrow-right"></i>
                     </a>
                     {% endif %}
                     <ul class="pagination-list">
                         <li>
                             <a class="pagination-link {% if page == 1 %}is-current{% endif %}"
-                                href="{{ base_path }}{{ entity_name }}/list?page={{ 1 }}" aria-label="Goto page 1">1</a>
+                                href="{{ base_path }}/{{ entity_name }}/list?page={{ 1 }}" aria-label="Goto page 1">1</a>
                         </li>
                         <li>
                             <span class="pagination-ellipsis">&hellip;</span>
@@ -297,14 +297,14 @@
                         {% for i in range(start=min_show_page,end=max_show_page) %}
                         <li><a class="pagination-link {% if page == i+1 %}is-current{% endif %}"
                                 aria-label="Goto page {{ i + 1 }}"
-                                href="{{ base_path }}{{ entity_name }}/list?page={{ i + 1 }}">{{
+                                href="{{ base_path }}/{{ entity_name }}/list?page={{ i + 1 }}">{{
                                 i + 1 }}</a></li>
                         {%- endfor %}
                         <li>
                             <span class="pagination-ellipsis">&hellip;</span>
                         </li>
                         <li>
-                            <a href="{{ base_path }}{{ entity_name }}/list?page={{ num_pages }}"
+                            <a href="{{ base_path }}/{{ entity_name }}/list?page={{ num_pages }}"
                                 class="pagination-link is-rounded {% if page == num_pages %}is-current{% endif %}"
                                 aria-label="Goto page {{ num_pages }}">{{ num_pages }} </a>
                         </li>

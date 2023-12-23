@@ -251,7 +251,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
             Some(handler) => handler,
             _ => web::get().to(index),
         };
-        let mut admin_scope = web::scope("/admin")
+        let mut admin_scope = web::scope(&self.actix_admin.configuration.base_path)
             .route("/", index_handler)
             .default_service(web::to(not_found));
 
