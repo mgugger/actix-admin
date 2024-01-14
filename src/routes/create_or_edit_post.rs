@@ -122,12 +122,13 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
                     .sort_by
                     .clone()
                     .unwrap_or(view_model.primary_key.to_string());
+                let entity_name = E::get_entity_name();
                 let sort_order = params.sort_order.as_ref().unwrap_or(&SortOrder::Asc);
 
                 Ok(HttpResponse::SeeOther()
                 .append_header((
                     header::LOCATION,
-                    format!("list?page={0}&search={1}&sort_by={2}&sort_order={3}&entities_per_page={4}", page, search, sort_by, sort_order, entities_per_page),
+                    format!("{5}/{6}/list?page={0}&search={1}&sort_by={2}&sort_order={3}&entities_per_page={4}", page, search, sort_by, sort_order, entities_per_page, actix_admin.configuration.base_path, entity_name),
                 ))
                 .finish())
             }
