@@ -4,6 +4,7 @@ use sea_orm::{error::*, sea_query, ConnectionTrait, DbConn, ExecResult};
 pub mod comment;
 pub mod helper;
 pub mod post;
+pub mod webdriver;
 pub mod sample_with_tenant_id;
 pub use comment::Entity as Comment;
 pub use post::Entity as Post;
@@ -16,6 +17,7 @@ pub mod prelude {
     pub use super::Comment;
     pub use super::Post;
     pub use super::SampleWithTenantId;
+    pub use crate::test_setup::webdriver:: { setup, teardown };
     pub use crate::test_setup::helper::{create_actix_admin_builder, setup_db, BodyTest};
 }
 

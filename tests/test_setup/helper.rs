@@ -1,16 +1,16 @@
 use actix_admin::prelude::*;
 use actix_session::Session;
-use actix_web::HttpRequest;
 use actix_web::web;
-use actix_web::Error;
-use actix_web::HttpResponse;
 use actix_web::web::Bytes;
+use actix_web::Error;
+use actix_web::HttpRequest;
+use actix_web::HttpResponse;
 use chrono::Local;
 use sea_orm::prelude::Decimal;
 use sea_orm::{ConnectOptions, DatabaseConnection, EntityTrait, Set};
 
-use super::SampleWithTenantId;
 use super::sample_with_tenant_id;
+use super::SampleWithTenantId;
 use super::{comment, create_tables, post, Comment, Post};
 
 pub async fn setup_db(create_entities: bool) -> DatabaseConnection {
@@ -49,15 +49,15 @@ pub async fn setup_db(create_entities: bool) -> DatabaseConnection {
                 .expect("could not insert comment");
 
             let row = sample_with_tenant_id::ActiveModel {
-                    title: Set(format!("TestTenant{}", i % 2)),
-                    text: Set("me@home.com".to_string()),
-                    tenant_id: Set(i % 2),
-                    ..Default::default()
-                };
-                let _res = SampleWithTenantId::insert(row)
-                    .exec(&db)
-                    .await
-                    .expect("could not insert sample with tenant id");
+                title: Set(format!("TestTenant{}", i % 2)),
+                text: Set("me@home.com".to_string()),
+                tenant_id: Set(i % 2),
+                ..Default::default()
+            };
+            let _res = SampleWithTenantId::insert(row)
+                .exec(&db)
+                .await
+                .expect("could not insert sample with tenant id");
         }
     }
 
@@ -81,7 +81,32 @@ macro_rules! create_app (
     });
 );
 
-pub fn create_actix_admin_builder(enable_auth: bool, tenant_ref: Option<for<'a> fn(&'a Session) -> Option<i32>>) -> ActixAdminBuilder {
+#[macro_export]
+macro_rules! create_server (
+    ($db: expr, $enable_auth: expr, $tenant_ref: expr) => ({
+        use actix_web::{App, HttpServer};
+        use actix_admin::builder::ActixAdminBuilderTrait;
+
+        // Create and start the Actix-web server
+        let _server = HttpServer::new(move || {
+            let conn = $db.clone();
+            let actix_admin_builder = create_actix_admin_builder($enable_auth, $tenant_ref);
+            let actix_admin = actix_admin_builder.get_actix_admin();
+
+            App::new()
+                .app_data(actix_web::web::Data::new(actix_admin))
+                .app_data(actix_web::web::Data::new(conn))
+                .service(actix_admin_builder.get_scope())
+        }
+        ).bind("127.0.0.1:5555").unwrap().run().await
+        .expect("Failed to run server");
+    });
+);
+
+pub fn create_actix_admin_builder(
+    enable_auth: bool,
+    tenant_ref: Option<for<'a> fn(&'a Session) -> Option<i32>>,
+) -> ActixAdminBuilder {
     let post_view_model = ActixAdminViewModel::from(Post);
     let comment_view_model = ActixAdminViewModel::from(Comment);
     let sample_with_tenant_id_view_model = ActixAdminViewModel::from(SampleWithTenantId);
@@ -94,7 +119,7 @@ pub fn create_actix_admin_builder(enable_auth: bool, tenant_ref: Option<for<'a> 
         logout_link: None,
         file_upload_directory: "./file_uploads",
         navbar_title: "test",
-        base_path: "/admin"
+        base_path: "/admin",
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
