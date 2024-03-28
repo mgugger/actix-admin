@@ -11,11 +11,11 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
+    - uses: browser-actions/setup-geckodriver@latest
+    - uses: browser-actions/setup-firefox@latest
     - name: Build
       run: cargo build --verbose
     - name: Run tests
