@@ -38,6 +38,19 @@ mod webdriver_tests {
         let url = c.current_url().await?;
         assert!(url.as_ref().contains("page=5"));
 
+        // change entities per page
+        let dropdown = c.find(Locator::Css("select#entities_per_page")).await?;
+        dropdown.select_by_value("100").await?;
+        let url = c.current_url().await?;
+        assert!(url.as_ref().contains("entities_per_page=100"));
+
+        // search for a specific row with
+        let search_input = c.find(Locator::Css("input#search")).await?;
+        search_input.send_keys("Test 188").await?;
+        let table = c.find(Locator::Css("table")).await?;
+        let row_count = table.find_all(Locator::Css("tr")).await?.len();
+        assert_eq!(row_count, 1, "Expected a single row in the table");
+
         teardown(server_task, geckodriver, c).await
     }
 }

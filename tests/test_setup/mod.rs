@@ -10,6 +10,7 @@ pub use comment::Entity as Comment;
 pub use post::Entity as Post;
 pub use sample_with_tenant_id::Entity as SampleWithTenantId;
 
+#[allow(dead_code)]
 pub mod prelude {
     pub use super::comment;
     pub use super::post;
