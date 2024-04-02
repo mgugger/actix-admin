@@ -10,7 +10,7 @@ mod webdriver_tests {
     use fantoccini::Locator;
 
     #[tokio_test]
-    async fn test_with_webdriver() -> Result<(), fantoccini::error::CmdError> {    
+    async fn webdriver_navigation() -> Result<(), fantoccini::error::CmdError> {    
         let (server_task, geckodriver, c) = setup(true).await.unwrap();
 
         // Open the index page
