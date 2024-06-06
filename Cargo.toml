@@ -25,17 +25,17 @@ default = ["bulma_css"]
 bulma_css = []
 
 [dependencies]
-actix-web = "^4.5.1"
+actix-web = "^4.6.0"
 actix-session = { version = "^0.9.0", features = [] }
 actix-multipart = "^0.6.1"
 actix-files = "^0.6.5"
 futures-util = "0.3.30"
-chrono = "0.4.37"
-tera = "^1.19.1"
-async-trait = "^0.1.79"
+chrono = "0.4.38"
+tera = "^1.20.0"
+async-trait = "^0.1.80"
 lazy_static = "^1.4.0"
-serde = "^1.0.197"
-serde_derive = "^1.0.197"
+serde = "^1.0.203"
+serde_derive = "^1.0.203"
 sea-orm = { version = "^0.12.15", features = [], default-features = false }
 actix-admin-macros = { version = "0.7.0", path = "actix_admin_macros" }
 derive_more = "0.99.17"
@@ -46,11 +46,11 @@ csv = "1.3.0"
 [dev-dependencies]
 sea-orm = { version = "^0.12.15", features = [ "sqlx-sqlite", "runtime-actix-native-tls", "macros" ], default-features = true }
 fantoccini = "0.19.3"
-serde_json = "1.0.115"
-tokio = { version = "1.36.0", features = ["full"] }
+serde_json = "1.0.117"
+tokio = { version = "1.38.0", features = ["full"] }
 actix-rt = "2.9.0"
 azure_auth = { path = "./examples/azure_auth/azure_auth" }
 oauth2 = "4.4.2"
 dotenv = "0.15"
 actix-session = { version = "0.9.0", features = ["cookie-session"] }
-itertools = "^0.12.1"
+itertools = "^0.13.0"

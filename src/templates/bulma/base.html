@@ -13,6 +13,7 @@
 
 <body>
     {% include "navbar.html" %}
+    {% include "loader.html" %}
     <div class="container is-fluid">
         <div id="notifications">
             {% if notifications %}
@@ -26,8 +27,19 @@
         </div>
 
         <div id="content">
-            {% block content %}
-            {% endblock content %}
+            <div class="columns">
+                {% block content %}
+                {% endblock content %}
+
+                {%if support_path %}
+                <div id="support" class="column is-3 is-narrow-mobile is-fullheight is-hidden is-hidden-mobile">
+                    <p class="menu-label is-hidden-touch pb-2">Help & Support</p>
+                    <div data-hx-get="{{ base_path}}/{{ support_path }}" data-hx-trigger="intersect">
+                        <progress class="progress is-small is-primary" max="100">15%</progress>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </body>

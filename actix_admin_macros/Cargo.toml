@@ -14,7 +14,7 @@ proc-macro = true
 
 [dependencies]
 bae = "0.1.7"
-quote = "1.0.35"
+quote = "1.0.36"
 syn = { version = "1.0.109", features = ["full", "extra-traits"] }
-proc-macro2 = { version = "1.0.79", default-features = false }
+proc-macro2 = { version = "1.0.85", default-features = false }
 regex = "1.10.4"

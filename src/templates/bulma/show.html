@@ -1,40 +1,36 @@
 {% extends "base.html" %}
 
 {% block content %}
-{% include "loader.html" %}
+<div class="column is-vcentered">
+    <div class="box">
+        {% for model_field in view_model.fields -%}
 
-<div class="columns">
-    <div class="column is-vcentered">
-        <div class="box">
-            {% for model_field in view_model.fields -%}
-
-            <div class="field">
-                <label class="label">{{ model_field.field_name | split(pat="_") | join(sep=" ") | title }}</label>
-                <div class="control">
-                    {% if model_field.field_type == "Checkbox" %}
-                    <td>{{ model.values | get(key=model_field.field_name) | get_icon | safe }}</td>
-                    {% elif model_field.field_type == "FileUpload" %}
-                    <td><a href="file/{{ view_model.primary_key }}/{{ model_field.field_name }}">{{ model.values |
-                            get(key=model_field.field_name) }}</a></td>
-                    {% else %}
-                    <td>{{ model.values | get(key=model_field.field_name) }}</td>
-                    {% endif %}
-                </div>
-            </div>
-
-            {%- endfor %}
-        </div>
-        <div class="field is-grouped">
+        <div class="field">
+            <label class="label">{{ model_field.field_name | split(pat="_") | join(sep=" ") | title }}</label>
             <div class="control">
-                <a hx-vals='{ 
+                {% if model_field.field_type == "Checkbox" %}
+                <td>{{ model.values | get(key=model_field.field_name) | get_icon | safe }}</td>
+                {% elif model_field.field_type == "FileUpload" %}
+                <td><a href="file/{{ view_model.primary_key }}/{{ model_field.field_name }}">{{ model.values |
+                        get(key=model_field.field_name) }}</a></td>
+                {% else %}
+                <td>{{ model.values | get(key=model_field.field_name) }}</td>
+                {% endif %}
+            </div>
+        </div>
+
+        {%- endfor %}
+    </div>
+    <div class="field is-grouped">
+        <div class="control">
+            <a hx-vals='{ 
             "entities_per_page" : "{{ entities_per_page }}",
             "search" : "{{ search }}",
             "sort_by" : "{{ sort_by }}",
             "sort_order" : "{{ sort_order }}",
             "page" : "{{ page }}"
             }' hx-boost="true" hx-push-url="true" hx-indicator="#loading" class="button is-link is-light"
-                    href="{{ base_path }}/{{ entity_name }}/list">Back</a>
-            </div>
+                href="{{ base_path }}/{{ entity_name }}/list">Back</a>
         </div>
     </div>
 </div>

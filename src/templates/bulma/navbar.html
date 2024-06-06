@@ -51,7 +51,11 @@
       {% endif %}
     </div>
 
-    <div class="navbar-end">
+    <div class="navbar-end">      
+      {%if support_path %}
+      <a href="#" class="navbar-item" onclick="toggle_hidden('support')"><i class="fa-solid fa-question"></i></a>
+      {% endif %}
+
       {% if enable_auth %}
       {% if user_is_logged_in %}
       <div class="navbar-item has-dropdown is-hoverable">

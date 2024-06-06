@@ -65,6 +65,7 @@ pub trait ActixAdminBuilderTrait {
     fn add_custom_handler_for_index(&mut self, route: Route);
     fn get_scope(self) -> actix_web::Scope;
     fn get_actix_admin(&self) -> ActixAdmin;
+    fn add_support_handler(&mut self, arg: &str, support: Route);
 }
 
 impl ActixAdminBuilderTrait for ActixAdminBuilder {
@@ -74,7 +75,8 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 entity_names: HashMap::new(),
                 view_models: HashMap::new(),
                 configuration: configuration,
-                tera: crate::tera_templates::get_tera()
+                tera: crate::tera_templates::get_tera(),
+                support_path: None
             },
             custom_routes: Vec::new(),
             scopes: HashMap::new(),
@@ -182,6 +184,11 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         add_to_menu: bool
     ) {
         self.add_custom_handler_to_category(menu_element_name, path, route, add_to_menu, "");
+    }
+
+    fn add_support_handler(&mut self, arg: &str, support: Route) {
+        self.custom_routes.push((arg.to_string(), support));
+        self.actix_admin.support_path = Some(arg.to_string().replace("/", ""));
     }
 
     fn add_custom_handler_for_entity<

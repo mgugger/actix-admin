@@ -2,9 +2,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ navbar_title }}</title>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<script src="https://unpkg.com/htmx.org@1.9.9"></script>
+<script src="https://unpkg.com/htmx.org@1.9.12"></script>
 
 <script>
     document.onkeydown = function (e) {
@@ -51,12 +51,14 @@
         document.getElementById('table_form').requestSubmit();
     }
 
-    function toggle_aside() {
-        el = document.getElementById("nav_aside");
-        if(el.classList.contains("is-hidden")) {
-            el.classList.remove("is-hidden");
-        } else {
-            el.classList.add("is-hidden");
+    function toggle_hidden(element_name) {
+        el = document.getElementById(element_name);
+        if (el) {
+            if (el.classList.contains("is-hidden")) {
+                el.classList.remove("is-hidden");
+            } else {
+                el.classList.add("is-hidden");
+            }
         }
     }
 
@@ -86,7 +88,7 @@
         });
     });
 
-    let error =  "<div class=\"notification mb-4 is-light is-danger\"><button class=\"delete\" onclick=\"this.parentElement.remove()\"></button>An Error occurred</div>";
+    let error = "<div class=\"notification mb-4 is-light is-danger\"><button class=\"delete\" onclick=\"this.parentElement.remove()\"></button>An Error occurred</div>";
     htmx.on("htmx:responseError", function () {
         document.getElementById("notifications").insertAdjacentHTML("afterend", error)
     });
@@ -98,15 +100,18 @@
 <style>
     .loader-wrapper {
         position: absolute;
-        height: 100%;
+        height: 50%;
         width: 100%;
         display: flex;
-        background: rgba(255, 255, 255, 0.3);
         justify-content: center;
         border-radius: 6px;
         align-items: center;
         z-index: 6;
         pointer-events: none
     }
+    .opaque-rounded-background {
+        background: rgba(255, 255, 255, 0.3);
+        padding: 10px;
+        border-radius: 10px;
+    }
 </style>
-

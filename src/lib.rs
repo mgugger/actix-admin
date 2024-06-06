@@ -84,6 +84,7 @@ pub struct ActixAdmin {
     pub view_models: HashMap<String, ActixAdminViewModel>,
     pub configuration: ActixAdminConfiguration,
     pub tera: Tera,
+    pub support_path: Option<String>
 }
 
 #[derive(PartialEq, Eq, Clone, Serialize)]

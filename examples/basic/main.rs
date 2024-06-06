@@ -19,6 +19,17 @@ async fn profile(
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
+async fn support(
+    session: Session,
+    tera: web::Data<Tera>,
+    actix_admin: web::Data<ActixAdmin>,
+) -> Result<HttpResponse, Error> {
+    let mut ctx = Context::new();
+    ctx.extend(get_admin_ctx(session, &actix_admin));
+    let body = tera.into_inner().render("support.html", &ctx).unwrap();
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+}
+
 fn create_actix_admin_builder() -> ActixAdminBuilder {
     let configuration = ActixAdminConfiguration {
         enable_auth: true,
@@ -50,6 +61,8 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
         true,
         navbar_end_category,
     );
+
+    let _support_route = admin_builder.add_support_handler("/support", web::get().to(support));
 
     admin_builder
 }

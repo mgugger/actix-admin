@@ -9,6 +9,7 @@ pub fn add_auth_context(session: &Session, actix_admin: &ActixAdmin, ctx: &mut C
     ctx.insert("enable_auth", &enable_auth);
     ctx.insert("navbar_title", &actix_admin.configuration.navbar_title);
     ctx.insert("base_path", &actix_admin.configuration.base_path);
+    ctx.insert("support_path", &actix_admin.support_path.as_ref());
     if *enable_auth {
         let func = &actix_admin.configuration.user_is_logged_in.unwrap();
         ctx.insert("user_is_logged_in", &func(session));
