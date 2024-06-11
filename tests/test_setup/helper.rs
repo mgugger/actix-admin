@@ -162,6 +162,16 @@ pub fn create_actix_admin_builder(
         false,
     );
 
+    let _support_route = admin_builder.add_support_handler("/support", web::get().to(support));
+    let _card_route = admin_builder.add_custom_handler("card", "/card/{id}", web::get().to(card), false);
+
+    let card_grid: Vec<Vec<String>> = vec![
+        vec!["admin/card/1".to_string(), "admin/card/2".to_string()],
+        vec!["admin/card/3".to_string()],
+    ];
+    admin_builder.add_card_grid("Card Grid", "/my_card_grid", card_grid, true);
+
+
     admin_builder
 }
 
@@ -198,6 +208,15 @@ async fn edit_post_from_plaintext<E: ActixAdminViewModelTrait>(
     .await
 }
 
+async fn support() -> Result<HttpResponse, Error> {
+    let resp = "<div id=\"support_content\">SupportDiv</div>";
+    Ok(HttpResponse::Ok().content_type("text/html").body(resp))
+}
+
+async fn card(id: web::Path<i32>) -> Result<HttpResponse, Error> {
+    let resp = format!("<div class=\"card-content\">Card{}</div>", id);
+    Ok(HttpResponse::Ok().content_type("text/html").body(resp))
+}
 pub trait BodyTest {
     fn as_str(&self) -> &str;
 }
