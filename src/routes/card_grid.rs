@@ -10,7 +10,6 @@ pub async fn display_card_grid(session: Session, data: web::Data<ActixAdmin>, re
     let actix_admin = &data.into_inner();
     let path = req.path().replace(actix_admin.configuration.base_path, "").replace("/", "");
     let card_grid = actix_admin.card_grids.get(path.as_str());
-    let keys: Vec<&String> = actix_admin.card_grids.keys().collect();
 
     if card_grid.is_none() {
         return Err(error::ErrorNotFound("Card grid not found"));
@@ -27,6 +26,6 @@ pub async fn display_card_grid(session: Session, data: web::Data<ActixAdmin>, re
 
     let body = actix_admin.tera
         .render("card_grid.html", &ctx)
-        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
+        .map_err(|_| error::ErrorInternalServerError("Template error {err:?}"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }

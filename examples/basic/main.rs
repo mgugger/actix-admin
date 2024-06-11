@@ -76,7 +76,7 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     );
 
     let _support_route = admin_builder.add_support_handler("/support", web::get().to(support));
-    let _card_route = admin_builder.add_support_handler("/card/{id}", web::get().to(card));
+    let _card_route = admin_builder.add_custom_handler("card", "/card/{id}", web::get().to(card), false);
 
     let card_grid: Vec<Vec<String>> = vec![
         vec!["admin/card/1".to_string(), "admin/card/2".to_string()],
