@@ -32,9 +32,11 @@
                 {% endblock content %}
 
                 {%if support_path %}
-                <div id="support" class="column is-3 is-narrow-mobile is-fullheight is-hidden is-hidden-mobile" data-hx-get="{{ base_path}}/{{ support_path }}" hx-swap="outerHTML" data-hx-trigger="intersect" hx-target="#support_content" >
+                <div id="support" class="column is-3 is-narrow-mobile is-fullheight is-hidden is-hidden-mobile" data-hx-get="{{ base_path}}/{{ support_path }}" data-hx-trigger="intersect" hx-target="#support_content">
                     <p class="menu-label is-hidden-touch pb-2">Help & Support</p>
-                    <div id="support_content" style="height: 100%;" class="skeleton-block"></div>
+                    <div id="support_content" style="height: 100%;">
+                        <div style="height: 100%;" class="skeleton-block"></div>
+                    </div>
                 </div>
                 {% endif %}
             </div>
