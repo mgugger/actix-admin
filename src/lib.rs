@@ -82,6 +82,7 @@ pub struct ActixAdminConfiguration {
 pub struct ActixAdmin {
     pub entity_names: HashMap<String, Vec<ActixAdminMenuElement>>,
     pub view_models: HashMap<String, ActixAdminViewModel>,
+    pub card_grids: HashMap<String, Vec<Vec<String>>>,
     pub configuration: ActixAdminConfiguration,
     pub tera: Tera,
     pub support_path: Option<String>

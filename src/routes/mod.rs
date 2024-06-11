@@ -22,7 +22,10 @@ pub use helpers::{ add_auth_context, user_can_access_page, render_unauthorized }
 mod file;
 pub use file::{download, delete_file};
 
-use serde_derive::{Deserialize};
+mod card_grid;
+pub use card_grid::display_card_grid;
+
+use serde_derive::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct Params {
     page: Option<u64>,

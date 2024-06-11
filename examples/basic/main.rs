@@ -30,6 +30,19 @@ async fn support(
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
+async fn card(
+    session: Session,
+    tera: web::Data<Tera>,
+    actix_admin: web::Data<ActixAdmin>,
+    id: web::Path<i32>
+) -> Result<HttpResponse, Error> {
+    let mut ctx = Context::new();
+    ctx.extend(get_admin_ctx(session, &actix_admin));
+    ctx.insert("id", &(id.into_inner()));
+    let body = tera.into_inner().render("card.html", &ctx).unwrap();
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+}
+
 fn create_actix_admin_builder() -> ActixAdminBuilder {
     let configuration = ActixAdminConfiguration {
         enable_auth: true,
@@ -63,6 +76,13 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     );
 
     let _support_route = admin_builder.add_support_handler("/support", web::get().to(support));
+    let _card_route = admin_builder.add_support_handler("/card/{id}", web::get().to(card));
+
+    let card_grid: Vec<Vec<String>> = vec![
+        vec!["admin/card/1".to_string(), "admin/card/2".to_string()],
+        vec!["admin/card/3".to_string()],
+    ];
+    admin_builder.add_card_grid("Card Grid", "/my_card_grid", card_grid, true);
 
     admin_builder
 }

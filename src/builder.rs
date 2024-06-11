@@ -1,4 +1,4 @@
-use crate::{prelude::*, ActixAdminMenuElement, routes::{delete_file, export_csv}};
+use crate::{prelude::*, routes::{display_card_grid, delete_file, export_csv}, ActixAdminMenuElement};
 use actix_web::{web, Route };
 use std::collections::HashMap;
 use std::fs;
@@ -43,6 +43,21 @@ pub trait ActixAdminBuilderTrait {
         add_to_menu: bool,
         category: &str
     );
+    fn add_card_grid(
+        &mut self,
+        menu_element_name: &str,
+        path: &str,
+        elements: Vec<Vec<String>>,
+        add_to_menu: bool,
+    );
+    fn add_card_grid_to_category(
+        &mut self,
+        menu_element_name: &str,
+        path: &str,
+        elements: Vec<Vec<String>>,
+        add_to_menu: bool,
+        category: &str
+    );
     fn add_custom_handler_for_entity<
         E: ActixAdminViewModelTrait + 'static,
     >(
@@ -74,6 +89,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
             actix_admin: ActixAdmin {
                 entity_names: HashMap::new(),
                 view_models: HashMap::new(),
+                card_grids: HashMap::new(),
                 configuration: configuration,
                 tera: crate::tera_templates::get_tera(),
                 support_path: None
@@ -151,6 +167,51 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         category_name: &str
     ) {
         self.custom_routes.push((path.to_string(), route));
+
+        if add_to_menu {
+            let menu_element = ActixAdminMenuElement {
+                name: menu_element_name.to_string(),
+                link: path.replacen("/", "", 1),
+                is_custom_handler: true,
+            };
+            let category = self.actix_admin.entity_names.get_mut(category_name);
+            match category {
+                Some(entity_list) => {
+                    if !entity_list.contains(&menu_element) {
+                        entity_list.push(menu_element);
+                    }
+                }
+                None => {
+                    let mut entity_list = Vec::new();
+                    entity_list.push(menu_element);
+                    self.actix_admin
+                        .entity_names
+                        .insert(category_name.to_string(), entity_list);
+                },
+            }
+        }
+    }
+
+    fn add_card_grid(
+        &mut self,
+        menu_element_name: &str,
+        path: &str,
+        elements: Vec<Vec<String>>,
+        add_to_menu: bool,
+    ) {
+        self.add_card_grid_to_category(menu_element_name, path, elements, add_to_menu, "");
+    }
+
+    fn add_card_grid_to_category(
+        &mut self,
+        menu_element_name: &str,
+        path: &str,
+        elements: Vec<Vec<String>>,
+        add_to_menu: bool,
+        category_name: &str
+    ) {
+        self.custom_routes.push((path.to_string(), web::get().to(display_card_grid)));
+        self.actix_admin.card_grids.insert(path.to_string().replace("/", ""), elements);
 
         if add_to_menu {
             let menu_element = ActixAdminMenuElement {

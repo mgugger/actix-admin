@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="column">
+    {% for row in card_grid %}
+    <div class="grid">
+        {% for card in row %}
+        <div class="cell">
+            <div class="card" data-hx-get="/{{ card }}" data-hx-trigger="revealed">
+                <div class="card-content">
+                    <div class="content">
+                        <progress class="progress" max="100">15%</progress>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock content %}
