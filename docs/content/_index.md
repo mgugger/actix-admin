@@ -40,6 +40,6 @@ chrono = "0.4.23"
 tera = "^1.17.1"
 serde = "^1.0.152"
 serde_derive = "^1.0.152"
-actix-admin = "0.5.0"
+actix-admin = "0.7.0"
 regex = "1.7.1"
 ```

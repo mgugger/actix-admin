@@ -12,7 +12,7 @@ weight: 1
 Cargo.toml:
 ```cargo
 [dependencies]
-actix-admin = "0.5.0"
+actix-admin = "0.7.0"
 ```
 
 ## Build the Actix-Admin Configuration
