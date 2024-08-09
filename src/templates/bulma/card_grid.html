@@ -6,7 +6,7 @@
     <div class="grid">
         {% for card_path in card_row %}
         <div class="cell">
-            <div class="card" data-hx-get="/{{ card_path }}" data-hx-trigger="revealed">
+            <div class="card" data-hx-get="{{ base_path }}/{{ card_path }}" data-hx-trigger="revealed">
                 <div class="card-content skeleton-block">
                     <div class="content">
                     </div>

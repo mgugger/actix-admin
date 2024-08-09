@@ -14,7 +14,7 @@ use async_trait::async_trait;
 use derive_more::{Display, Error};
 use sea_orm::DatabaseConnection;
 use serde_derive::Serialize;
-use std::{collections::HashMap, fmt, fmt::Display};
+use std::{collections::HashMap, fmt};
 use tera::Tera;
 
 pub mod builder;
@@ -112,28 +112,28 @@ impl Display for ActixAdminError {
 // Errors
 #[derive(Debug, Display, Error)]
 pub enum ActixAdminErrorType {
-    #[display(fmt = "Internal error")]
+    #[display("Internal error")]
     InternalError,
 
-    #[display(fmt = "Form has validation errors")]
+    #[display("Form has validation errors")]
     ValidationErrors,
 
-    #[display(fmt = "Could not list entities")]
+    #[display("Could not list entities")]
     ListError,
 
-    #[display(fmt = "Could not create entity")]
+    #[display("Could not create entity")]
     CreateError,
 
-    #[display(fmt = "Could not delete entity")]
+    #[display("Could not delete entity")]
     DeleteError,
 
-    #[display(fmt = "Could not edit entity")]
+    #[display("Could not edit entity")]
     EditError,
 
-    #[display(fmt = "Database error")]
+    #[display("Database error")]
     DatabaseError,
 
-    #[display(fmt = "Entity does not exist")]
+    #[display("Entity does not exist")]
     EntityDoesNotExistError,
 }
 
@@ -163,7 +163,7 @@ impl std::convert::From<sea_orm::DbErr> for ActixAdminError {
 // Notifications
 #[derive(Debug, Display, Serialize)]
 pub enum ActixAdminNotificationType {
-    #[display(fmt = "is-danger")]
+    #[display("is-danger")]
     Danger,
 }
 

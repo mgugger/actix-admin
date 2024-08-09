@@ -102,9 +102,10 @@ impl ActixAdminModel {
                 // let res_string = String::from_utf8(chunk.map_or(Vec::new(), |c| c.to_vec()));
             }
             let binary_data = binary_data.concat();
-            if field.content_disposition().get_filename().is_some() {
+            if field.content_disposition().expect("expected content disposition").get_filename().is_some() {
                 let mut filename = field
                     .content_disposition()
+                    .expect("expected content disposition")
                     .get_filename()
                     .unwrap()
                     .to_string();
@@ -121,13 +122,13 @@ impl ActixAdminModel {
                 let _res = file.unwrap().write_all(&binary_data);
 
                 hashmap.insert(
-                    field.name().to_string(),
+                    field.name().expect("expected file name").to_string(),
                     filename.clone()
                 );
             } else {
                 let res_string = String::from_utf8(binary_data);
                 if res_string.is_ok() {
-                    hashmap.insert(field.name().to_string(), res_string.unwrap());
+                    hashmap.insert(field.name().expect("expected file name").to_string(), res_string.unwrap());
                 }
             }
         }
