@@ -1,0 +1,26 @@
+<div id="support_content">
+    <div id="results"></div>
+    <br>
+    <form hx-indicator="#loading" hx-swap="beforeend" hx-post="{{ base_path }}/support" hx-target="#results" onsubmit="addResultsToForm()">
+        <input type="hidden" name="context" id="context">
+        <div class="field has-addons">
+            <div class="control">
+                <input name="question" id="question" class="input" type="text" placeholder="How can I help you?">
+            </div>
+            <div class="control">
+                <button class="button is-info">
+                    Send
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    function addResultsToForm() {
+        var question = document.getElementById('question').value;
+        var resultsContent = document.getElementById('results').textContent.trim();
+        document.getElementById('context').value += resultsContent;
+        return true;
+    }
+</script>

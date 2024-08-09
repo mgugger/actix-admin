@@ -166,8 +166,8 @@ pub fn create_actix_admin_builder(
     let _card_route = admin_builder.add_custom_handler("card", "/card/{id}", web::get().to(card), false);
 
     let card_grid: Vec<Vec<String>> = vec![
-        vec!["admin/card/1".to_string(), "admin/card/2".to_string()],
-        vec!["admin/card/3".to_string()],
+        vec!["card/1".to_string(), "card/2".to_string()],
+        vec!["card/3".to_string()],
     ];
     admin_builder.add_card_grid("Card Grid", "/my_card_grid", card_grid, true);
 

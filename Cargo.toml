@@ -54,3 +54,4 @@ oauth2 = "4.4.2"
 dotenv = "0.15"
 actix-session = { version = "0.10.0", features = ["cookie-session"] }
 itertools = "^0.13.0"
+ollama-rs = "0.2.0"
