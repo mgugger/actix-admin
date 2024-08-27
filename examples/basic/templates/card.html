@@ -1,19 +1,16 @@
 <div class="card-content">
-    <p class="title">
-      “Insightful Quote here.”
-    </p>
-    <p class="subtitle">Unknown {{ id }}</p>
-  </div>
-  <footer class="card-footer">
-    <p class="card-footer-item">
-      <span>
-        Share on Instagram
-        <a href="#"
-          >Twitter</a
-        >
-      </span>
-    </p>
-    <p class="card-footer-item">
-      <span> Share on <a href="#">Facebook</a> </span>
-    </p>
-  </footer>
+  <p class="title">
+    Card {{ id }}
+  </p>
+  <p class="subtitle">I'm a dynamically loaded card.</p>
+</div>
+<footer class="card-footer">
+  <p class="card-footer-item">
+    <span>
+      Loaded via htmx-get
+    </span>
+  </p>
+  <p class="card-footer-item">
+    <span><a href="https://htmx.org/attributes/hx-get/">https://htmx.org/attributes/hx-get/</a></span>
+  </p>
+</footer>

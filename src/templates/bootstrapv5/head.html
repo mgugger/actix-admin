@@ -7,9 +7,12 @@
     <link rel="stylesheet" href="{{ custom_css_path }}">
     {% endfor %}
 {% else %}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 {% endif %}
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+    crossorigin="anonymous"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 
@@ -61,10 +64,10 @@
     function toggle_hidden(element_name) {
         el = document.getElementById(element_name);
         if (el) {
-            if (el.classList.contains("is-hidden")) {
-                el.classList.remove("is-hidden");
+            if (el.classList.contains("d-none")) {
+                el.classList.remove("d-none");
             } else {
-                el.classList.add("is-hidden");
+                el.classList.add("d-none");
             }
         }
     }
@@ -72,30 +75,30 @@
     function disableButton(form) {
         let button = form.elements["submitBtn"];
         button.disabled = true;
-        button.classList.add("is-loading");
+        button.classList.add("disabled");
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        // Get all "navbar-burger" elements
-        const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+        // Get all "navbar-toggler" elements
+        const $navbarTogglers = Array.prototype.slice.call(document.querySelectorAll('.navbar-toggler'), 0);
 
         // Add a click event on each of them
-        $navbarBurgers.forEach(el => {
+        $navbarTogglers.forEach(el => {
             el.addEventListener('click', () => {
 
-                // Get the target from the "data-target" attribute
-                const target = el.dataset.target;
+                // Get the target from the "data-bs-target" attribute
+                const target = el.dataset.bsTarget;
                 const $target = document.getElementById(target);
 
-                // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
-                el.classList.toggle('is-active');
-                $target.classList.toggle('is-active');
+                // Toggle the "show" class on both the "navbar-toggler" and the "navbar-collapse"
+                el.classList.toggle('show');
+                $target.classList.toggle('show');
 
             });
         });
     });
 
-    let error = "<div class=\"notification mb-4 is-light is-danger\"><button class=\"delete\" onclick=\"this.parentElement.remove()\"></button>An Error occurred</div>";
+    let error = "<div class=\"alert alert-danger mb-4\"><button class=\"btn-close\" onclick=\"this.parentElement.remove()\"></button>An Error occurred</div>";
     htmx.on("htmx:responseError", function () {
         document.getElementById("notifications").insertAdjacentHTML("afterend", error)
     });
@@ -116,6 +119,7 @@
         z-index: 6;
         pointer-events: none
     }
+
     .opaque-rounded-background {
         background: rgba(255, 255, 255, 0.3);
         padding: 10px;

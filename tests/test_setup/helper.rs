@@ -120,6 +120,7 @@ pub fn create_actix_admin_builder(
         file_upload_directory: "./file_uploads",
         navbar_title: "test",
         base_path: "/admin",
+        custom_css_paths: None
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);

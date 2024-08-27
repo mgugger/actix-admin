@@ -167,7 +167,10 @@ fn add_templates_to_tera(tera: &mut Tera, tera_template: TeraTemplate) {
     ]);
 }
 
-// Cargo Features
+#[cfg(all(feature = "bootstrapv5_css", feature = "bulma_css"))]
+compile_error!("feature \"foo\" and feature \"bar\" cannot be enabled at the same time");
+
+// Cargo Features for CSS
 #[cfg(feature = "bulma_css")]
 fn load_templates() -> Tera {
     let mut tera = Tera::new(concat!(
@@ -190,6 +193,35 @@ fn load_templates() -> Tera {
         checkbox_html: include_str!("templates/bulma/form_elements/checkbox.html"),
         input_html: include_str!("templates/bulma/form_elements/input.html"),
         selectlist_html: include_str!("templates/bulma/form_elements/selectlist.html"),
+    };
+
+    add_templates_to_tera(&mut tera, tera_template);
+
+    tera
+}
+
+#[cfg(feature = "bootstrapv5_css")]
+fn load_templates() -> Tera {
+    let mut tera = Tera::new(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/templates/bootstrapv5/*.html"
+    ))
+    .unwrap();
+    let tera_template = TeraTemplate {
+        list_html: include_str!("templates/bootstrapv5/list.html"),
+        create_or_edit_html: include_str!("templates/bootstrapv5/create_or_edit.html"),
+        base_html: include_str!("templates/bootstrapv5/base.html"),
+        head_html: include_str!("templates/bootstrapv5/head.html"),
+        index_html: include_str!("templates/bootstrapv5/index.html"),
+        loader_html: include_str!("templates/bootstrapv5/loader.html"),
+        navbar_html: include_str!("templates/bootstrapv5/navbar.html"),
+        not_found_html: include_str!("templates/bootstrapv5/not_found.html"),
+        show_html: include_str!("templates/bootstrapv5/show.html"),
+        unauthorized_html: include_str!("templates/bootstrapv5/unauthorized.html"),
+        // form elements
+        checkbox_html: include_str!("templates/bootstrapv5/form_elements/checkbox.html"),
+        input_html: include_str!("templates/bootstrapv5/form_elements/input.html"),
+        selectlist_html: include_str!("templates/bootstrapv5/form_elements/selectlist.html"),
     };
 
     add_templates_to_tera(&mut tera, tera_template);

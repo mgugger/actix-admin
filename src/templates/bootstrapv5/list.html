@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% if not render_partial or render_partial == false %}
+<div class="row">
+    <aside id="nav_aside" class="col-2 {% if not view_model.default_show_aside %}d-none{% endif %}">
+        <p class="menu-label d-md-block">Filter</p>
+        <form id="filter_form" hx-indicator="#loading" hx-get="{{ base_path }}/{{ entity_name }}/list"
+            hx-target="#{{ entity_name }}table" hx-push-url="true" hx-include="[id='{{ entity_name }}table']">
+            <ul class="list-unstyled">
+                {% for key, value in viewmodel_filter %}
+                <li class="list-group-item">
+                    <div class="mb-3">
+                        <label class="form-label">{{key}}</label>
+                        {% if value.filter_type == "Text" %}
+                        <input class="form-control" value="{{ value.value }}" type="text" placeholder=""
+                            name="filter_{{key}}">
+                        {% elif value.filter_type == "DateTime" %}
+                        <input class="form-control" value="{{ value.value }}" type="datetime-local" placeholder=""
+                            name="filter_{{key}}">
+                        {% elif value.filter_type == "Checkbox" %}
+                        <select class="form-select" name="filter_{{key}}" id="filter_{{key}}">
+                            <option value=""></option>
+                            <option value="1">&#10004;</option>
+                            <option value="0">&#10006;</option>
+                        </select>
+                        {% elif value.filter_type == "Date" %}
+                        <input class="form-control" type="date" placeholder="" name="filter_{{key}}">
+                        {% elif value.filter_type == "SelectList" %}
+                        <select class="form-select" name="filter_{{key}}" id="filter_{{key}}">
+                            <option value=""></option>
+                            {% for selectval in value.values %}
+                            <option value="{{ selectval[0] }}">{{ selectval[1] }}</option>
+                            {% endfor %}
+                        </select>
+                        {% else %}
+                        <input class="form-control" value="{{ value.value }}" type="text" placeholder=""
+                            name="filter_{{key}}">
+                        {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+                <li>
+                    <div class="mt-4">
+                        <button class="btn btn-primary">Apply</button>
+                    </div>
+                </li>
+            </ul>
+        </form>
+    </aside>
+
+
+    <div class="col">
+        <div class="row">
+            <div class="col">
+                <div class="btn-group">
+                    <a class="btn btn-primary" href="{{ base_path }}/{{ entity_name }}/create" hx-boost="true"
+                        hx-indicator="#loading"><i class="fa-solid fa-circle-plus"></i></a>
+                    {% if viewmodel_filter | length > 0 %}
+                    <button class="btn btn-secondary" onclick="toggle_hidden('nav_aside')"><i
+                            class="fa-solid fa-filter"></i></button>
+                    {% endif %}
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-info dropdown-toggle" type="button" id="dropdownMenuButton"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-list"></i>
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                            <li><a class="dropdown-item" hx-include="[id='filter_form'], [id='table_form']" hx-vals='{ 
+                            "search" : "{{ search }}",
+                            "sort_by" : "{{ sort_by }}",
+                            "sort_order" : "{{ sort_order }}"
+                        }' hx-indicator="#loading" href="export_csv">Export as CSV</a></li>
+                            <hr class="dropdown-divider">
+                            <li><a class="dropdown-item" hx-include="#table_form" hx-target="#{{ entity_name }}table"
+                                    href="#" hx-indicator="#loading" hx-confirm="Are you sure?"
+                                    hx-delete="delete">Delete</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <form id="search_form" action="{{ base_path }}/{{ entity_name }}/list" hx-boost="true"
+                    hx-indicator="#loading" hx-target="#{{ entity_name }}table"
+                    hx-trigger="reload_table from:#entities_per_page" hx-include="[id='filter_form']">
+                    <input type="hidden" id="sort_by" name="sort_by" value="{{ sort_by }}">
+                    <input type="hidden" id="sort_order" name="sort_order" value="{{ sort_order }}">
+                    <input type="hidden" name="page" value="{{ page }}">
+                    <div class="col-auto">
+                        <div class="row">
+                            {% if view_model.show_search %}
+                            <div class="col">
+                                <div class="input-group">
+                                    <input class="form-control rounded" type="search" id="search" value="{{ search }}"
+                                        name="search" placeholder="Search"
+                                        hx-get="{{ base_path }}/{{ entity_name }}/list"
+                                        hx-trigger="keyup changed delay:500ms, search">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            {% endif %}
+                            <div class="col-auto ms-auto">
+                                <div class="input-group">
+                                    <select id="entities_per_page" class="form-select" name="entities_per_page"
+                                        onchange="this.dispatchEvent(new Event('reload_table'));">
+                                        {% for a in [10,20,50,100,] %}
+                                        <option {% if entities_per_page==a %}selected{% endif %} value="{{ a }}">{{ a }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <label class="input-group-text">Entities per Page</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <div id="{{ entity_name }}table">
+            <div class="position-relative">
+
+                <form id="table_form" hx-indicator="#loading" hx-get="{{ base_path }}/{{ entity_name }}/list"
+                    hx-target="#{{ entity_name }}table" hx-include="[id='filter_form']">
+                    <input type="hidden" id="sort_by" name="sort_by" value="{{ sort_by }}">
+                    <input type="hidden" id="sort_order" name="sort_order" value="{{ sort_order }}">
+                    <input type="hidden" name="entities_per_page" value="{{ entities_per_page }}">
+                    <input type="hidden" name="search" value="{{ search }}">
+                    <input type="hidden" name="page" value="{{ page }}">
+                    <table class="table table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" onclick="checkAll(this)">
+                                </th>
+                                <th onclick="sort_by('{{ view_model.primary_key }}');" class="clickable">{{
+                                    view_model.primary_key | title }}
+                                    {% if sort_by == view_model.primary_key %}
+                                    {% if sort_order == "Asc" %}
+                                    <i class="ml-1 fa-solid fa-caret-up"></i>
+                                    {% elif sort_order == "Desc" %}
+                                    <i class="ml-1 fa-solid fa-caret-down"></i>
+                                    {% endif %}
+                                    {% endif %}
+                                </th>
+                                {% for model_field in view_model.fields | filter(attribute="list_hide_column",
+                                value=false) |
+                                sort(attribute="list_sort_position") -%}
+                                <th onclick="sort_by('{{ model_field.field_name }}');" class="clickable">
+                                    {{ model_field.field_name | split(pat="_") | join(sep=" ") | title |
+                                    replace(from="Id", to="") }}
+                                    {% if sort_by == model_field.field_name %}
+                                    {% if sort_order == "Asc" %}
+                                    <i class="ml-1 fa-solid fa-caret-up"></i>
+                                    {% elif sort_order == "Desc" %}
+                                    <i class="ml-1 fa-solid fa-caret-down"></i>
+                                    {% endif %}
+                                    {% endif %}
+                                </th>
+                                {%- endfor %}
+                                <th>
+                                    <!-- Edit Action -->
+                                    <!-- Delete Action -->
+                                </th>
+                            </tr>
+                </form>
+                </thead>
+                <tbody hx-indicator="#loading" hx-boost="true">
+                    {% for entity in entities -%}
+                    <tr>
+                        <td><input type="checkbox" name="ids" value="{{ entity.primary_key }}"></td>
+                        <td>
+                            <a class="link-underline-opacity-0" href="{{ base_path }}/{{ entity_name }}/show/{{ entity.primary_key }}" hx-vals='{ 
+                                "page" : "{{ page }}",
+                                "entities_per_page" : "{{ entities_per_page }}",
+                                "search" : "{{ search }}",
+                                "sort_by" : "{{ sort_by }}",
+                                "sort_order" : "{{ sort_order }}"
+                            }' hx-target="#content">
+                                <i class="fa-solid fa-magnifying-glass"></i> {{ entity.primary_key }}
+                            </a>
+                        </td>
+                        {% for model_field in view_model.fields | filter(attribute="list_hide_column", value=false) |
+                        sort(attribute="list_sort_position") -%}
+                        {% if model_field.field_type == "Checkbox" %}
+                        <td>{{ entity.values | get(key=model_field.field_name) | get_icon | safe }}</td>
+                        {% elif model_field.field_type == "FileUpload" %}
+                        <td><a href="file/{{ entity.primary_key }}/{{ model_field.field_name }}">{{
+                                entity.values
+                                | get(key=model_field.field_name) }}</a></td>
+                        {% else %}
+
+                        {% if entity.fk_values is containing(model_field.field_name) %}
+                        {%- set value = entity.fk_values[model_field.field_name] %}
+                        {%- if model_field.ceil %}
+                        <td>{{ value | float | round(method="ceil", precision=model_field.ceil) }}</td>
+                        {%- elif model_field.floor %}
+                        <td>{{ value | float | round(method="floor", precision=model_field.floor) }}</td>
+                        {%- elif model_field.dateformat %}
+                        <td>{{ value | date(format=model_field.dateformat) }}</td>
+                        {%- elif model_field.shorten %}
+                        <td>{{ model_field.shorten }} {{ value | shorten(max_length=model_field.shorten) }}</td>
+                        {%- else %}
+                        <td>{{ value }}</td>
+                        {%- endif %}
+                        {% else %}
+                        {%- set value = entity.values[model_field.field_name] %}
+                        {%- if model_field.ceil %}
+                        <td>{{ value | float | round(method="ceil", precision=model_field.ceil) }}</td>
+                        {%- elif model_field.floor %}
+                        <td>{{ value | float | round(method="floor", precision=model_field.floor) }}</td>
+                        {%- elif model_field.dateformat %}
+                        <td>{{ value | date(format=model_field.dateformat) }}</td>
+                        {%- elif model_field.shorten %}
+                        <td>{{ model_field.shorten }} {{ value | shorten(max_length=model_field.shorten) }}</td>
+                        {%- else %}
+                        <td>{{ value }}</td>
+                        {%- endif %}
+                        {% endif %}
+
+                        {% endif %}
+                        {%- endfor %}
+                        <td class="text-end">
+                            <a hx-target="#content"
+                                href="{{ base_path }}/{{ entity_name }}/edit/{{ entity.primary_key }}" hx-vals='{ 
+                                "page" : "{{ page }}",
+                                "entities_per_page" : "{{ entities_per_page }}",
+                                "search" : "{{ search }}",
+                                "sort_by" : "{{ sort_by }}",
+                                "sort_order" : "{{ sort_order }}"
+                            }'>
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </a>
+                            <a hx-target="closest tr" hx-confirm="Are you sure?"
+                                hx-delete="delete/{{ entity.primary_key }}">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {%- endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="{{ view_model.fields | length + 3 }}">
+                        </td>
+                    </tr>
+                </tfoot>
+                </table>
+                </form>
+            </div>
+            {% if num_pages > 1 %}
+            <nav hx-boost="true" hx-push-url="true" hx-target="#{{ entity_name }}table" hx-vals='{ 
+            "entities_per_page" : "{{ entities_per_page }}",
+            "search" : "{{ search }}",
+            "sort_by" : "{{ sort_by }}",
+            "sort_order" : "{{ sort_order }}",
+            "render_partial" : "true"
+        }' hx-indicator="#loading" class="pagination justify-content-center" role="pagination" aria-label="pagination">
+                <ul class="pagination">
+                    {% if page > 1 %}
+                    <a href="{{ base_path }}/{{ entity_name }}/list?&page={{ page - 1 }}" class="page-link"
+                        aria-label="Previous"><i class="fa-solid fa-arrow-left"></i>
+                    </a>
+                    {% endif %}
+                    <li class="page-item">
+                        <a class="page-link {% if page == 1 %}active{% endif %}"
+                            href="{{ base_path }}/{{ entity_name }}/list?page={{ 1 }}" aria-label="Goto page 1">1</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">&hellip;</span>
+                    </li>
+                    {% for i in range(start=min_show_page,end=max_show_page) %}
+                    <li class="page-item"><a class="page-link {% if page == i+1 %}active{% endif %}"
+                            aria-label="Goto page {{ i + 1 }}"
+                            href="{{ base_path }}/{{ entity_name }}/list?page={{ i + 1 }}">{{
+                            i + 1 }}</a></li>
+                    {%- endfor %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&hellip;</span>
+                    </li>
+                    <li class="page-item">
+                        <a href="{{ base_path }}/{{ entity_name }}/list?page={{ num_pages }}"
+                            class="page-link {% if page == num_pages %}active{% endif %}"
+                            aria-label="Goto page {{ num_pages }}">{{ num_pages }} </a>
+                    </li>
+                    {% if page < num_pages %} <a href="{{ base_path }}/{{ entity_name }}/list?page={{ page + 1 }}"
+                        class="page-link" aria-label="Next"><i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                        {% endif %}
+                </ul>
+        </div>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock content %}

@@ -23,6 +23,7 @@ path = "src/lib.rs"
 [features]
 default = ["bulma_css"]
 bulma_css = []
+bootstrapv5_css = []
 
 [dependencies]
 actix-web = "^4.8.0"

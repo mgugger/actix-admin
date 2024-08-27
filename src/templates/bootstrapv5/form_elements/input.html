@@ -1,0 +1,32 @@
+{% if model_field.field_type == "TextArea" %}
+<textarea class="{{ model_field | get_html_input_class }} 
+        {% if model.errors | length > 0 or model.custom_errors | length > 0 %}
+            {% if 
+                model.errors | get(key=model_field.field_name, default="" ) !="" 
+                or 
+                model.custom_errors | get(key=model_field.field_name, default="" ) !="" 
+            %}is-danger{% else %}is-success{% endif %}
+        {% endif %}
+        " type="{{ model_field | get_html_input_type }} form-control" name="{{ model_field.field_name }}"
+    placeholder="{{ model_field.field_name }}"
+    aria-label="{{ model_field.field_name }}">{{ model.values | get(key=model_field.field_name, default="") }}</textarea>
+{% elif model_field.field_type == "FileUpload" and model.values | get(key=model_field.field_name, default="") != "" %}
+<div>
+<a hx-disable href="{{ base_path }}/{{ entity_name }}/file/{{ model.primary_key }}/{{ model_field.field_name }}">{{ model.values |
+    get(key=model_field.field_name, default="") }}</a>
+<a class="is-pulled-right" hx-target="closest div" hx-push-url="false" hx-delete="{{ base_path }}/{{ entity_name }}/file/{{ model.primary_key }}/{{ model_field.field_name }}"
+    hx-confirm="Are you sure?"><i class="fa-solid fa-trash"></i></a>
+</div>
+{% else %}
+<input class="{{ model_field | get_html_input_class }} 
+        {% if model.errors | length > 0 or model.custom_errors | length > 0 %}
+            {% if 
+                model.errors | get(key=model_field.field_name, default="" ) !="" 
+                or 
+                model.custom_errors | get(key=model_field.field_name, default="" ) !="" 
+            %}is-danger{% else %}is-success{% endif %}
+        {% endif %}
+        " type="{{ model_field | get_html_input_type }} form-control"
+    value="{{ model.values | get(key=model_field.field_name, default="") }}" name="{{ model_field.field_name }}"
+    placeholder="{{ model_field.field_name }}" aria-label="{{ model_field.field_name }}">
+{% endif %}

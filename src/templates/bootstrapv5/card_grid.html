@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% for card_row in card_grid %}
+<div class="row pb-4">
+    {% for card_path in card_row %}
+    <div class="col">
+        <div class="card" data-hx-get="{{ base_path }}/{{ card_path }}" data-hx-trigger="revealed">
+            <div class="card-body">
+                <div class="card-text skeleton-block">
+                    <div class="content">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endfor %}
+{% endblock content %}

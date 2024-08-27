@@ -1,0 +1,9 @@
+<input 
+    class="{{ model_field | get_html_input_class }} form-control" 
+    type="{{ model_field | get_html_input_type }}"
+    value="true" 
+    name="{{ model_field.field_name }}" 
+    placeholder="{{ model_field.field_name }}"
+    aria-label="{{ model_field.field_name }}" 
+    {% if model.values | get(key=model_field.field_name, default="false") == "true" %}checked{% endif %}
+>

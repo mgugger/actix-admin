@@ -1,0 +1,99 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm mb-4" role="navigation" aria-label="main navigation">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{{ base_path }}/">
+      {{ navbar_title }}
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar"
+      aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbar">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        {% if enable_auth and user_is_logged_in or not enable_auth %}
+        {% for category, entities in entity_names %}
+        {% if category == "" %}
+        {% for menu_element in entities %}
+        {% if menu_element.is_custom_handler %}
+        <li class="nav-item">
+          <a href="{{ base_path }}/{{ menu_element.link }}" hx-boost="true" hx-indicator="#loading"
+            class="nav-link {% if entity_name and entity_name == menu_element.name %}active{% endif %}">{{ menu_element.name }}</a>
+        </li>
+        {% else %}
+        <li class="nav-item">
+          <a href="{{ base_path }}/{{ menu_element.link }}/list" hx-boost="true" hx-indicator="#loading"
+            class="nav-link {% if entity_name and entity_name == menu_element.name %}active{% endif %}">{{
+            menu_element.name | split(pat="_") | join(sep=" ") | title }}</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+        {% elif category != "navbar-end" %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle {% if entity_name and entity_name in entities %}active{% endif %}" href="#"
+            id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            {{ category }}
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+            {% for menu_element in entities %}
+            {% if menu_element.is_custom_handler %}
+            <li><a href="{{ base_path }}/{{ menu_element.link }}" hx-boost="true" hx-indicator="#loading"
+                class="dropdown-item {% if entity_name and entity_name == menu_element.name %}active{% endif %}">{{
+                menu_element.name }}</a></li>
+            {% else %}
+            <li><a href="{{ base_path }}/{{ menu_element.link }}/list" hx-boost="true" hx-indicator="#loading"
+                class="dropdown-item {% if entity_name and entity_name == menu_element.name %}active{% endif %}">{{
+                menu_element.name | split(pat="_") | join(sep=" ") | title }}</a></li>
+            {% endif %}
+            {% endfor %}
+          </ul>
+        </li>
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+      </ul>
+      <ul class="navbar-nav ms-auto">
+        {% if support_path %}
+        <li class="nav-item">
+          <a id="support_nav" href="#" class="nav-link" onclick="toggle_hidden('support')"><i
+              class="fa-solid fa-question"></i></a>
+        </li>
+        {% endif %}
+
+        {% if enable_auth %}
+        {% if user_is_logged_in %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            <i class="fas fa-user"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            {% for category, entities in entity_names %}
+            {% if category == "navbar-end" %}
+            {% for menu_element in entities %}
+            {% if menu_element.is_custom_handler %}
+            <li><a href="{{ base_path }}/{{ menu_element.link }}" hx-boost="true" hx-indicator="#loading"
+                class="dropdown-item {% if entity_name and entity_name == menu_element.name %}active{% endif %}">{{
+                menu_element.name }}</a></li>
+            {% else %}
+            <li><a href="{{ base_path }}/{{ menu_element.link }}/list" hx-boost="true" hx-indicator="#loading"
+                class="dropdown-item {% if entity_name and entity_name == menu_element.name %}active{% endif %}">{{
+                menu_element.name | split(pat="_") | join(sep=" ") | title }}</a></li>
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+            {% endfor %}
+            <li>
+              <hr class="dropdown-divider">
+            </li>
+            <li><a href="{{ logout_link }}" class="dropdown-item">Sign Out</a></li>
+          </ul>
+        </li>
+        {% else %}
+        <li class="nav-item">
+          <a href="{{ login_link }}" class="btn btn-primary">Sign In</a>
+        </li>
+        {% endif %}
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>

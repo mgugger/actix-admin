@@ -18,6 +18,7 @@ pub async fn display_card_grid(session: Session, data: web::Data<ActixAdmin>, re
     let notifications: Vec<crate::ActixAdminNotification> = Vec::new();
 
     let mut ctx = Context::new();
+    ctx.insert("entity_name", &actix_admin.entity_names.iter().map(|el| el.1).flatten().find(|el| el.link == path).unwrap().name);
     ctx.insert("entity_names", &actix_admin.entity_names);
     ctx.insert("notifications", &notifications);    
     ctx.insert("card_grid", &card_grid.unwrap());

@@ -70,6 +70,7 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
         navbar_title: "ActixAdmin Example",
         user_tenant_ref: None,
         base_path: "/absproxy/5000/admin",
+        custom_css_paths: None
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
