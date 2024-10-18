@@ -114,6 +114,6 @@ async fn create_or_edit_get<E: ActixAdminViewModelTrait>(session: &Session, req:
     };
     let body = actix_admin.tera
         .render(template_path, &ctx)
-        .map_err(|err| error::ErrorInternalServerError(format!("{:?}", err)))?;
+        .map_err(|err| error::ErrorInternalServerError(err))?;
     Ok(http_response_code.content_type("text/html").body(body))
 }
