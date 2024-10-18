@@ -1,4 +1,4 @@
-<div class="select
+<div class="select {{ additional_classes | default(value='')}}
     {% if model.errors | length > 0 or model.custom_errors | length > 0 %}
         {% if 
         model.errors | get(key=model_field.field_name, default="" ) !="" 

@@ -58,7 +58,8 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
 
-    let post_view_model = ActixAdminViewModel::from(Post);
+    let mut post_view_model = ActixAdminViewModel::from(Post);
+    post_view_model.inline_edit = true;
     admin_builder.add_entity::<Post>(&post_view_model);
 
     let some_category = "Group";

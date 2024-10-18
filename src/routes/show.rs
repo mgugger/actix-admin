@@ -75,6 +75,6 @@ pub async fn show<E: ActixAdminViewModelTrait>(
 
     let body = actix_admin.tera
         .render("show.html", &ctx)
-        .map_err(|err| error::ErrorInternalServerError(format!("{:?}", err)))?;
+        .map_err(|err| error::ErrorInternalServerError(err))?;
     Ok(http_response_code.content_type("text/html").body(body))
 }

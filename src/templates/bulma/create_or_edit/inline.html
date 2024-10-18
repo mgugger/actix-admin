@@ -1,0 +1,52 @@
+<tr hx-trigger='cancel' class='editing'
+    hx-get="{{ base_path }}/{{ entity_name }}/list">
+
+    <td><!-- checkbox --></td>
+    <td>
+        <input type="hidden" name="id" value="{{ model.primary_key }}">
+        {{ model.primary_key }}
+    </td>
+
+    {% for model_field in view_model.fields | filter(attribute="list_hide_column",
+    value=false) |
+    sort(attribute="list_sort_position") %}
+    <td>
+
+        {% set additional_classes = "is-small" %}
+        {% if model_field.field_type == "SelectList" %}
+        {% include "create_or_edit/selectlist.html" %}
+        {% elif model_field.field_type == "Checkbox" %}
+        {% include "create_or_edit/checkbox.html" %}
+        {% else %}
+        {% include "create_or_edit/input.html" %}
+        {% endif %}
+
+        {% if model.errors | get(key=model_field.field_name, default="" ) !="" %}
+        <p class="help is-danger">{{ model.errors | get(key=model_field.field_name) }}</p>
+        {% endif %}
+        {% if model.custom_errors | get(key=model_field.field_name, default="" ) !="" %}
+        <p class="help is-danger">{{ model.custom_errors | get(key=model_field.field_name) }}</p>
+        {% endif %}
+    </td>
+    {%- endfor %}
+
+    <td class="has-text-right">
+        <div class="control is-flex">
+            <a name="submitBtn" type="su</div>bmit" hx-trigger="click"
+            hx-encoding="multipart/form-data"
+            hx-post="{{ base_path }}/{{ entity_name }}/edit/{{ model.primary_key }}"
+            id="row-{{ model.primary_key }}" hx-include="closest tr" hx-target="closest tr" hx-swap="outerHTML"
+            ><i class="fa-solid fa-check"></i></a>
+            <a hx-vals='{ 
+    "entities_per_page" : "{{ entities_per_page }}",
+    "search" : "{{ search }}",
+    "sort_by" : "{{ sort_by }}",
+    "sort_order" : "{{ sort_order }}",
+    "page" : "{{ page }}"
+    }' hx-boost="true" hx-push-url="true" hx-confirm="Are you sure?" hx-indicator="#loading"
+                href="{{ base_path }}/{{ entity_name }}/list">
+                <i class="ml-1 fa-solid fa-xmark"></i>
+            </a>
+        </div>
+    </td>
+</tr>

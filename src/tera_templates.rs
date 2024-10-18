@@ -16,10 +16,14 @@ struct TeraTemplate {
     not_found_html: &'static str,
     show_html: &'static str,
     unauthorized_html: &'static str,
-    // Form Elements
+    // create or edit
     checkbox_html: &'static str,
     input_html: &'static str,
     selectlist_html: &'static str,
+    create_or_edit_inline_html: &'static str,
+    // list
+    list_header_html: &'static str,
+    list_row_html: &'static str,
 }
 
 pub fn get_tera() -> Tera {
@@ -157,13 +161,14 @@ fn add_templates_to_tera(tera: &mut Tera, tera_template: TeraTemplate) {
         ("not_found.html", tera_template.not_found_html),
         ("show.html", tera_template.show_html),
         ("unauthorized.html", tera_template.unauthorized_html),
-        // form elements
-        ("form_elements/checkbox.html", tera_template.checkbox_html),
-        ("form_elements/input.html", tera_template.input_html),
-        (
-            "form_elements/selectlist.html",
-            tera_template.selectlist_html,
-        ),
+        // create or edit
+        ("create_or_edit/checkbox.html", tera_template.checkbox_html),
+        ("create_or_edit/input.html", tera_template.input_html),
+        ("create_or_edit/selectlist.html", tera_template.selectlist_html),
+        ("create_or_edit/inline.html", tera_template.create_or_edit_inline_html),
+        // list
+        ("list/header.html", tera_template.list_header_html),
+        ("list/row.html", tera_template.list_row_html),
     ]);
 }
 
@@ -189,10 +194,14 @@ fn load_templates() -> Tera {
         not_found_html: include_str!("templates/bulma/not_found.html"),
         show_html: include_str!("templates/bulma/show.html"),
         unauthorized_html: include_str!("templates/bulma/unauthorized.html"),
-        // form elements
-        checkbox_html: include_str!("templates/bulma/form_elements/checkbox.html"),
-        input_html: include_str!("templates/bulma/form_elements/input.html"),
-        selectlist_html: include_str!("templates/bulma/form_elements/selectlist.html"),
+        // create or edit
+        checkbox_html: include_str!("templates/bulma/create_or_edit/checkbox.html"),
+        input_html: include_str!("templates/bulma/create_or_edit/input.html"),
+        selectlist_html: include_str!("templates/bulma/create_or_edit/selectlist.html"),
+        create_or_edit_inline_html: include_str!("templates/bulma/create_or_edit/inline.html"),
+        // list
+        list_header_html: include_str!("templates/bulma/list/header.html"),
+        list_row_html: include_str!("templates/bulma/list/row.html"),
     };
 
     add_templates_to_tera(&mut tera, tera_template);
@@ -218,10 +227,14 @@ fn load_templates() -> Tera {
         not_found_html: include_str!("templates/bootstrapv5/not_found.html"),
         show_html: include_str!("templates/bootstrapv5/show.html"),
         unauthorized_html: include_str!("templates/bootstrapv5/unauthorized.html"),
-        // form elements
-        checkbox_html: include_str!("templates/bootstrapv5/form_elements/checkbox.html"),
-        input_html: include_str!("templates/bootstrapv5/form_elements/input.html"),
-        selectlist_html: include_str!("templates/bootstrapv5/form_elements/selectlist.html"),
+        // create or edit
+        checkbox_html: include_str!("templates/bootstrapv5/create_or_edit/checkbox.html"),
+        input_html: include_str!("templates/bootstrapv5/create_or_edit/input.html"),
+        selectlist_html: include_str!("templates/bootstrapv5/create_or_edit/selectlist.html"),
+        create_or_edit_inline_html: include_str!("templates/bootstrapv5/create_or_edit/inline.html"),
+        // list
+        list_header_html: include_str!("templates/bootstrapv5/list/header.html"),
+        list_row_html: include_str!("templates/bootstrapv5/list/row.html"),
     };
 
     add_templates_to_tera(&mut tera, tera_template);

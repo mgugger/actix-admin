@@ -55,7 +55,7 @@
             <li>
                 <div class="field mt-4 is-grouped">
                     <div class="control">
-                        <button class="button is-link">Apply</button>
+                        <button class="button is-link" type="submit">Apply</button>
                     </div>
                 </div>
             </li>
@@ -138,7 +138,6 @@
 
     <div id="{{ entity_name }}table">
         <div class="is-relative">
-            
             <form id="table_form" hx-indicator="#loading" hx-get="{{ base_path }}/{{ entity_name }}/list"
                 hx-target="#{{ entity_name }}table" hx-include="[id='filter_form']">
                 <input type="hidden" id="sort_by" name="sort_by" value="{{ sort_by }}">
@@ -146,126 +145,21 @@
                 <input type="hidden" name="entities_per_page" value="{{ entities_per_page }}">
                 <input type="hidden" name="search" value="{{ search }}">
                 <input type="hidden" name="page" value="{{ page }}">
-                <table class="table is-relative is-narrow is-fullwidth is-hoverable is-striped">
-                    <thead>
-                        <tr>
-                            <th>
-                                <input type="checkbox" onclick="checkAll(this)">
-                            </th>
-                            <th onclick="sort_by('{{ view_model.primary_key }}');" class="is-clickable">{{
-                                view_model.primary_key | title }}
-                                {% if sort_by == view_model.primary_key %}
-                                {% if sort_order == "Asc" %}
-                                <i class="ml-1 fa-solid fa-caret-up"></i>
-                                {% elif sort_order == "Desc" %}
-                                <i class="ml-1 fa-solid fa-caret-down"></i>
-                                {% endif %}
-                                {% endif %}
-                            </th>
-                            {% for model_field in view_model.fields | filter(attribute="list_hide_column",
-                            value=false) |
-                            sort(attribute="list_sort_position") -%}
-                            <th onclick="sort_by('{{ model_field.field_name }}');" class="is-clickable">
-                                {{ model_field.field_name | split(pat="_") | join(sep=" ") | title |
-                                replace(from="Id", to="") }}
-                                {% if sort_by == model_field.field_name %}
-                                {% if sort_order == "Asc" %}
-                                <i class="ml-1 fa-solid fa-caret-up"></i>
-                                {% elif sort_order == "Desc" %}
-                                <i class="ml-1 fa-solid fa-caret-down"></i>
-                                {% endif %}
-                                {% endif %}
-                            </th>
-                            {%- endfor %}
-                            <th>
-                                <!-- Edit Action -->
-                                <!-- Delete Action -->
-                            </th>
-                        </tr>
             </form>
-            </thead>
-            <tbody hx-indicator="#loading" hx-boost="true">
-                {% for entity in entities -%}
-                <tr>
-                    <td><input type="checkbox" name="ids" value="{{ entity.primary_key }}"></td>
-                    <td>
-                        <a href="{{ base_path }}/{{ entity_name }}/show/{{ entity.primary_key }}" hx-vals='{ 
-                                "page" : "{{ page }}",
-                                "entities_per_page" : "{{ entities_per_page }}",
-                                "search" : "{{ search }}",
-                                "sort_by" : "{{ sort_by }}",
-                                "sort_order" : "{{ sort_order }}"
-                            }' hx-target="#content">
-                            <i class="fa-solid fa-magnifying-glass"></i> {{ entity.primary_key }}
-                        </a>
-                    </td>
-                    {% for model_field in view_model.fields | filter(attribute="list_hide_column", value=false) |
-                    sort(attribute="list_sort_position") -%}
-                    {% if model_field.field_type == "Checkbox" %}
-                    <td>{{ entity.values | get(key=model_field.field_name) | get_icon | safe }}</td>
-                    {% elif model_field.field_type == "FileUpload" %}
-                    <td><a href="file/{{ entity.primary_key }}/{{ model_field.field_name }}">{{
-                            entity.values
-                            | get(key=model_field.field_name) }}</a></td>
-                    {% else %}
-
-                    {% if entity.fk_values is containing(model_field.field_name) %}
-                    {%- set value = entity.fk_values[model_field.field_name] %}
-                    {%- if model_field.ceil %}
-                    <td>{{ value | float | round(method="ceil", precision=model_field.ceil) }}</td>
-                    {%- elif model_field.floor %}
-                    <td>{{ value | float | round(method="floor", precision=model_field.floor) }}</td>
-                    {%- elif model_field.dateformat %}
-                    <td>{{ value | date(format=model_field.dateformat) }}</td>
-                    {%- elif model_field.shorten %}
-                    <td>{{ model_field.shorten }} {{ value | shorten(max_length=model_field.shorten) }}</td>
-                    {%- else %}
-                    <td>{{ value }}</td>
-                    {%- endif %}
-                    {% else %}
-                    {%- set value = entity.values[model_field.field_name] %}
-                    {%- if model_field.ceil %}
-                    <td>{{ value | float | round(method="ceil", precision=model_field.ceil) }}</td>
-                    {%- elif model_field.floor %}
-                    <td>{{ value | float | round(method="floor", precision=model_field.floor) }}</td>
-                    {%- elif model_field.dateformat %}
-                    <td>{{ value | date(format=model_field.dateformat) }}</td>
-                    {%- elif model_field.shorten %}
-                    <td>{{ model_field.shorten }} {{ value | shorten(max_length=model_field.shorten) }}</td>
-                    {%- else %}
-                    <td>{{ value }}</td>
-                    {%- endif %}
-                    {% endif %}
-
-                    {% endif %}
+            <table class="table is-relative is-narrow is-fullwidth is-hoverable is-striped">
+                {% include "list/header.html" %}
+                <tbody hx-indicator="#loading" hx-boost="true">
+                    {% for entity in entities -%}
+                    {% include "list/row.html" %}
                     {%- endfor %}
-                    <td class="has-text-right">
-                        <a hx-target="#content" href="{{ base_path }}/{{ entity_name }}/edit/{{ entity.primary_key }}"
-                            hx-vals='{ 
-                                "page" : "{{ page }}",
-                                "entities_per_page" : "{{ entities_per_page }}",
-                                "search" : "{{ search }}",
-                                "sort_by" : "{{ sort_by }}",
-                                "sort_order" : "{{ sort_order }}"
-                            }'>
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </a>
-                        <a hx-target="closest tr" hx-confirm="Are you sure?"
-                            hx-delete="delete/{{ entity.primary_key }}">
-                            <i class="fa-solid fa-trash"></i>
-                        </a>
-                    </td>
-                </tr>
-                {%- endfor %}
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="{{ view_model.fields | length + 3 }}">
-                    </td>
-                </tr>
-            </tfoot>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="{{ view_model.fields | length + 3 }}">
+                        </td>
+                    </tr>
+                </tfoot>
             </table>
-            </form>
         </div>
         {% if num_pages > 1 %}
         <nav hx-boost="true" hx-push-url="true" hx-target="#{{ entity_name }}table" hx-vals='{ 
@@ -307,8 +201,8 @@
                             aria-label="Goto page {{ num_pages }}">{{ num_pages }} </a>
                     </li>
                 </ul>
+        </nav>
+        {% endif %}
     </div>
-    </nav>
-    {% endif %}
 </div>
 {% endblock content %}

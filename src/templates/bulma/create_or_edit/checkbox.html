@@ -1,5 +1,5 @@
 <input 
-    class="{{ model_field | get_html_input_class }}" 
+    class="{{ model_field | get_html_input_class }} {{ additional_classes | default(value='')}}" 
     type="{{ model_field | get_html_input_type }}"
     value="true" 
     name="{{ model_field.field_name }}" 

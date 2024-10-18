@@ -1,0 +1,91 @@
+<tr>
+    <td><input type="checkbox" name="ids" value="{{ entity.primary_key }}"></td>
+    <td>
+        <a class="link-underline-opacity-0" href="{{ base_path }}/{{ entity_name }}/show/{{ entity.primary_key }}"
+            hx-vals='{ 
+        "page" : "{{ page }}",
+        "entities_per_page" : "{{ entities_per_page }}",
+        "search" : "{{ search }}",
+        "sort_by" : "{{ sort_by }}",
+        "sort_order" : "{{ sort_order }}"
+    }' hx-target="#content">
+            <i class="fa-solid fa-magnifying-glass"></i> {{ entity.primary_key }}
+        </a>
+    </td>
+    {% for model_field in view_model.fields | filter(attribute="list_hide_column", value=false)
+    |
+    sort(attribute="list_sort_position") -%}
+    {% if model_field.field_type == "Checkbox" %}
+    <td>{{ entity.values | get(key=model_field.field_name) | get_icon | safe }}</td>
+    {% elif model_field.field_type == "FileUpload" %}
+    <td><a href="file/{{ entity.primary_key }}/{{ model_field.field_name }}">{{
+            entity.values
+            | get(key=model_field.field_name) }}</a></td>
+    {% else %}
+
+    {% if entity.fk_values is containing(model_field.field_name) %}
+    {%- set value = entity.fk_values[model_field.field_name] %}
+    {%- if model_field.ceil %}
+    <td>{{ value | float | round(method="ceil", precision=model_field.ceil) }}</td>
+    {%- elif model_field.floor %}
+    <td>{{ value | float | round(method="floor", precision=model_field.floor) }}</td>
+    {%- elif model_field.dateformat %}
+    <td>{{ value | date(format=model_field.dateformat) }}</td>
+    {%- elif model_field.shorten %}
+    <td>{{ model_field.shorten }} {{ value | shorten(max_length=model_field.shorten) }}</td>
+    {%- else %}
+    <td>{{ value }}</td>
+    {%- endif %}
+    {% else %}
+    {%- set value = entity.values[model_field.field_name] %}
+    {%- if model_field.ceil %}
+    <td>{{ value | float | round(method="ceil", precision=model_field.ceil) }}</td>
+    {%- elif model_field.floor %}
+    <td>{{ value | float | round(method="floor", precision=model_field.floor) }}</td>
+    {%- elif model_field.dateformat %}
+    <td>{{ value | date(format=model_field.dateformat) }}</td>
+    {%- elif model_field.shorten %}
+    <td>{{ model_field.shorten }} {{ value | shorten(max_length=model_field.shorten) }}</td>
+    {%- else %}
+    <td>{{ value }}</td>
+    {%- endif %}
+    {% endif %}
+
+    {% endif %}
+    {%- endfor %}
+    <td class="text-end">
+        {% if view_model.inline_edit %}
+        <a class="btn danger" hx-target="closest tr" hx-swap="outerHTML"
+            hx-get="{{ base_path }}/{{ entity_name }}/edit/{{ entity.primary_key }}" hx-trigger="edit" onClick="let editing = document.querySelector('.editing')
+                if(editing) {
+                Swal.fire({title: 'Already Editing',
+                            showCancelButton: true,
+                            confirmButtonText: 'Yep, Edit This Row!',
+                            text:'Hey!  You are already editing a row!  Do you want to cancel that edit and continue?'})
+                .then((result) => {
+                        if(result.isConfirmed) {
+                        htmx.trigger(editing, 'cancel')
+                        htmx.trigger(this, 'edit')
+                        }
+                    })
+                } else {
+                    htmx.trigger(this, 'edit')
+                }">
+            <i class="fa-solid fa-pen-to-square"></i>
+        </a>
+        {% else %}
+        <a hx-target="#content" href="{{ base_path }}/{{ entity_name }}/edit/{{ entity.primary_key }}" hx-vals='{ 
+        "page" : "{{ page }}",
+        "entities_per_page" : "{{ entities_per_page }}",
+        "search" : "{{ search }}",
+        "sort_by" : "{{ sort_by }}",
+        "sort_order" : "{{ sort_order }}"
+    }'>
+            <i class="fa-solid fa-pen-to-square"></i>
+        </a>
+        {% endif %}
+        <a hx-target="closest tr" hx-confirm="Are you sure?" hx-delete="delete/{{ entity.primary_key }}">
+            <i class="fa-solid fa-trash"></i>
+        </a>
+    </td>
+</tr>

@@ -1,8 +1,8 @@
-use super::{render_unauthorized, user_can_access_page, add_auth_context};
+use super::{add_auth_context, render_unauthorized, user_can_access_page};
 use super::{Params, DEFAULT_ENTITIES_PER_PAGE};
-use crate::{prelude::*, ActixAdminErrorType};
 use crate::ActixAdminError;
 use crate::ActixAdminNotification;
+use crate::{prelude::*, ActixAdminErrorType};
 use actix_multipart::Multipart;
 use actix_multipart::MultipartError;
 use actix_session::Session;
@@ -21,6 +21,7 @@ pub async fn create_post<E: ActixAdminViewModelTrait>(
 ) -> Result<HttpResponse, Error> {
     let actix_admin = data.get_ref();
     let model = ActixAdminModel::create_from_payload(
+        None,
         payload,
         &format!(
             "{}/{}",
@@ -41,8 +42,9 @@ pub async fn edit_post<E: ActixAdminViewModelTrait>(
     id: web::Path<i32>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = &data.get_ref();
+    let id = id.into_inner();
     let model = ActixAdminModel::create_from_payload(
-        payload,
+        Some(id), payload,
         &format!(
             "{}/{}",
             actix_admin.configuration.file_upload_directory,
@@ -50,15 +52,7 @@ pub async fn edit_post<E: ActixAdminViewModelTrait>(
         ),
     )
     .await;
-    create_or_edit_post::<E>(
-        &session,
-        req,
-        db, 
-        model,
-        Some(id.into_inner()),
-        actix_admin,
-    )
-    .await
+    create_or_edit_post::<E>(&session, req, db, model, Some(id), actix_admin).await
 }
 
 pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
@@ -85,7 +79,10 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
     E::validate_entity(&mut model);
 
     if model.has_errors() {
-        let error = ActixAdminError { ty: ActixAdminErrorType::ValidationErrors, msg: "".to_owned() };
+        let error = ActixAdminError {
+            ty: ActixAdminErrorType::ValidationErrors,
+            msg: "".to_owned(),
+        };
         errors.push(error);
         render_form::<E>(
             session,
@@ -110,7 +107,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
         };
 
         match res {
-            Ok(_) => {
+            Ok(model) => {
                 let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
 
                 let page = params.page.unwrap_or(1);
@@ -125,12 +122,34 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
                 let entity_name = E::get_entity_name();
                 let sort_order = params.sort_order.as_ref().unwrap_or(&SortOrder::Asc);
 
-                Ok(HttpResponse::SeeOther()
+                if view_model.inline_edit {
+                    let mut ctx = Context::new();
+                    add_auth_context(&session, actix_admin, &mut ctx);
+                    ctx.insert(
+             
+                        "view_model",
+                        &ActixAdminViewModelSerializable::from(view_model.clone()),
+                    );
+                    ctx.insert("entity_name", &entity_name);
+                    ctx.insert("entity", &model);
+                    ctx.insert("page", &page);
+                    ctx.insert("entities_per_page", &entities_per_page);
+                    ctx.insert("search", &search);
+                    ctx.insert("sort_by", &sort_by);
+                    ctx.insert("sort_order", &sort_order);
+                    let body = actix_admin
+                        .tera
+                        .render("list/row.html", &ctx)
+                        .map_err(|err| { error::ErrorInternalServerError(err) })?;
+                    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+                } else {
+                    Ok(HttpResponse::SeeOther()
                 .append_header((
                     header::LOCATION,
                     format!("{5}/{6}/list?page={0}&search={1}&sort_by={2}&sort_order={3}&entities_per_page={4}", page, search, sort_by, sort_order, entities_per_page, actix_admin.configuration.base_path, entity_name),
                 ))
                 .finish())
+                }
             }
             Err(e) => {
                 errors.push(e);
@@ -143,7 +162,6 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
                     entity_name,
                     &model,
                     errors,
-  
                 )
                 .await
             }
@@ -208,7 +226,8 @@ async fn render_form<E: ActixAdminViewModelTrait>(
         .collect();
 
     ctx.insert("notifications", &notifications);
-    let body = actix_admin.tera
+    let body = actix_admin
+        .tera
         .render("create_or_edit.html", &ctx)
         .map_err(|err| error::ErrorInternalServerError(err))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))

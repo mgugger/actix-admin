@@ -1,0 +1,36 @@
+<thead>
+    <tr>
+        <th>
+            <input type="checkbox" name="check_all" onclick="checkAll(this)">
+        </th>
+        <th onclick="sort_by('{{ view_model.primary_key }}');" class="clickable">{{
+            view_model.primary_key | title }}
+            {% if sort_by == view_model.primary_key %}
+            {% if sort_order == "Asc" %}
+            <i class="ml-1 fa-solid fa-caret-up"></i>
+            {% elif sort_order == "Desc" %}
+            <i class="ml-1 fa-solid fa-caret-down"></i>
+            {% endif %}
+            {% endif %}
+        </th>
+        {% for model_field in view_model.fields | filter(attribute="list_hide_column",
+        value=false) |
+        sort(attribute="list_sort_position") -%}
+        <th onclick="sort_by('{{ model_field.field_name }}');" class="clickable">
+            {{ model_field.field_name | split(pat="_") | join(sep=" ") | title |
+            replace(from="Id", to="") }}
+            {% if sort_by == model_field.field_name %}
+            {% if sort_order == "Asc" %}
+            <i class="ml-1 fa-solid fa-caret-up"></i>
+            {% elif sort_order == "Desc" %}
+            <i class="ml-1 fa-solid fa-caret-down"></i>
+            {% endif %}
+            {% endif %}
+        </th>
+        {%- endfor %}
+        <th>
+            <!-- Edit Action -->
+            <!-- Delete Action -->
+        </th>
+    </tr>
+</thead>

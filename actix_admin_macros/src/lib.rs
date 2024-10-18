@@ -71,7 +71,8 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                     fields: Entity::get_fields(),
                     show_search: #has_searchable_fields,
                     user_can_access: None,
-                    default_show_aside: Entity::get_filter().len() > 0
+                    default_show_aside: Entity::get_filter().len() > 0,
+                    inline_edit: false
                 }
             }
         }

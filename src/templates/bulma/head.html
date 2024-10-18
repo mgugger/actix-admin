@@ -15,26 +15,28 @@
 
 <script>
     document.onkeydown = function (e) {
-        switch (e.which) {
-            case 37: // left
-                let left_el = document.getElementsByClassName('left-arrow-click').item(0);
-                if (left_el) { left_el.click(); };
-                break;
+        if (document.activeElement.tagName.toLowerCase() !== 'input') {
+            switch (e.which) {
+                case 37: // left
+                    let left_el = document.getElementsByClassName('left-arrow-click').item(0);
+                    if (left_el) { left_el.click(); };
+                    break;
 
-            //case 38: // up
-            //    break;
+                //case 38: // up
+                //    break;
 
-            case 39: // right
-                let right_el = document.getElementsByClassName('right-arrow-click').item(0);
-                if (right_el) { right_el.click(); };
-                break;
+                case 39: // right
+                    let right_el = document.getElementsByClassName('right-arrow-click').item(0);
+                    if (right_el) { right_el.click(); };
+                    break;
 
-            //case 40: // down
-            //    break;
+                //case 40: // down
+                //    break;
 
-            default: return; // exit this handler for other keys
+                default: return; // exit this handler for other keys
+            }
+            e.preventDefault(); // prevent the default action (scroll / move caret)
         }
-        e.preventDefault(); // prevent the default action (scroll / move caret)
     };
 
     function checkAll(bx) {

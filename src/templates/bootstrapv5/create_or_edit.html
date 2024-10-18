@@ -21,11 +21,11 @@
                 </label>
                 <div class="form-control">
                     {% if model_field.field_type == "SelectList" %}
-                    {% include "form_elements/selectlist.html" %}
+                    {% include "create_or_edit/selectlist.html" %}
                     {% elif model_field.field_type == "Checkbox" %}
-                    {% include "form_elements/checkbox.html" %}
+                    {% include "create_or_edit/checkbox.html" %}
                     {% else %}
-                    {% include "form_elements/input.html" %}
+                    {% include "create_or_edit/input.html" %}
                     {% endif %}
                 </div>
                 {% if model.errors | get(key=model_field.field_name, default="" ) !="" %}

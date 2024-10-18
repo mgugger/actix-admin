@@ -1,7 +1,7 @@
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use sea_orm::DatabaseConnection;
-use tera::{Context};
-use actix_session::{Session};
+use tera::Context;
+use actix_session::Session;
 use crate::ActixAdminError;
 use crate::ActixAdminNotification;
 use crate::prelude::*;
@@ -21,7 +21,7 @@ pub async fn create_get<E: ActixAdminViewModelTrait>(
     let db = db.get_ref();
     let model = ActixAdminModel::create_empty();
     
-    create_or_edit_get::<E>(&session, req, &data, db, Ok(model)).await
+    create_or_edit_get::<E>(&session, req, &data, db, Ok(model), false).await
 }
 
 pub async fn edit_get<E: ActixAdminViewModelTrait>(
@@ -40,11 +40,13 @@ pub async fn edit_get<E: ActixAdminViewModelTrait>(
         .map_or(None, |f| f(&session));
 
     let model = E::get_entity(db, id.into_inner(), tenant_ref).await;
+    let entity_name = E::get_entity_name();
+    let view_model = actix_admin.view_models.get(&entity_name).unwrap();
 
-    create_or_edit_get::<E>(&session, req, &data, db, model).await
+    create_or_edit_get::<E>(&session, req, &data, db, model, view_model.inline_edit).await
 }
 
-async fn create_or_edit_get<E: ActixAdminViewModelTrait>(session: &Session, req: HttpRequest, data: &web::Data<ActixAdmin>, db: &sea_orm::DatabaseConnection, model_result: Result<ActixAdminModel, ActixAdminError>) -> Result<HttpResponse, Error>{
+async fn create_or_edit_get<E: ActixAdminViewModelTrait>(session: &Session, req: HttpRequest, data: &web::Data<ActixAdmin>, db: &sea_orm::DatabaseConnection, model_result: Result<ActixAdminModel, ActixAdminError>, is_inline: bool) -> Result<HttpResponse, Error>{
     let actix_admin = &data.get_ref();
     let mut ctx = Context::new();
     add_auth_context(&session, actix_admin, &mut ctx);
@@ -106,8 +108,12 @@ async fn create_or_edit_get<E: ActixAdminViewModelTrait>(session: &Session, req:
     ctx.insert("sort_order", &sort_order);
     ctx.insert("page", &page);
     
+    let template_path = match is_inline {
+        true => "create_or_edit/inline.html",
+        false => "create_or_edit.html",
+    };
     let body = actix_admin.tera
-        .render("create_or_edit.html", &ctx)
-        .map_err(|err| error::ErrorInternalServerError(err))?;
+        .render(template_path, &ctx)
+        .map_err(|err| error::ErrorInternalServerError(format!("{:?}", err)))?;
     Ok(http_response_code.content_type("text/html").body(body))
 }

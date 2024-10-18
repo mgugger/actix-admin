@@ -43,7 +43,8 @@ pub struct ActixAdminViewModel {
     pub fields: &'static[ActixAdminViewModelField],
     pub show_search: bool,
     pub user_can_access: Option<fn(&Session) -> bool>,
-    pub default_show_aside: bool
+    pub default_show_aside: bool,
+    pub inline_edit: bool
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -52,7 +53,8 @@ pub struct ActixAdminViewModelSerializable {
     pub primary_key: String,
     pub fields: &'static [ActixAdminViewModelField],
     pub show_search: bool,
-    pub default_show_aside: bool
+    pub default_show_aside: bool,
+    pub inline_edit: bool
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -71,7 +73,8 @@ impl From<ActixAdminViewModel> for ActixAdminViewModelSerializable {
             primary_key: entity.primary_key,
             fields: entity.fields,
             show_search: entity.show_search,
-            default_show_aside: entity.default_show_aside
+            default_show_aside: entity.default_show_aside,
+            inline_edit: entity.inline_edit
         }
     }
 }

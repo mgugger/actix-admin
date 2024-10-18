@@ -88,6 +88,7 @@ impl ActixAdminModel {
     }
 
     pub async fn create_from_payload(
+        id: Option<i32>,
         mut payload: Multipart, file_upload_folder: &str
     ) -> Result<ActixAdminModel, MultipartError> {
         let mut hashmap = HashMap::<String, String>::new();
@@ -134,7 +135,10 @@ impl ActixAdminModel {
         }
 
         Ok(ActixAdminModel {
-            primary_key: None,
+            primary_key: match id {
+                Some(id) => Some(id.to_string()),
+                None => None
+            },
             values: hashmap,
             errors: HashMap::new(),
             custom_errors: HashMap::new(),
