@@ -9,6 +9,7 @@ use std::fmt;
 use tera::Context;
 use urlencoding::decode;
 
+use super::helpers::{add_default_context, SearchParams};
 use super::{
     add_auth_context, render_unauthorized, user_can_access_page, Params, DEFAULT_ENTITIES_PER_PAGE,
 };
@@ -34,19 +35,14 @@ impl fmt::Display for SortOrder {
 }
 
 pub fn replace_regex(view_model: &ActixAdminViewModel, models: &mut Vec<ActixAdminModel>) {
-    view_model
-        .fields
-        .iter()
-        .filter(|f| f.list_regex_mask.is_some())
-        .for_each(|f| {
-            models.into_iter().for_each(|m| {
-                let regex = f.list_regex_mask.as_ref().unwrap();
-                let field = f;
-                let vals = &mut m.values;
-                vals.entry(field.field_name.to_string())
-                    .and_modify(|f| *f = regex.replace_all(f, "****").to_string());
-            })
-        });
+    for field in view_model.fields.iter().filter(|f| f.list_regex_mask.is_some()) {
+        let regex = field.list_regex_mask.as_ref().unwrap();
+        for model in models.iter_mut() {
+            if let Some(value) = model.values.get_mut(&field.field_name) {
+                *value = regex.replace_all(value, "****").to_string();
+            }
+        }
+    }
 }
 
 pub async fn export_csv<E: ActixAdminViewModelTrait>(
@@ -57,41 +53,32 @@ pub async fn export_csv<E: ActixAdminViewModelTrait>(
 ) -> Result<HttpResponse, Error> {
     let actix_admin = &data.into_inner();
     let entity_name = E::get_entity_name();
-    let view_model: &ActixAdminViewModel = actix_admin.view_models.get(&entity_name).unwrap();
+    let view_model = actix_admin.view_models.get(&entity_name).unwrap();
 
     if !user_can_access_page(&session, actix_admin, view_model) {
-        let ctx = Context::new();
-        return render_unauthorized(&ctx, actix_admin);
+        return render_unauthorized(&Context::new(), actix_admin);
     }
 
     let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
-
-    let search = params.search.clone().unwrap_or(String::new());
-
-    let sort_by = params
-        .sort_by
-        .clone()
-        .unwrap_or(view_model.primary_key.to_string());
+    let search = params.search.clone().unwrap_or_default();
+    let sort_by = params.sort_by.clone().unwrap_or_else(|| view_model.primary_key.clone());
     let sort_order = params.sort_order.clone().unwrap_or(SortOrder::Asc);
 
-    let decoded_querystring = decode(req.query_string()).unwrap();
-    let actixadminfilters: Vec<ActixAdminViewModelFilter> = decoded_querystring
-        .split("&")
-        .filter(|qf| qf.starts_with("filter_"))
-        .map(|f| {
-            let mut kv = f.split("=");
-            let af = ActixAdminViewModelFilter {
-                name: kv
-                    .next()
-                    .unwrap()
-                    .strip_prefix("filter_")
-                    .unwrap_or_default()
-                    .to_string(),
-                value: kv.next().map(|s| s.to_string()).filter(|f| !f.is_empty()),
-                values: None,
-                filter_type: None,
-            };
-            af
+    let actixadminfilters = decode(req.query_string())
+        .unwrap()
+        .split('&')
+        .filter_map(|qf| {
+            if qf.starts_with("filter_") {
+                let mut kv = qf.split('=');
+                Some(ActixAdminViewModelFilter {
+                    name: kv.next()?.strip_prefix("filter_")?.to_string(),
+                    value: kv.next().map(|s| s.to_string()).filter(|f| !f.is_empty()),
+                    values: None,
+                    filter_type: None,
+                })
+            } else {
+                None
+            }
         })
         .collect();
 
@@ -99,71 +86,39 @@ pub async fn export_csv<E: ActixAdminViewModelTrait>(
         page: None,
         entities_per_page: None,
         viewmodel_filter: actixadminfilters,
-        search: search,
-        sort_by: sort_by,
-        sort_order: sort_order,
-        tenant_ref: actix_admin
-            .configuration
-            .user_tenant_ref
-            .map_or(None, |f| f(&session)),
+        search,
+        sort_by,
+        sort_order,
+        tenant_ref: actix_admin.configuration.user_tenant_ref.and_then(|f| f(&session)),
     };
 
-    let result = E::list(&db, &params).await;
-
-    let mut entities;
-    match result {
+    let entities = match E::list(&db, &params).await {
         Ok(res) => {
-            entities = res.1;
+            let mut entities = res.1;
             replace_regex(view_model, &mut entities);
+            entities
         }
-        Err(_) => {
-            entities = Vec::new();
-        }
-    }
+        Err(_) => Vec::new(),
+    };
 
     let mut writer = WriterBuilder::new().from_writer(vec![]);
-
-    let mut fields = view_model
-        .fields
-        .iter()
-        .map(|f| f.field_name.clone())
-        .collect::<Vec<String>>();
-
+    let mut fields = view_model.fields.iter().map(|f| f.field_name.clone()).collect::<Vec<_>>();
     fields.insert(0, view_model.primary_key.clone());
-
-    let _ = writer.write_record(&fields);
+    writer.write_record(&fields).ok();
 
     for entity in entities {
-        let mut values = Vec::new();
-        values.push(entity.primary_key.unwrap_or_default());
-        for field in view_model.fields.iter() {
-            let empty_string = "".to_string();
-
-            let model_value = entity
-                .values
-                .get(&field.field_name)
-                .unwrap_or(&empty_string)
-                .clone();
-            // TODO: fk_values must be HashMap<Hashmap<String, String>> in case multiply FK share same index
-            let fk_value = entity.fk_values.get(&field.field_name);
-
-            match fk_value {
-                Some(val) => {
-                    values.push(val.clone());
-                }
-                None => {
-                    values.push(model_value);
-                }
-            }
+        let mut values = vec![entity.primary_key.unwrap_or_default()];
+        for field in view_model.fields {
+            let value = entity.values.get(&field.field_name).cloned().unwrap_or_default();
+            values.push(entity.fk_values.get(&field.field_name).cloned().unwrap_or(value));
         }
-        let _ = writer.write_record(&values);
+        writer.write_record(&values).ok();
     }
-    let csv_bytes = writer.into_inner();
 
     Ok(HttpResponse::Ok()
         .content_type("text/csv")
         .insert_header(ContentDisposition::attachment("export.csv"))
-        .body(csv_bytes.unwrap()))
+        .body(writer.into_inner().unwrap()))
 }
 
 pub async fn list<E: ActixAdminViewModelTrait>(
@@ -174,51 +129,36 @@ pub async fn list<E: ActixAdminViewModelTrait>(
 ) -> Result<HttpResponse, Error> {
     let actix_admin = &data.into_inner();
     let entity_name = E::get_entity_name();
-    let view_model: &ActixAdminViewModel = actix_admin.view_models.get(&entity_name).unwrap();
-    let mut errors: Vec<ActixAdminError> = Vec::new();
-
+    let view_model = actix_admin.view_models.get(&entity_name).unwrap();
     let mut ctx = Context::new();
     add_auth_context(&session, actix_admin, &mut ctx);
-
-    ctx.insert("entity_names", &actix_admin.entity_names);
 
     if !user_can_access_page(&session, actix_admin, view_model) {
         return render_unauthorized(&ctx, actix_admin);
     }
 
     let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
-
-    let mut page = params.page.unwrap_or(1);
-    let entities_per_page = params
-        .entities_per_page
-        .unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
-    let render_partial = req.headers().contains_key("HX-Target");
-    let search = params.search.clone().unwrap_or(String::new());
-
-    let sort_by = params
-        .sort_by
-        .clone()
-        .unwrap_or(view_model.primary_key.to_string());
+    let page = params.page.unwrap_or(1);
+    let entities_per_page = params.entities_per_page.unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
+    let search = params.search.clone().unwrap_or_default();
+    let sort_by = params.sort_by.clone().unwrap_or_else(|| view_model.primary_key.clone());
     let sort_order = params.sort_order.clone().unwrap_or(SortOrder::Asc);
 
-    let decoded_querystring = decode(req.query_string()).unwrap();
-    let actixadminfilters: Vec<ActixAdminViewModelFilter> = decoded_querystring
-        .split("&")
-        .filter(|qf| qf.starts_with("filter_"))
-        .map(|f| {
-            let mut kv = f.split("=");
-            let af = ActixAdminViewModelFilter {
-                name: kv
-                    .next()
-                    .unwrap()
-                    .strip_prefix("filter_")
-                    .unwrap_or_default()
-                    .to_string(),
-                value: kv.next().map(|s| s.to_string()).filter(|f| !f.is_empty()),
-                values: None,
-                filter_type: None,
-            };
-            af
+    let actixadminfilters = decode(req.query_string())
+        .unwrap()
+        .split('&')
+        .filter_map(|qf| {
+            if qf.starts_with("filter_") {
+                let mut kv = qf.split('=');
+                Some(ActixAdminViewModelFilter {
+                    name: kv.next()?.strip_prefix("filter_")?.to_string(),
+                    value: kv.next().map(|s| s.to_string()).filter(|f| !f.is_empty()),
+                    values: None,
+                    filter_type: None,
+                })
+            } else {
+                None
+            }
         })
         .collect();
 
@@ -226,76 +166,60 @@ pub async fn list<E: ActixAdminViewModelTrait>(
         page: Some(page),
         entities_per_page: Some(entities_per_page),
         viewmodel_filter: actixadminfilters,
-        search: search,
-        sort_by: sort_by,
-        sort_order: sort_order,
-        tenant_ref: actix_admin
-            .configuration
-            .user_tenant_ref
-            .map_or(None, |f| f(&session)),
+        search,
+        sort_by,
+        sort_order,
+        tenant_ref: actix_admin.configuration.user_tenant_ref.and_then(|f| f(&session)),
     };
 
-    let result = E::list(&db, &params).await;
-
-    match result {
-        Ok(res) => {
-            let mut entities = res.1;
-            replace_regex(view_model, &mut entities);
-            let num_pages = std::cmp::max(res.0, Some(1));
-            ctx.insert("entities", &entities);
-            ctx.insert("num_pages", &num_pages);
-            ctx.insert("page", &std::cmp::min(num_pages, Some(page)));
-            page = std::cmp::min(page, num_pages.unwrap());
-            let min_show_page = if &page < &5 {
-                1
-            } else {
-                let max_page = &page - &5;
-                max_page
-            };
-            let max_show_page = if &page >= &num_pages.unwrap() {
-                std::cmp::max(1, num_pages.unwrap() - 1)
-            } else {
-                let max_page = &page + &5;
-                std::cmp::min(num_pages.unwrap() - 1, max_page)
-            };
-            ctx.insert("min_show_page", &min_show_page);
-            ctx.insert("max_show_page", &max_show_page);
-        }
+    let (num_pages, mut entities) = match E::list(&db, &params).await {
+        Ok(res) => res,
         Err(e) => {
             ctx.insert("entities", &Vec::<ActixAdminModel>::new());
             ctx.insert("num_pages", &0);
             ctx.insert("min_show_page", &1);
             ctx.insert("max_show_page", &1);
             ctx.insert("page", &1);
-            errors.push(e);
+            ctx.insert("notifications", &[ActixAdminNotification::from(e)]);
+            return Ok(HttpResponse::InternalServerError().content_type("text/html").body(
+                actix_admin.tera.render("list.html", &ctx).map_err(error::ErrorInternalServerError)?,
+            ));
         }
-    }
-
-    let mut http_response_code = match errors.is_empty() {
-        false => HttpResponse::InternalServerError(),
-        true => HttpResponse::Ok(),
     };
-    let notifications: Vec<ActixAdminNotification> = errors
-        .into_iter()
-        .map(|err| ActixAdminNotification::from(err))
-        .collect();
 
-    ctx.insert("entity_name", &entity_name);
-    ctx.insert("notifications", &notifications);
-    ctx.insert("entities_per_page", &entities_per_page);
-    ctx.insert("render_partial", &render_partial);
-    ctx.insert("viewmodel_filter", &E::get_viewmodel_filter(&db).await);
-    ctx.insert(
-        "view_model",
-        &ActixAdminViewModelSerializable::from(view_model.clone()),
+    replace_regex(view_model, &mut entities);
+    let num_pages = num_pages.unwrap_or(1);
+    let page = page.min(num_pages);
+    let min_show_page = (page.saturating_sub(4)).max(1);
+    let max_show_page = (page + 4).min(num_pages);
+
+    let search_params = SearchParams {
+        page: page.min(num_pages),
+        entities_per_page: params
+            .entities_per_page
+            .unwrap_or(DEFAULT_ENTITIES_PER_PAGE),
+        search: params.search,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
+    };
+
+    add_default_context(
+        &mut ctx,
+        req,
+        view_model,
+        entity_name,
+        actix_admin,
+        Vec::new(),
+        &search_params,
     );
-    ctx.insert("search", &params.search);
-    ctx.insert("sort_by", &params.sort_by);
-    ctx.insert("sort_order", &params.sort_order);
 
-    let body = actix_admin
-        .tera
-        .render("list.html", &ctx)
-        .map_err(|err| error::ErrorInternalServerError(err))?;
-    Ok(http_response_code.content_type("text/html").body(body))
+    ctx.insert("entities", &entities);
+    ctx.insert("num_pages", &num_pages);
+    ctx.insert("min_show_page", &min_show_page);
+    ctx.insert("max_show_page", &max_show_page);
+    ctx.insert("viewmodel_filter", &E::get_viewmodel_filter(&db).await);
+
+    Ok(HttpResponse::Ok().content_type("text/html").body(
+        actix_admin.tera.render("list.html", &ctx).map_err(|err| error::ErrorInternalServerError(format!("{:?}", err)))?,
+    ))
 }

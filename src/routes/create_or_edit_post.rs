@@ -1,3 +1,4 @@
+use super::helpers::{add_default_context, SearchParams};
 use super::{add_auth_context, render_unauthorized, user_can_access_page};
 use super::{Params, DEFAULT_ENTITIES_PER_PAGE};
 use crate::ActixAdminError;
@@ -110,33 +111,29 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
             Ok(model) => {
                 let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
 
-                let page = params.page.unwrap_or(1);
-                let entities_per_page = params
-                    .entities_per_page
-                    .unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
-                let search = params.search.clone().unwrap_or(String::new());
-                let sort_by = params
+                let entity_name = E::get_entity_name();
+
+                let search_params = SearchParams {
+                    page: params.page.unwrap_or(1),
+                    entities_per_page: params
+                        .entities_per_page
+                        .unwrap_or(DEFAULT_ENTITIES_PER_PAGE),
+                    search: params.search.clone().unwrap_or(String::new()),
+                    sort_by: params
                     .sort_by
                     .clone()
-                    .unwrap_or(view_model.primary_key.to_string());
-                let entity_name = E::get_entity_name();
-                let sort_order = params.sort_order.as_ref().unwrap_or(&SortOrder::Asc);
+                    .unwrap_or(view_model.primary_key.to_string()),
+                    sort_order: params.sort_order.as_ref().unwrap_or(&SortOrder::Asc).clone(),
+                };
 
                 if view_model.inline_edit {
                     let mut ctx = Context::new();
-                    add_auth_context(&session, actix_admin, &mut ctx);
-                    ctx.insert(
-             
-                        "view_model",
-                        &ActixAdminViewModelSerializable::from(view_model.clone()),
-                    );
-                    ctx.insert("entity_name", &entity_name);
+
                     ctx.insert("entity", &model);
-                    ctx.insert("page", &page);
-                    ctx.insert("entities_per_page", &entities_per_page);
-                    ctx.insert("search", &search);
-                    ctx.insert("sort_by", &sort_by);
-                    ctx.insert("sort_order", &sort_order);
+
+                    add_auth_context(&session, actix_admin, &mut ctx);
+                    add_default_context(&mut ctx, req, view_model, entity_name, actix_admin, Vec::new(), &search_params);
+
                     let body = actix_admin
                         .tera
                         .render("list/row.html", &ctx)
@@ -146,7 +143,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
                     Ok(HttpResponse::SeeOther()
                 .append_header((
                     header::LOCATION,
-                    format!("{5}/{6}/list?page={0}&search={1}&sort_by={2}&sort_order={3}&entities_per_page={4}", page, search, sort_by, sort_order, entities_per_page, actix_admin.configuration.base_path, entity_name),
+                    format!("{0}/{1}/list?{2}", actix_admin.configuration.base_path, entity_name, search_params.to_query_string()),
                 ))
                 .finish())
                 }
@@ -181,17 +178,8 @@ async fn render_form<E: ActixAdminViewModelTrait>(
 ) -> Result<HttpResponse, Error> {
     let mut ctx = Context::new();
 
-    add_auth_context(&session, actix_admin, &mut ctx);
-
-    ctx.insert("entity_names", &actix_admin.entity_names);
-
     let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
 
-    let page = params.page.unwrap_or(1);
-    let entities_per_page = params
-        .entities_per_page
-        .unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
-    let render_partial = req.headers().contains_key("HX-Target");
     let search = params.search.clone().unwrap_or(String::new());
     let sort_by = params
         .sort_by
@@ -204,31 +192,35 @@ async fn render_form<E: ActixAdminViewModelTrait>(
         .user_tenant_ref
         .map_or(None, |f| f(&session));
 
-    ctx.insert("entities_per_page", &entities_per_page);
-    ctx.insert("render_partial", &render_partial);
-    ctx.insert("search", &search);
-    ctx.insert("sort_by", &sort_by);
-    ctx.insert("sort_order", &sort_order);
-    ctx.insert("page", &page);
-
-    ctx.insert("entity_names", &actix_admin.entity_names);
-    ctx.insert(
-        "view_model",
-        &ActixAdminViewModelSerializable::from(view_model.clone()),
-    );
     ctx.insert("select_lists", &E::get_select_lists(db, tenant_ref).await?);
-    ctx.insert("entity_name", &entity_name);
     ctx.insert("model", model);
 
     let notifications: Vec<ActixAdminNotification> = errors
-        .into_iter()
-        .map(|err| ActixAdminNotification::from(err))
-        .collect();
+    .into_iter()
+    .map(|err| ActixAdminNotification::from(err))
+    .collect();
 
-    ctx.insert("notifications", &notifications);
+    let search_params = SearchParams {
+        page: params.page.unwrap_or(1),
+        entities_per_page: params
+            .entities_per_page
+            .unwrap_or(DEFAULT_ENTITIES_PER_PAGE),
+        search: search,
+        sort_by: sort_by,
+        sort_order: sort_order.clone(),
+    };
+
+    add_auth_context(&session, actix_admin, &mut ctx);
+
+    add_default_context(&mut ctx, req, view_model, entity_name, actix_admin, notifications, &search_params);
+
+    let template_path = match view_model.inline_edit {
+        true => "create_or_edit/inline.html",
+        false => "create_or_edit.html",
+    };
     let body = actix_admin
         .tera
-        .render("create_or_edit.html", &ctx)
+        .render(template_path, &ctx)
         .map_err(|err| error::ErrorInternalServerError(err))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
