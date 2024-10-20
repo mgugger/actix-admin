@@ -3,7 +3,9 @@ use serde::Deserialize;
 use tera::Context;
 
 use crate::{prelude::*, ActixAdminNotification};
-use actix_web::{error, Error, HttpRequest, HttpResponse};
+use actix_web::{error, web::Query, Error, HttpRequest, HttpResponse};
+
+use super::{Params, DEFAULT_ENTITIES_PER_PAGE};
 
 pub fn add_auth_context(session: &Session, actix_admin: &ActixAdmin, ctx: &mut Context) {
     let enable_auth = &actix_admin.configuration.enable_auth;
@@ -58,6 +60,16 @@ impl SearchParams {
             self.sort_order,
             self.entities_per_page,
         )
+    }
+
+    pub fn from_params(params: &Query<Params>, view_model: &ActixAdminViewModel) -> Self {
+        SearchParams {
+            page: params.page.unwrap_or(1),
+            entities_per_page: params.entities_per_page.unwrap_or(DEFAULT_ENTITIES_PER_PAGE),
+            search: params.search.clone().unwrap_or(String::new()),
+            sort_by: params.sort_by.clone().unwrap_or(view_model.primary_key.to_string()),
+            sort_order: params.sort_order.as_ref().unwrap_or(&SortOrder::Asc).clone(),
+        }
     }
 }
 

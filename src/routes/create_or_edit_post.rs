@@ -1,6 +1,6 @@
 use super::helpers::{add_default_context, SearchParams};
 use super::{add_auth_context, render_unauthorized, user_can_access_page};
-use super::{Params, DEFAULT_ENTITIES_PER_PAGE};
+use super::Params;
 use crate::ActixAdminError;
 use crate::ActixAdminNotification;
 use crate::{prelude::*, ActixAdminErrorType};
@@ -113,18 +113,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
 
                 let entity_name = E::get_entity_name();
 
-                let search_params = SearchParams {
-                    page: params.page.unwrap_or(1),
-                    entities_per_page: params
-                        .entities_per_page
-                        .unwrap_or(DEFAULT_ENTITIES_PER_PAGE),
-                    search: params.search.clone().unwrap_or(String::new()),
-                    sort_by: params
-                    .sort_by
-                    .clone()
-                    .unwrap_or(view_model.primary_key.to_string()),
-                    sort_order: params.sort_order.as_ref().unwrap_or(&SortOrder::Asc).clone(),
-                };
+                let search_params = SearchParams::from_params(&params, view_model);
 
                 if view_model.inline_edit {
                     let mut ctx = Context::new();
@@ -180,13 +169,6 @@ async fn render_form<E: ActixAdminViewModelTrait>(
 
     let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
 
-    let search = params.search.clone().unwrap_or(String::new());
-    let sort_by = params
-        .sort_by
-        .clone()
-        .unwrap_or(view_model.primary_key.to_string());
-    let sort_order = params.sort_order.as_ref().unwrap_or(&SortOrder::Asc);
-
     let tenant_ref = actix_admin
         .configuration
         .user_tenant_ref
@@ -200,18 +182,9 @@ async fn render_form<E: ActixAdminViewModelTrait>(
     .map(|err| ActixAdminNotification::from(err))
     .collect();
 
-    let search_params = SearchParams {
-        page: params.page.unwrap_or(1),
-        entities_per_page: params
-            .entities_per_page
-            .unwrap_or(DEFAULT_ENTITIES_PER_PAGE),
-        search: search,
-        sort_by: sort_by,
-        sort_order: sort_order.clone(),
-    };
-
     add_auth_context(&session, actix_admin, &mut ctx);
 
+    let search_params = SearchParams::from_params(&params, view_model);
     add_default_context(&mut ctx, req, view_model, entity_name, actix_admin, notifications, &search_params);
 
     let template_path = match view_model.inline_edit {

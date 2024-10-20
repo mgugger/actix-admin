@@ -144,6 +144,8 @@ pub async fn list<E: ActixAdminViewModelTrait>(
     let sort_by = params.sort_by.clone().unwrap_or_else(|| view_model.primary_key.clone());
     let sort_order = params.sort_order.clone().unwrap_or(SortOrder::Asc);
 
+    let search_params = SearchParams::from_params(&params, view_model);
+
     let actixadminfilters = decode(req.query_string())
         .unwrap()
         .split('&')
@@ -192,16 +194,6 @@ pub async fn list<E: ActixAdminViewModelTrait>(
     let page = page.min(num_pages);
     let min_show_page = (page.saturating_sub(4)).max(1);
     let max_show_page = (page + 4).min(num_pages);
-
-    let search_params = SearchParams {
-        page: page.min(num_pages),
-        entities_per_page: params
-            .entities_per_page
-            .unwrap_or(DEFAULT_ENTITIES_PER_PAGE),
-        search: params.search,
-        sort_by: params.sort_by,
-        sort_order: params.sort_order,
-    };
 
     add_default_context(
         &mut ctx,
