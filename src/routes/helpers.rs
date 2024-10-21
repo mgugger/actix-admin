@@ -1,5 +1,5 @@
 use actix_session::Session;
-use serde::Deserialize;
+use serde_derive::Deserialize;
 use tera::Context;
 
 use crate::{prelude::*, ActixAdminNotification};
