@@ -187,9 +187,9 @@ async fn render_form<E: ActixAdminViewModelTrait>(
     let search_params = SearchParams::from_params(&params, view_model);
     add_default_context(&mut ctx, req, view_model, entity_name, actix_admin, notifications, &search_params);
 
-    let template_path = match view_model.inline_edit {
-        true => "create_or_edit/inline.html",
-        false => "create_or_edit.html",
+    let template_path = match (view_model.inline_edit, model.primary_key.is_some()) {
+        (true, true) => "create_or_edit/inline.html",
+        (_, _) => "create_or_edit.html",
     };
     let body = actix_admin
         .tera
