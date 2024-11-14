@@ -6,7 +6,8 @@ use crate::ActixAdminError;
 use crate::ActixAdminNotification;
 use crate::prelude::*;
 
-use super::DEFAULT_ENTITIES_PER_PAGE;
+use super::helpers::add_default_context;
+use super::helpers::SearchParams;
 use super::Params;
 use super::{ add_auth_context, user_can_access_page, render_unauthorized};
 
@@ -50,8 +51,6 @@ async fn create_or_edit_get<E: ActixAdminViewModelTrait>(session: &Session, req:
     let actix_admin = &data.get_ref();
     let mut ctx = Context::new();
     add_auth_context(&session, actix_admin, &mut ctx);
-    let entity_names = &actix_admin.entity_names;
-    ctx.insert("entity_names", entity_names);
     let entity_name = E::get_entity_name();
     let mut errors: Vec<crate::ActixAdminError> = Vec::new();
 
@@ -82,14 +81,8 @@ async fn create_or_edit_get<E: ActixAdminViewModelTrait>(session: &Session, req:
 
     let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
 
-    let page = params.page.unwrap_or(1);
-    let entities_per_page = params
-        .entities_per_page
-        .unwrap_or(DEFAULT_ENTITIES_PER_PAGE);
-    let render_partial = req.headers().contains_key("HX-Target");
-    let search = params.search.clone().unwrap_or(String::new());
-    let sort_by = params.sort_by.clone().unwrap_or(view_model.primary_key.to_string());
-    let sort_order = params.sort_order.as_ref().unwrap_or(&SortOrder::Asc);
+    let search_params = SearchParams::from_params(&params, view_model);
+    add_default_context(&mut ctx, req, view_model, entity_name, actix_admin, notifications, &search_params);
 
     let tenant_ref = actix_admin
         .configuration
@@ -98,15 +91,7 @@ async fn create_or_edit_get<E: ActixAdminViewModelTrait>(session: &Session, req:
 
     ctx.insert("view_model", &ActixAdminViewModelSerializable::from(view_model.clone()));
     ctx.insert("select_lists", &E::get_select_lists(db, tenant_ref).await?);
-    ctx.insert("entity_name", &entity_name);
     ctx.insert("model", &model);
-    ctx.insert("notifications", &notifications);
-    ctx.insert("entities_per_page", &entities_per_page);
-    ctx.insert("render_partial", &render_partial);
-    ctx.insert("search", &search);
-    ctx.insert("sort_by", &sort_by);
-    ctx.insert("sort_order", &sort_order);
-    ctx.insert("page", &page);
     
     let template_path = match is_inline {
         true => "create_or_edit/inline.html",
