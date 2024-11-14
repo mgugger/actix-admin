@@ -11,6 +11,7 @@ pub fn add_auth_context(session: &Session, actix_admin: &ActixAdmin, ctx: &mut C
     let enable_auth = &actix_admin.configuration.enable_auth;
     ctx.insert("enable_auth", &enable_auth);
     ctx.insert("custom_css_paths", &actix_admin.configuration.custom_css_paths);
+    ctx.insert("custom_js_paths", &actix_admin.configuration.custom_js_paths);
     ctx.insert("navbar_title", &actix_admin.configuration.navbar_title);
     ctx.insert("base_path", &actix_admin.configuration.base_path);
     ctx.insert("support_path", &actix_admin.support_path.as_ref());

@@ -8,10 +8,16 @@
     {% endfor %}
 {% else %}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 {% endif %}
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+{% if custom_js_paths %}
+    {% for custom_js_path in custom_js_paths %}
+    <link rel="stylesheet" href="{{ custom_js_path }}">
+    {% endfor %}
+{% else %}
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+{% endif %}
 
 <script>
     document.onkeydown = function (e) {
