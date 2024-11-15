@@ -132,7 +132,13 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 let entity = query.one(db).await?;
 
                 match entity {
-                    Some(e) => Ok(ActixAdminModel::from(e)),
+                    Some(e) => {
+                        let model = ActixAdminModel::from(e);
+                        let mut model_entities = Vec::<ActixAdminModel>::new();
+                        model_entities.push(model);
+                        let _load_fks = Self::load_foreign_keys(&mut model_entities, db).await;
+                        Ok(model_entities.pop().unwrap())
+                    },
                     _ => Err(ActixAdminError {
                         ty: ActixAdminErrorType::EntityDoesNotExistError,
                         msg: "".to_string()
@@ -245,6 +251,9 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let fields_list_hide_column = get_fields_as_tokenstream(&fields, |model_field| -> bool {
         model_field.list_hide_column
     });
+    let fields_use_tom_select_callback = get_fields_as_tokenstream(&fields, |model_field| -> bool {
+        model_field.use_tom_select_callback
+    });
     let fields_tenant_ref =
         get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.tenant_ref });
     let fields_searchable = get_actix_admin_fields_searchable(&fields);
@@ -295,7 +304,8 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     ceil: ceil,
                     floor: floor,
                     dateformat: dateformat,
-                    shorten: shorten
+                    shorten: shorten,
+                    use_tom_select_callback: #fields_use_tom_select_callback
                 });
             )*
 
@@ -306,6 +316,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
 
         impl From<Model> for ActixAdminModel {
             fn from(model: Model) -> Self {
+                let displayName = model.clone().to_string();
                 ActixAdminModel {
                     #field_for_primary_key,
                     values: hashmap![
@@ -313,7 +324,8 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     ],
                     errors: HashMap::new(),
                     custom_errors: HashMap::new(),
-                    fk_values: HashMap::new()
+                    fk_values: HashMap::new(),
+                    display_name: Some(displayName)
                 }
             }
         }

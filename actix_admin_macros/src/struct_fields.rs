@@ -77,6 +77,9 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let is_not_empty = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.not_empty.is_some());
+                let use_tom_select_callback = actix_admin_attr
+                    .clone()
+                    .map_or(false, |attr| attr.use_tom_select_callback.is_some());
                 let list_regex_mask = actix_admin_attr.clone().map_or("".to_string(), |attr| {
                     attr.list_regex_mask
                         .map_or("".to_string(), |attr_field| {
@@ -130,7 +133,8 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     ceil: ceil,
                     floor: floor,
                     dateformat: dateformat,
-                    shorten: shorten
+                    shorten: shorten,
+                    use_tom_select_callback: use_tom_select_callback
                 };
                 Some(model_field)
             } else {

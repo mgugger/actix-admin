@@ -3,21 +3,24 @@
 <title>{{ navbar_title }}</title>
 
 {% if custom_css_paths %}
-    {% for custom_css_path in custom_css_paths %}
-    <link rel="stylesheet" href="{{ custom_css_path }}">
-    {% endfor %}
+{% for custom_css_path in custom_css_paths %}
+<link rel="stylesheet" href="{{ custom_css_path }}">
+{% endfor %}
 {% else %}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 {% endif %}
 
 {% if custom_js_paths %}
-    {% for custom_js_path in custom_js_paths %}
-    <link rel="stylesheet" href="{{ custom_js_path }}">
-    {% endfor %}
+{% for custom_js_path in custom_js_paths %}
+<link rel="stylesheet" href="{{ custom_js_path }}">
+{% endfor %}
 {% else %}
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+<script src="https://unpkg.com/htmx.org@1.9.12"></script>
 {% endif %}
+
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
 <script>
     document.onkeydown = function (e) {
@@ -55,7 +58,6 @@
     }
 
     function sort_by(column) {
-        console.log(column);
         current_sort_order = document.getElementsByName("sort_order")[0].value;
         if (current_sort_order == "Asc") {
             document.getElementsByName("sort_order").forEach((e) => e.value = "Desc");
@@ -92,7 +94,7 @@
             el.addEventListener('click', () => {
 
                 // Get the target from the "data-target" attribute
-                const target = el.dataset.target;
+                const target = el.getAttribute('data-target');
                 const $target = document.getElementById(target);
 
                 // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
@@ -124,6 +126,7 @@
         z-index: 6;
         pointer-events: none
     }
+
     .opaque-rounded-background {
         background: rgba(255, 255, 255, 0.3);
         padding: 10px;

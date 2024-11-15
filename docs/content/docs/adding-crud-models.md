@@ -101,3 +101,5 @@ More attributes can be added to the model struct properties:
 | floor=<integer> | optional | floor a float to the given precision |
 | dateformat=<String> | optional | formats a date or a datetime to the given format, does not work with NaiveDate or NaiveDateTime and requires a timezone |
 | shorten=<integer> | optional | shortens a string to the given length |
+| use_tom_select_callback | optional | uses a tom-select.js dropdown instead of a select which allows searching and loads data in the background when searching | 
+| 

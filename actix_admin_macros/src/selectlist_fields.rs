@@ -57,6 +57,7 @@ pub fn get_select_lists(fields: &Vec<ModelField>) -> Vec<proc_macro2::TokenStrea
     fields
     .iter()
     .filter(|model_field| model_field.select_list != "")
+    .filter(|model_field| !model_field.use_tom_select_callback)
     .map(|model_field| {
         let ident_name = model_field.ident.to_string();
         let select_list_ident = Ident::new(&(model_field.select_list), Span::call_site());

@@ -25,6 +25,7 @@ pub mod derive_attr {
         pub list_sort_position: Option<syn::LitStr>,
         pub list_hide_column: Option<()>,
         pub list_regex_mask: Option<syn::LitStr>,
-        pub tenant_ref: Option<()>
+        pub tenant_ref: Option<()>,
+        pub use_tom_select_callback: Option<()>
     }
 }

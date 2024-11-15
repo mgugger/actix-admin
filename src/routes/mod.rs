@@ -25,6 +25,9 @@ pub use file::{download, delete_file};
 mod card_grid;
 pub use card_grid::display_card_grid;
 
+mod search;
+pub use search::search;
+
 use serde_derive::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct Params {

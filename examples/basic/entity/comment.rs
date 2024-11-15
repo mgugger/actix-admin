@@ -26,7 +26,7 @@ pub struct Model {
     
     pub is_visible: bool,
     
-    #[actix_admin(select_list="Post", foreign_key="Post")]
+    #[actix_admin(select_list="Post", foreign_key="Post", use_tom_select_callback)]
     pub post_id: Option<i32>,
     
     pub my_decimal: Decimal

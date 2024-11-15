@@ -109,6 +109,7 @@ pub struct ActixAdminViewModelField {
     pub ceil: Option<u8>,
     pub floor: Option<u8>,
     pub shorten: Option<u16>,
+    pub use_tom_select_callback: bool
 }
 
 impl ActixAdminViewModelFieldType {

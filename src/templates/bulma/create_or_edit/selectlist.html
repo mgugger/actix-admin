@@ -1,4 +1,5 @@
-<div class="select {{ additional_classes | default(value='') }}
+<div class="{% if not model_field.use_tom_select_callback %}select{% endif %}  
+    {{ additional_classes | default(value='') }}
     {% if model.errors | length > 0 or model.custom_errors | length > 0 %}
         {% if 
         model.errors | get(key=model_field.field_name, default="" ) !="" 
@@ -10,12 +11,67 @@
         {% if model_field.is_option %}
         <option value=""></option>
         {% else %}
-        <option value="" selected disabled>Select</option>
+        <option value="" disabled>Select</option>
         {% endif %}
-        {% for select_list_item in select_lists[model_field.field_name] -%}
-        <option {% if select_list_item[0]==model.values | get(key=model_field.field_name, default="" ) %} selected {%
-            endif %} value="{{ select_list_item[0] }}">{{ select_list_item[1] | split(pat="_") |
-            join(sep=" ") }}</option>
-        {%- endfor %}
+        {% if not model_field.use_tom_select_callback %}
+            {% for select_list_item in select_lists[model_field.field_name] -%}
+            <option {% if select_list_item[0]==model.values | get(key=model_field.field_name, default="" ) %} selected {%
+                endif %} value="{{ select_list_item[0] }}">{{ select_list_item[1] | split(pat="_") |
+                join(sep=" ") }}</option>
+            {%- endfor %}
+		{% else %} <!-- prepopulate existing value -->
+				<option value="{{ model.values | get(key=model_field.field_name, default='') }}" selected>
+					{{ model.fk_values | get(key=model_field.field_name, default="fk not found") }}
+				</option>
+        {% endif %}
     </select>
 </div>
+
+{% if model_field.use_tom_select_callback %}
+<script>
+    var settings = {
+        plugins: ['remove_button'],
+        // select fields from remote data
+        valueField: 'value',
+		labelField: 'label',
+		searchField: 'label',
+		// fetch remote data
+		load: function(query, callback) {
+			var url = '{{ base_path | safe }}/' + {{ model_field.foreign_key | lower | safe }} + '/search?q=' + encodeURIComponent(query);
+			fetch(url)
+				.then(response => response.json())
+				.then(json => {
+					callback(json.items);
+				}).catch(()=>{
+					callback();
+				});
+		},
+		// custom rendering functions for options and items
+		render: {
+			option: function(item, escape) {
+				return `<div class="py-2 d-flex">
+							<div>
+								<div class="mb-1">
+									<span class="h4">
+										${ escape(item.label) }
+									</span>
+								</div>
+							</div>
+						</div>`;
+			},
+			item: function(item, escape) {
+				return `<div class="py-2 d-flex">
+							<div>
+								<div class="mb-1">
+									<span class="h4">
+										${ escape(item.label) }
+									</span>
+								</div>
+							</div>
+						</div>`;
+			}
+		},
+    };
+    new TomSelect('select[name="{{ model_field.field_name }}"]',settings);
+</script>
+{% endif %}

@@ -74,6 +74,7 @@ pub struct ActixAdminModel {
     pub fk_values: HashMap<String, String>,
     pub errors: HashMap<String, String>,
     pub custom_errors: HashMap<String, String>,
+    pub display_name: Option<String>,
 }
 
 impl ActixAdminModel {
@@ -83,7 +84,8 @@ impl ActixAdminModel {
             values: HashMap::new(),
             errors: HashMap::new(),
             custom_errors: HashMap::new(),
-            fk_values: HashMap::new()
+            fk_values: HashMap::new(),
+            display_name: None
         }
     }
 
@@ -142,7 +144,8 @@ impl ActixAdminModel {
             values: hashmap,
             errors: HashMap::new(),
             custom_errors: HashMap::new(),
-            fk_values: HashMap::new()
+            fk_values: HashMap::new(),
+            display_name: None
         })
     }
 

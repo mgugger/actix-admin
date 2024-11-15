@@ -1,4 +1,4 @@
-use crate::{prelude::*, routes::{display_card_grid, delete_file, export_csv}, ActixAdminMenuElement};
+use crate::{prelude::*, routes::{delete_file, display_card_grid, export_csv, search}, ActixAdminMenuElement};
 use actix_web::{web, Route };
 use std::collections::HashMap;
 use std::fs;
@@ -120,6 +120,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 .route("/list", web::get().to(list::<E>))
                 .route("/export_csv", web::get().to(export_csv::<E>))
                 .route("/create", web::get().to(create_get::<E>))
+                .route("/search", web::get().to(search::<E>))
                 .route("/create", web::post().to(create_post::<E>))
                 .route("/edit/{id}", web::get().to(edit_get::<E>))
                 .route("/edit/{id}", web::post().to(edit_post::<E>))

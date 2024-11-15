@@ -23,7 +23,8 @@ pub struct ModelField {
     pub list_sort_position: usize,
     pub list_hide_column: bool,
     pub list_regex_mask: String,
-    pub tenant_ref: bool
+    pub tenant_ref: bool,
+    pub use_tom_select_callback: bool,
 }
 
 impl ModelField {
@@ -32,28 +33,19 @@ impl ModelField {
     }
 
     pub fn is_string(&self) -> bool {
-        match &self.ty {
-            Type::Path(type_path) if type_path.clone().into_token_stream().to_string() == "String" => {
-                true
-            }
-            _ => false
-        }
+        matches!(&self.ty, Type::Path(type_path) if type_path.path.is_ident("String"))
     }
 
     pub fn get_type_path_string(&self) -> String {
-        let type_path_string: String;
-        if self.is_option() {
-            match &self.inner_type.clone().unwrap() {
-                Type::Path(type_path) => type_path_string = type_path.clone().into_token_stream().to_string(),
-                _ => panic!("not a type path")
-            }
+        let ty = if self.is_option() {
+            self.inner_type.as_ref().unwrap()
         } else {
-            match &self.ty {
-                Type::Path(type_path) => type_path_string = type_path.clone().into_token_stream().to_string(),
-                _ => panic!("not a type path")
-            }
+            &self.ty
+        };
+
+        match ty {
+            Type::Path(type_path) => type_path.into_token_stream().to_string(),
+            _ => panic!("not a type path"),
         }
-        
-        type_path_string
     }
 }
