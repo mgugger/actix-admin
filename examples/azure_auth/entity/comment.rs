@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use actix_admin::prelude::*;
@@ -51,3 +53,11 @@ impl ActixAdminModelValidationTrait<ActiveModel> for Entity {
 }
 
 impl ActixAdminModelFilterTrait<Entity> for Entity {}
+
+impl Display for Model {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        match &*self {
+           _ => write!(formatter, "{} {}", &self.insert_date, &self.user),
+        }
+    }
+}

@@ -316,7 +316,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
 
         impl From<Model> for ActixAdminModel {
             fn from(model: Model) -> Self {
-                let displayName = model.clone().to_string();
+                let display_name = model.clone().to_string();
                 ActixAdminModel {
                     #field_for_primary_key,
                     values: hashmap![
@@ -325,7 +325,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     errors: HashMap::new(),
                     custom_errors: HashMap::new(),
                     fk_values: HashMap::new(),
-                    display_name: Some(displayName)
+                    display_name: Some(display_name)
                 }
             }
         }

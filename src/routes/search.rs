@@ -3,7 +3,7 @@ use actix_web::{web, Error, HttpRequest, HttpResponse};
 use sea_orm::DatabaseConnection;
 use tera::Context;
 use actix_session::Session;
-use serde::{Deserialize, Serialize};
+use serde_derive::{Serialize, Deserialize};
 use crate::prelude::*;
 use super::list::replace_regex;
 use super::{ add_auth_context, render_unauthorized, user_can_access_page};
