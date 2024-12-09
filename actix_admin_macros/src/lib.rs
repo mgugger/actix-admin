@@ -92,11 +92,12 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                     let active_model = ActiveModel::from(model.clone());
                     let custom_errors = Entity::validate(&active_model);
                     model.custom_errors = custom_errors;
-                    
-                    // TODO: load fk values in case of validation error on create
-                    //let mut model_entities = Vec::<ActixAdminModel>::new();
-                    //model_entities.push(model);
-                    //let _load_fks = Self::load_foreign_keys(&mut model_entities, db).await;
+                }
+
+                if model.has_errors() {
+                    let mut model_entities = vec![model.clone()];
+                    Self::load_foreign_keys(&mut model_entities, db).await;
+                    model.fk_values = model_entities.pop().unwrap().fk_values;
                 }
             }
 
@@ -408,9 +409,8 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                 Ok((num_pages, model_entities))
             }
 
-            async fn load_foreign_keys(models: &mut Vec<ActixAdminModel>, db: &DatabaseConnection) {
+            async fn load_foreign_keys(models: &mut [ActixAdminModel], db: &DatabaseConnection) {
                 for field in Self::get_fields().iter() {
-
                     if field.foreign_key != "" {
                         let ids_to_select: Vec<i32> = models.iter()
                             .map(|m| m.values.get(&field.field_name))

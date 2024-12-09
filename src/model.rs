@@ -21,7 +21,7 @@ pub trait ActixAdminModelTrait {
     ) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError>;
     fn get_fields() -> &'static [ActixAdminViewModelField];
     fn validate_model(model: &mut ActixAdminModel);
-    async fn load_foreign_keys(models: &mut Vec<ActixAdminModel>, db: &DatabaseConnection);
+    async fn load_foreign_keys(models: &mut [ActixAdminModel], db: &DatabaseConnection);
 }
 
 pub trait ActixAdminModelValidationTrait<T> {

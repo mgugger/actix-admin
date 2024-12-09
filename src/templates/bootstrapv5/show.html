@@ -14,7 +14,35 @@
                 <span><a href="file/{{ view_model.primary_key }}/{{ model_field.field_name }}">{{ model.values |
                         get(key=model_field.field_name) }}</a></span>
                 {% else %}
-                <span>{{ model.values | get(key=model_field.field_name) }}</span>
+                <span>
+                    {% if model.fk_values is containing(model_field.field_name) %}
+                    {%- set value = model.fk_values[model_field.field_name] %}
+                    {%- if model_field.ceil %}
+                    <td>{{ value | float | round(method="ceil", precision=model_field.ceil) }}</td>
+                    {%- elif model_field.floor %}
+                    <td>{{ value | float | round(method="floor", precision=model_field.floor) }}</td>
+                    {%- elif model_field.dateformat %}
+                    <td>{{ value | date(format=model_field.dateformat) }}</td>
+                    {%- elif model_field.shorten %}
+                    <td>{{ model_field.shorten }} {{ value | shorten(max_length=model_field.shorten) }}</td>
+                    {%- else %}
+                    <td>{{ value }}</td>
+                    {%- endif %}
+                    {% else %}
+                    {%- set value = model.values[model_field.field_name] %}
+                    {%- if model_field.ceil %}
+                    <td>{{ value | float | round(method="ceil", precision=model_field.ceil) }}</td>
+                    {%- elif model_field.floor %}
+                    <td>{{ value | float | round(method="floor", precision=model_field.floor) }}</td>
+                    {%- elif model_field.dateformat %}
+                    <td>{{ value | date(format=model_field.dateformat) }}</td>
+                    {%- elif model_field.shorten %}
+                    <td>{{ model_field.shorten }} {{ value | shorten(max_length=model_field.shorten) }}</td>
+                    {%- else %}
+                    <td>{{ value }}</td>
+                    {%- endif %}
+                    {% endif %}                    
+                </span>
                 {% endif %}
             </div>
         </div>
