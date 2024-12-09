@@ -170,13 +170,14 @@
             "render_partial" : "true"
         }' hx-indicator="#loading" class="pagination is-rounded is-centered" role="pagination" aria-label="pagination">
             {% if page > 1 %}
+            <li>
             <a href="{{ base_path }}/{{ entity_name }}/list?&page={{ page - 1 }}"
                 class="pagination-previous left-arrow-click"><i class="fa-solid fa-arrow-left"></i>
-            </a>
+            </a></li>
             {% endif %}
-            {% if page < num_pages %} <a href="{{ base_path }}/{{ entity_name }}/list?page={{ page + 1 }}"
+            {% if page < num_pages %} <li><a href="{{ base_path }}/{{ entity_name }}/list?page={{ page + 1 }}"
                 class="pagination-next right-arrow-click"><i class="fa-solid fa-arrow-right"></i>
-                </a>
+                </a></li>
                 {% endif %}
                 <ul class="pagination-list">
                     <li>

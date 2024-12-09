@@ -10,10 +10,10 @@ mod post_create_and_edit_is_success {
         http::header::ContentType
     };
     use chrono::{ NaiveDateTime, NaiveDate };
-    use serde::{Serialize};
+    use serde::Serialize;
     use sea_orm::{ PaginatorTrait, EntityTrait, prelude::Decimal};
     
-    use crate::{create_app};
+    use crate::create_app;
 
     #[derive(Serialize, Clone)]
     pub struct CommentModel {
@@ -38,7 +38,7 @@ mod post_create_and_edit_is_success {
     #[actix_web::test]
     async fn comment_create_and_edit() {
         let db = super::setup_db(false).await;
-        let app = create_app!(db, false, None);
+        let app = create_app!(db, false, None, false);
 
         // create entity
         let mut model = CommentModel {
@@ -112,7 +112,7 @@ mod post_create_and_edit_is_success {
     #[actix_web::test]
     async fn post_create_and_edit() {
         let db = super::setup_db(false).await;
-        let app = create_app!(db, false, None);
+        let app = create_app!(db, false, None, false);
 
         let mut model = PostModel {
             id: "0",

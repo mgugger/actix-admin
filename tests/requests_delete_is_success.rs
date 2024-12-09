@@ -16,7 +16,7 @@ mod post_delete_is_success {
     #[actix_web::test]
     async fn post_delete() {
         let db = super::setup_db(true).await;
-        let app = create_app!(db, false, None);
+        let app = create_app!(db, false, None, false);
         let id = 1;
         let entity = super::test_setup::Post::find_by_id(id)
             .one(&db)
@@ -52,7 +52,7 @@ mod post_delete_is_success {
     #[actix_web::test]
     async fn comment_delete() {
         let db = super::setup_db(true).await;
-        let app = create_app!(db, false, None);
+        let app = create_app!(db, false, None, false);
         let id = 1;
         let entity = super::test_setup::Comment::find_by_id(id)
             .one(&db)
@@ -75,7 +75,7 @@ mod post_delete_is_success {
     #[actix_web::test]
     async fn comment_delete_many() {
         let db = super::setup_db(true).await;
-        let app = create_app!(db, false, None);
+        let app = create_app!(db, false, None, false);
         let ids = vec![1, 2, 3];
         for id in &ids {
             let entity = super::test_setup::Comment::find_by_id(*id)
@@ -107,7 +107,7 @@ mod post_delete_is_success {
     #[actix_web::test]
     async fn post_delete_many() {
         let db = super::setup_db(true).await;
-        let app = create_app!(db, false, None);
+        let app = create_app!(db, false, None, false);
         let ids = vec![1, 2, 3];
         for id in &ids {
             let entity = super::test_setup::Post::find_by_id(*id)

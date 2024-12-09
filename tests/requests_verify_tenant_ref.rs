@@ -62,7 +62,7 @@ mod verify_tenant_ref {
         elements_to_verify: Vec<String>,
         should_contain: bool,
     ) {
-        let app = create_app!(db, false, Some(tenant_ref_fn));
+        let app = create_app!(db, false, Some(tenant_ref_fn), false);
 
         let req = test::TestRequest::get().uri(url).to_request();
 
@@ -92,7 +92,7 @@ mod verify_tenant_ref {
     #[actix_web::test]
     async fn sample_with_tenant_id_delete_own_tenant() {
         let db = super::setup_db(true).await;
-        let app = create_app!(db, false, Some(tenant_ref_fn));
+        let app = create_app!(db, false, Some(tenant_ref_fn), false);
         let id = 1;
         let entity = super::SampleWithTenantId::find_by_id(id)
             .one(&db)
@@ -117,7 +117,7 @@ mod verify_tenant_ref {
     #[actix_web::test]
     async fn sample_with_tenant_id_delete_other_tenant() {
         let db = super::setup_db(true).await;
-        let app = create_app!(db, false, Some(tenant_ref_fn));
+        let app = create_app!(db, false, Some(tenant_ref_fn), false);
         let id = 2;
         let entity = super::SampleWithTenantId::find_by_id(id)
             .one(&db)
@@ -149,7 +149,7 @@ mod verify_tenant_ref {
     #[actix_web::test]
     async fn sample_with_tenant_id_create() {
         let db = super::setup_db(false).await;
-        let app = create_app!(db, false, Some(tenant_ref_fn));
+        let app = create_app!(db, false, Some(tenant_ref_fn), false);
 
         let model = SampleWithTenantIdModel {
             id: "0",

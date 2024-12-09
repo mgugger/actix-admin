@@ -11,7 +11,7 @@ mod webdriver_tests {
 
     #[tokio_test]
     async fn webdriver_navigation() -> Result<(), fantoccini::error::CmdError> {    
-        let (server_task, geckodriver, c) = setup(true).await.unwrap();
+        let (server_task, geckodriver, c) = setup(true, false).await.unwrap();
 
         // Open the index page
         c.goto("http://localhost:5555/admin/").await?;
@@ -49,6 +49,52 @@ mod webdriver_tests {
         let td_text = fourth_td.text().await?;
         assert_eq!(td_text.trim(), "Test 41", "Text in the 4th td is not as expected");
 
+        // use keys to navigate
+        c
+        .execute(
+            r#"
+            const event = new KeyboardEvent('keydown', {
+                key: 'ArrowLeft',
+                code: 'ArrowLeft',
+                keyCode: 37,
+                which: 37,
+                bubbles: true
+            });
+            document.dispatchEvent(event);
+            "#,
+            vec![],
+        )
+        .await?;
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        let url = c.current_url().await?;
+        assert!(url.as_ref().contains("page=4"));
+        let first_tr = c.find(Locator::Css("tbody tr:first-child")).await?;
+        let fourth_td = first_tr.find(Locator::Css("td:nth-child(3)")).await?;
+        let td_text = fourth_td.text().await?;
+        assert_eq!(td_text.trim(), "Test 31", "Text in the 4th td is not as expected");
+        c
+        .execute(
+            r#"
+            const event = new KeyboardEvent('keydown', {
+                key: 'ArrowRight',
+                code: 'ArrowRight',
+                keyCode: 39,
+                which: 39,
+                bubbles: true
+            });
+            document.dispatchEvent(event);
+            "#,
+            vec![],
+        )
+        .await?;
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        let url = c.current_url().await?;
+        assert!(url.as_ref().contains("page=5"));
+        let first_tr = c.find(Locator::Css("tbody tr:first-child")).await?;
+        let fourth_td = first_tr.find(Locator::Css("td:nth-child(3)")).await?;
+        let td_text = fourth_td.text().await?;
+        assert_eq!(td_text.trim(), "Test 41", "Text in the 4th td is not as expected");
+
         // change entities per page
         let dropdown = c.find(Locator::Css("select#entities_per_page")).await?;
         dropdown.select_by_value("100").await?;
@@ -66,6 +112,7 @@ mod webdriver_tests {
         let table = c.find(Locator::Css("tbody")).await?;
         let row_count = table.find_all(Locator::Css("tr")).await?.len();
         assert_eq!(row_count, 1, "Expected a single row in the table");
+        search_input.clear().await?;
 
         teardown(server_task, geckodriver, c).await
     }

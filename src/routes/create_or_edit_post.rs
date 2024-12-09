@@ -77,7 +77,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
     let db = db.get_ref();
 
     let mut model = model_res.unwrap();
-    E::validate_entity(&mut model);
+    let _ = E::validate_entity(&mut model, db).await;
 
     if model.has_errors() {
         let error = ActixAdminError {

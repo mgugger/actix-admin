@@ -31,7 +31,7 @@ pub trait ActixAdminViewModelTrait {
     async fn edit_entity(db: &DatabaseConnection, id: i32, model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError>;
     async fn get_select_lists(db: &DatabaseConnection, tenant_ref: Option<i32>) -> Result<HashMap<String, Vec<(String, String)>>, ActixAdminError>;
     async fn get_viewmodel_filter(db: &DatabaseConnection) -> HashMap<String, ActixAdminViewModelFilter>;
-    fn validate_entity(model: &mut ActixAdminModel);
+    async fn validate_entity(model: &mut ActixAdminModel, db: &DatabaseConnection);
 
     fn get_entity_name() -> String;
 }

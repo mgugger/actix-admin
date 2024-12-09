@@ -11,7 +11,7 @@ mod webdriver_tests {
 
     #[tokio_test]
     async fn webdriver_create() -> Result<(), fantoccini::error::CmdError> {    
-        let (server_task, geckodriver, c) = setup(false).await.unwrap();
+        let (server_task, geckodriver, c) = setup(false, false).await.unwrap();
 
         // Open the post list page
         c.goto("http://localhost:5555/admin/post/list").await?;

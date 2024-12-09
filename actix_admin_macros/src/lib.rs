@@ -85,13 +85,18 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 entities
             }
 
-            fn validate_entity(model: &mut ActixAdminModel) {
+            async fn validate_entity(model: &mut ActixAdminModel, db: &DatabaseConnection) {
                 Entity::validate_model(model);
 
                 if !model.has_errors() {
                     let active_model = ActiveModel::from(model.clone());
                     let custom_errors = Entity::validate(&active_model);
                     model.custom_errors = custom_errors;
+                    
+                    // TODO: load fk values in case of validation error on create
+                    //let mut model_entities = Vec::<ActixAdminModel>::new();
+                    //model_entities.push(model);
+                    //let _load_fks = Self::load_foreign_keys(&mut model_entities, db).await;
                 }
             }
 

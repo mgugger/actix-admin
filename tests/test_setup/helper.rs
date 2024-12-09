@@ -66,9 +66,9 @@ pub async fn setup_db(create_entities: bool) -> DatabaseConnection {
 
 #[macro_export]
 macro_rules! create_app (
-    ($db: expr, $enable_auth: expr, $tenant_ref: expr) => ({
+    ($db: expr, $enable_auth: expr, $tenant_ref: expr, $enable_inline_editing: expr) => ({
         let conn = $db.clone();
-        let actix_admin_builder = super::create_actix_admin_builder($enable_auth, $tenant_ref);
+        let actix_admin_builder = super::create_actix_admin_builder($enable_auth, $tenant_ref, $enable_inline_editing);
         let actix_admin = actix_admin_builder.get_actix_admin();
 
         test::init_service(
@@ -83,14 +83,14 @@ macro_rules! create_app (
 
 #[macro_export]
 macro_rules! create_server (
-    ($db: expr, $enable_auth: expr, $tenant_ref: expr) => ({
+    ($db: expr, $enable_auth: expr, $tenant_ref: expr, $enable_inline_editing: expr) => ({
         use actix_web::{App, HttpServer};
         use actix_admin::builder::ActixAdminBuilderTrait;
 
         // Create and start the Actix-web server
         let _server = HttpServer::new(move || {
             let conn = $db.clone();
-            let actix_admin_builder = create_actix_admin_builder($enable_auth, $tenant_ref);
+            let actix_admin_builder = create_actix_admin_builder($enable_auth, $tenant_ref, $enable_inline_editing);
             let actix_admin = actix_admin_builder.get_actix_admin();
 
             App::new()
@@ -106,8 +106,10 @@ macro_rules! create_server (
 pub fn create_actix_admin_builder(
     enable_auth: bool,
     tenant_ref: Option<for<'a> fn(&'a Session) -> Option<i32>>,
+    enable_inline_editing: bool,
 ) -> ActixAdminBuilder {
-    let post_view_model = ActixAdminViewModel::from(Post);
+    let mut post_view_model = ActixAdminViewModel::from(Post);
+    post_view_model.inline_edit = enable_inline_editing;
     let comment_view_model = ActixAdminViewModel::from(Comment);
     let sample_with_tenant_id_view_model = ActixAdminViewModel::from(SampleWithTenantId);
 
@@ -172,7 +174,6 @@ pub fn create_actix_admin_builder(
         vec!["card/3".to_string()],
     ];
     admin_builder.add_card_grid("Card Grid", "/my_card_grid", card_grid, true);
-
 
     admin_builder
 }

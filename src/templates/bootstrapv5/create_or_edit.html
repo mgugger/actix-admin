@@ -6,7 +6,7 @@
     <form onsubmit="disableButton(this)" hx-boost="true" hx-indicator="#loading" hx-push-url="true"
         hx-encoding="multipart/form-data" method="post" enctype="multipart/form-data">
 
-        <div class="card">
+        <div>
             <input type="hidden" id="sort_by" name="sort_by" value="{{ sort_by }}">
             <input type="hidden" id="sort_order" name="sort_order" value="{{ sort_order }}">
             <input type="hidden" name="entities_per_page" value="{{ entities_per_page }}">
@@ -19,7 +19,7 @@
                 {{ model_field.field_name | replace(from="_id", to="") | split(pat="_") | join(sep=" ") | title
                 }}{% if not model_field.is_option %} *{% endif %}
                 </label>
-                <div class="form-control">
+                <div>
                     {% if model_field.field_type == "SelectList" %}
                     {% include "create_or_edit/selectlist.html" %}
                     {% elif model_field.field_type == "Checkbox" %}

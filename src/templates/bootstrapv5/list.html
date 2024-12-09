@@ -137,12 +137,6 @@
                         {% include "list/row.html" %}
                         {%- endfor %}
                     </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="{{ view_model.fields | length + 3 }}">
-                            </td>
-                        </tr>
-                    </tfoot>
                 </table>
                 </form>
             </div>
@@ -156,34 +150,36 @@
         }' hx-indicator="#loading" class="pagination justify-content-center" role="pagination" aria-label="pagination">
                 <ul class="pagination">
                     {% if page > 1 %}
-                    <a href="{{ base_path }}/{{ entity_name }}/list?&page={{ page - 1 }}" class="page-link"
+                    <li>
+                    <a href="{{ base_path }}/{{ entity_name }}/list?&page={{ page - 1 }}" class="page-link left-arrow-click"
                         aria-label="Previous"><i class="fa-solid fa-arrow-left"></i>
                     </a>
+                    </li>
                     {% endif %}
                     <li class="page-item">
-                        <a class="page-link {% if page == 1 %}active{% endif %}"
+                        <a class="page-link pagination-link {% if page == 1 %}active{% endif %}"
                             href="{{ base_path }}/{{ entity_name }}/list?page={{ 1 }}" aria-label="Goto page 1">1</a>
                     </li>
                     <li class="page-item disabled">
                         <span class="page-link">&hellip;</span>
                     </li>
                     {% for i in range(start=min_show_page,end=max_show_page) %}
-                    <li class="page-item"><a class="page-link {% if page == i+1 %}active{% endif %}"
+                    <li class="page-item"><a class="page-link pagination-link {% if page == i+1 %}active{% endif %}"
                             aria-label="Goto page {{ i + 1 }}"
                             href="{{ base_path }}/{{ entity_name }}/list?page={{ i + 1 }}">{{
                             i + 1 }}</a></li>
                     {%- endfor %}
                     <li class="page-item disabled">
-                        <span class="page-link">&hellip;</span>
+                        <span class="page-link pagination-link">&hellip;</span>
                     </li>
                     <li class="page-item">
                         <a href="{{ base_path }}/{{ entity_name }}/list?page={{ num_pages }}"
-                            class="page-link {% if page == num_pages %}active{% endif %}"
+                            class="page-link pagination-link {% if page == num_pages %}active{% endif %}"
                             aria-label="Goto page {{ num_pages }}">{{ num_pages }} </a>
                     </li>
-                    {% if page < num_pages %} <a href="{{ base_path }}/{{ entity_name }}/list?page={{ page + 1 }}"
-                        class="page-link" aria-label="Next"><i class="fa-solid fa-arrow-right"></i>
-                        </a>
+                    {% if page < num_pages %} <li><a href="{{ base_path }}/{{ entity_name }}/list?page={{ page + 1 }}"
+                        class="page-link right-arrow-click" aria-label="Next"><i class="fa-solid fa-arrow-right"></i>
+                        </a></li>
                         {% endif %}
                 </ul>
             </nav>

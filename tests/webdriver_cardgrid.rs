@@ -11,7 +11,7 @@ mod webdriver_tests {
 
     #[tokio_test]
     async fn webdriver_support() -> Result<(), fantoccini::error::CmdError> {    
-        let (server_task, geckodriver, c) = setup(true).await.unwrap();
+        let (server_task, geckodriver, c) = setup(true, false).await.unwrap();
 
         // Open the index page
         c.goto("http://localhost:5555/admin/").await?;

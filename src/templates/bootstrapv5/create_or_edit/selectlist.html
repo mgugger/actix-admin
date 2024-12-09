@@ -7,7 +7,7 @@
         model.custom_errors | get(key=model_field.field_name, default="" ) !="" 
         %}is-danger{% else %}is-success{% endif %}
     {% endif %}">
-    <select name="{{ model_field.field_name }}">
+    <select name="{{ model_field.field_name }}" class="form-control">
         {% if model_field.is_option %}
         <option value=""></option>
         {% else %}
@@ -21,7 +21,7 @@
             {%- endfor %}
         {% else %} <!-- prepopulate existing value -->
             <option value="{{ model.values | get(key=model_field.field_name, default='') }}" selected>
-                {{ model.fk_values | get(key=model_field.field_name, default="fk not found") }}
+                {{ model.fk_values | get(key=model_field.field_name, default= (model.values | get(key=model_field.field_name, default='fk not found'))) }}
             </option>
         {% endif %}
     </select>

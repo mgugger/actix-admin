@@ -11,7 +11,7 @@ mod webdriver_tests {
 
     #[tokio_test]
     async fn webdriver_edit() -> Result<(), fantoccini::error::CmdError> {    
-        let (server_task, geckodriver, c) = setup(true, false).await.unwrap();
+        let (server_task, geckodriver, c) = setup(true, true).await.unwrap();
 
         // Open the post list page
         c.goto("http://localhost:5555/admin/post/list").await?;
@@ -19,10 +19,10 @@ mod webdriver_tests {
         assert_eq!(url.as_ref(), "http://localhost:5555/admin/post/list");
 
         // Click on edit first element
-        let css_selector = "a[href='/admin/post/edit/1']";
+        let css_selector = "a[hx-get='/admin/post/edit/1']";
         c.find(Locator::Css(css_selector.into())).await?.click().await?;
         let url = c.current_url().await?;
-        assert!(url.as_ref().contains("http://localhost:5555/admin/post/edit/1"));
+        assert!(url.as_ref().contains("http://localhost:5555/admin/post/list"));
 
         // Fill the form
         let css_selector = "input[name='title']";
@@ -39,7 +39,7 @@ mod webdriver_tests {
         c.find(Locator::Css(css_selector.into())).await?.send_keys("2023-04-02").await?;
 
         // save
-        let css_selector = "button[name='submitBtn']";
+        let css_selector = "a[name='submitBtn']";
         c.find(Locator::Css(css_selector.into())).await?.click().await?;
         let url = c.current_url().await?;
         tokio::time::sleep(Duration::from_secs(1)).await;

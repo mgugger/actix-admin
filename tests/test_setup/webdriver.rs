@@ -7,11 +7,11 @@ use tokio;
 use serde_json::{Map, Value};
 use fantoccini::{ ClientBuilder, Client };
 
-pub async fn setup(create_entities: bool) -> Result<(tokio::task::JoinHandle<()>, Child, Client), Box<dyn std::error::Error>> {
+pub async fn setup(create_entities: bool, enable_inline_editing: bool) -> Result<(tokio::task::JoinHandle<()>, Child, Client), Box<dyn std::error::Error>> {
     // Create and start the Actix-web server
     let server_task = tokio::spawn(async move {
         let db = setup_db(create_entities).await;
-        create_server!(db, false, None);
+        create_server!(db, false, None, enable_inline_editing);
     });
     
     // run geckodriver
