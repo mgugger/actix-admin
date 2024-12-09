@@ -21,7 +21,7 @@ name = "actix_admin"
 path = "src/lib.rs"
 
 [features]
-default = ["bulma_css"]
+default = ["bootstrapv5_css"]
 bulma_css = []
 bootstrapv5_css = []
 

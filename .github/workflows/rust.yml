@@ -18,7 +18,7 @@ jobs:
     - uses: browser-actions/setup-firefox@latest
     - name: Build
       run: cargo build --verbose
-    - name: Run tests
+    - name: Run tests with bulma_css feature
       run: cargo test --verbose --features bulma_css --no-default-features
-    - name: Run tests
+    - name: Run tests with bootstrapv5_css feature
       run: cargo test --verbose --features bootstrapv5_css --no-default-features
