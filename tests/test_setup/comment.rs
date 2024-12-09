@@ -3,7 +3,7 @@ use std::fmt::{self, Display};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use actix_admin::prelude::*;
-use super::Post;
+use super::{Post, post };
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, 
    DeriveActixAdmin, DeriveActixAdminModel, DeriveActixAdminViewModel
@@ -22,7 +22,7 @@ pub struct Model {
     #[sea_orm(column_type = "DateTime")]
     pub insert_date: DateTime,
     pub is_visible: bool,
-    #[actix_admin(select_list="Post")]
+    #[actix_admin(select_list="Post", foreign_key="Post", use_tom_select_callback)]
     pub post_id: Option<i32>,
     #[actix_admin(ceil=2)]
     pub my_decimal: Decimal
