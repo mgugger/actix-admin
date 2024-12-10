@@ -1,10 +1,7 @@
-use syn::{
-    Visibility, Type
-};
+use syn::Type;
 use quote::ToTokens;
 
 pub struct ModelField {
-    pub visibility: Visibility,
     pub ident: proc_macro2::Ident,
     pub ty: Type,
     pub inner_type: Option<Type>,

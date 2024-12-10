@@ -40,7 +40,7 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 derive_attr::ActixAdmin::try_from_attributes(&field.attrs).unwrap_or_default();
 
             if field.ident.is_some() {
-                let field_vis = field.vis.clone();
+                //let field_vis = field.vis.clone();
                 let field_ident = field.ident.as_ref().unwrap().clone();
                 let inner_type = extract_type_from_option(&field.ty);
                 let field_ty = field.ty.to_owned();
@@ -114,7 +114,6 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 });
 
                 let model_field = ModelField {
-                    visibility: field_vis,
                     ident: field_ident,
                     ty: field_ty,
                     inner_type: inner_type,
