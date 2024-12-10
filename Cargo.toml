@@ -38,7 +38,7 @@ lazy_static = "^1.5"
 serde = "^1.0"
 serde_derive = "^1.0"
 sea-orm = { version = "^1.1", features = [], default-features = false }
-actix-admin-macros = { version = "0.7.0", path = "actix_admin_macros" }
+actix-admin-macros = { version = "0.8.0", path = "actix_admin_macros" }
 derive_more = { version = "1", features = ["full"] }
 regex = "1.11"
 urlencoding = "2.1.3"

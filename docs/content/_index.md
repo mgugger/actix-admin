@@ -24,7 +24,7 @@ Check the [examples](https://github.com/mgugger/actix-admin/tree/main/examples) 
 [package]
 name = "actix-admin-example"
 description = "An admin interface for actix-web"
-version = "0.5.0"
+version = "0.8.0"
 edition = "2021"
 
 [[bin]]
@@ -35,11 +35,11 @@ path = "main.rs"
 actix-web = "^4.3.1"
 actix-rt = "2.7.0"
 actix-multipart = "^0.4.0"
-sea-orm = { version = "^0.11.3", features = [ "sqlx-sqlite", "runtime-actix-native-tls", "macros" ], default-features = true }
+sea-orm = { version = "^1.1", features = [ "sqlx-sqlite", "runtime-actix-native-tls", "macros" ], default-features = true }
 chrono = "0.4.23"
 tera = "^1.17.1"
 serde = "^1.0.152"
 serde_derive = "^1.0.152"
-actix-admin = "0.7.0"
+actix-admin = "0.8.0"
 regex = "1.7.1"
 ```
