@@ -74,6 +74,19 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
 }
 ```
 
+## Adapt the Views
+
+```rust
+let mut post_view_model = ActixAdminViewModel::from(Post);
+
+// clicking on edit will allow editing the row within the table and not redirect to an edit view
+post_view_model.inline_edit = true;
+// hide the filter list which is open by default
+post_view_model.default_show_aside = false;
+
+admin_builder.add_entity::<Post>(&post_view_model);
+```
+
 ## View Groups
 
 Views / Models can be grouped in the Navbar by using the following functions instead of ```admin_builder.add_entity```:

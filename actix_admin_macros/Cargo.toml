@@ -3,7 +3,7 @@ name = "actix-admin-macros"
 description = "macros to be used with actix-admin crate"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/mgugger/actix-admin"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2021"
 exclude = [
     "tests/*"
