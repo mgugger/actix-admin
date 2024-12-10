@@ -34,7 +34,8 @@ pub struct ActixAdminModelFilter<E: EntityTrait> {
     pub name: String,
     pub filter_type: ActixAdminModelFilterType,
     pub filter: fn(sea_orm::Select<E>, Option<String>) -> sea_orm::Select<E>,
-    pub values: Option<Vec<(String, String)>>
+    pub values: Option<Vec<(String, String)>>,
+    pub foreign_key: Option<String>
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -43,7 +44,8 @@ pub enum ActixAdminModelFilterType {
     SelectList,
     Date,
     DateTime,
-    Checkbox
+    Checkbox,
+    TomSelectSearch
 }
 
 #[async_trait]
@@ -62,7 +64,8 @@ impl<T: EntityTrait> From<ActixAdminModelFilter<T>> for ActixAdminViewModelFilte
             name: filter.name,
             value: None,
             values: None,
-            filter_type: Some(filter.filter_type)
+            filter_type: Some(filter.filter_type),
+            foreign_key: None
         }
     }
 }

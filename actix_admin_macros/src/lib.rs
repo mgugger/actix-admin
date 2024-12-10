@@ -122,7 +122,8 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                             name: filter.name.to_string(),
                             value: None,
                             values: Entity::get_filter_values(&filter, db).await,
-                            filter_type: Some(filter.filter_type)
+                            filter_type: Some(filter.filter_type),
+                            foreign_key: filter.foreign_key.clone()
                         }
                     );
                 };

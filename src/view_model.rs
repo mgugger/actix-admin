@@ -61,6 +61,7 @@ pub struct ActixAdminViewModelSerializable {
 pub struct ActixAdminViewModelFilter {
     pub name: String,
     pub value: Option<String>,
+    pub foreign_key: Option<String>,
     pub values: Option<Vec<(String, String)>>,
     pub filter_type: Option<ActixAdminModelFilterType>
 }

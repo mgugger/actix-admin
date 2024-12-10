@@ -75,6 +75,7 @@ pub async fn export_csv<E: ActixAdminViewModelTrait>(
                     value: kv.next().map(|s| s.to_string()).filter(|f| !f.is_empty()),
                     values: None,
                     filter_type: None,
+                    foreign_key: None,
                 })
             } else {
                 None
@@ -157,6 +158,7 @@ pub async fn list<E: ActixAdminViewModelTrait>(
                     value: kv.next().map(|s| s.to_string()).filter(|f| !f.is_empty()),
                     values: None,
                     filter_type: None,
+                    foreign_key: None,
                 })
             } else {
                 None

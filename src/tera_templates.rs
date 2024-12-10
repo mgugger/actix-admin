@@ -24,6 +24,7 @@ struct TeraTemplate {
     // list
     list_header_html: &'static str,
     list_row_html: &'static str,
+    list_filter_html: &'static str,
 }
 
 pub fn get_tera() -> Tera {
@@ -169,6 +170,7 @@ fn add_templates_to_tera(tera: &mut Tera, tera_template: TeraTemplate) {
         // list
         ("list/header.html", tera_template.list_header_html),
         ("list/row.html", tera_template.list_row_html),
+        ("list/filter.html", tera_template.list_filter_html),
     ]);
 }
 
@@ -202,6 +204,7 @@ fn load_templates() -> Tera {
         // list
         list_header_html: include_str!("templates/bulma/list/header.html"),
         list_row_html: include_str!("templates/bulma/list/row.html"),
+        list_filter_html: include_str!("templates/bulma/list/filter.html"),
     };
 
     add_templates_to_tera(&mut tera, tera_template);
@@ -235,6 +238,7 @@ fn load_templates() -> Tera {
         // list
         list_header_html: include_str!("templates/bootstrapv5/list/header.html"),
         list_row_html: include_str!("templates/bootstrapv5/list/row.html"),
+        list_filter_html: include_str!("templates/bootstrapv5/list/filter.html"),
     };
 
     add_templates_to_tera(&mut tera, tera_template);

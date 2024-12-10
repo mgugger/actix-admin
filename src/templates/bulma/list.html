@@ -4,63 +4,8 @@
 {% block content %}
 
 {% if not render_partial or render_partial == false %}
-<aside id="nav_aside"
-    class="column is-2 {% if not view_model.default_show_aside %}is-hidden{% endif %} is-narrow-mobile is-fullheight is-hidden-mobile">
-    <p class="menu-label is-hidden-touch">Filter</p>
-    <form id="filter_form" hx-indicator="#loading" hx-get="{{ base_path }}/{{ entity_name }}/list"
-        hx-target="#{{ entity_name }}table" hx-push-url="true" hx-include="[id='{{ entity_name }}table']">
-        <ul class="menu-list">
-            {% for key, value in viewmodel_filter %}
-            <li>
-                <div class="field mt-3">
-                    <label class="label">{{key}}</label>
-                    {% if value.filter_type == "Text" %}
-                    <div class="control">
-                        <input class="input" value="{{ value.value }}" type="text" placeholder="" name="filter_{{key}}">
-                    </div>
-                    {% elif value.filter_type == "DateTime" %}
-                    <div class="control">
-                        <input class="input" value="{{ value.value }}" type="datetime-local" placeholder=""
-                            name="filter_{{key}}">
-                    </div>
-                    {% elif value.filter_type == "Checkbox" %}
-                    <div class="select is-fullwidth">
-                        <select name="filter_{{key}}" id="filter_{{key}}">
-                            <option value=""></option>
-                            <option value="1">&#10004;</option>
-                            <option value="0">&#10006;</option>
-                        </select>
-                    </div>
-                    {% elif value.filter_type == "Date" %}
-                    <div class="control">
-                        <input class="input" type="date" placeholder="" name="filter_{{key}}">
-                    </div>
-                    {% elif value.filter_type == "SelectList" %}
-                    <div class="select is-fullwidth">
-                        <select name="filter_{{key}}" id="filter_{{key}}">
-                            <option value=""></option>
-                            {% for selectval in value.values %}
-                            <option value="{{ selectval[0] }}">{{ selectval[1] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    {% else %}
-                    <div class="control">
-                        <input class="input" value="{{ value.value }}" type="text" placeholder="" name="filter_{{key}}">
-                    </div>
-                    {% endif %}
-                </div>
-            </li>
-            {% endfor %}
-            <li>
-                <div class="field mt-4 is-grouped">
-                    <div class="control">
-                        <button class="button is-link" type="submit">Apply</button>
-                    </div>
-                </div>
-            </li>
-        </ul>
-    </form>
+<aside id="nav_aside" class="column is-2 {% if not view_model.default_show_aside %}is-hidden{% endif %} is-narrow-mobile is-fullheight is-hidden-mobile">
+    {% include "list/filter.html" %}
 </aside>
 
 <div class="column">

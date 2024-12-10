@@ -1,0 +1,93 @@
+<p class="menu-label d-md-block">Filter</p>
+<form id="filter_form" hx-indicator="#loading" hx-get="{{ base_path }}/{{ entity_name }}/list"
+    hx-target="#{{ entity_name }}table" hx-push-url="true" hx-include="[id='{{ entity_name }}table']">
+    <ul class="list-unstyled">
+        {% for key, value in viewmodel_filter %}
+        <li class="list-group-item">
+            <div class="mb-3">
+                <label class="form-label">{{key}}</label>
+                {% if value.filter_type == "Text" %}
+                <input class="form-control" value="{{ value.value }}" type="text" placeholder="" name="filter_{{key}}">
+                {% elif value.filter_type == "DateTime" %}
+                <input class="form-control" value="{{ value.value }}" type="datetime-local" placeholder=""
+                    name="filter_{{key}}">
+                {% elif value.filter_type == "Checkbox" %}
+                <select class="form-select" name="filter_{{key}}" id="filter_{{key}}">
+                    <option value=""></option>
+                    <option value="1">&#10004;</option>
+                    <option value="0">&#10006;</option>
+                </select>
+                {% elif value.filter_type == "Date" %}
+                <input class="form-control" type="date" placeholder="" name="filter_{{key}}">
+                {% elif value.filter_type == "SelectList" %}
+                <select class="form-select" name="filter_{{key}}" id="filter_{{key}}">
+                    <option value=""></option>
+                    {% for selectval in value.values %}
+                    <option value="{{ selectval[0] }}">{{ selectval[1] }}</option>
+                    {% endfor %}
+                </select>
+                {% elif value.filter_type == "TomSelectSearch" %}
+                    <div class="is-fullwidth">
+                        <select class="form-select" name="filter_{{key}}" id="filter_{{key}}">
+                            <option value=""></option>
+                        </select>
+                        <script>
+                            var settings = {
+                                plugins: ['remove_button'],
+                                // select fields from remote data
+                                valueField: 'value',
+                                labelField: 'label',
+                                searchField: 'label',
+                                // fetch remote data
+                                load: function(query, callback) {
+                                    var url = '{{ base_path | safe }}/' + "{{ value.foreign_key | lower | safe }}" + '/search?q=' + encodeURIComponent(query);
+                                    fetch(url)
+                                        .then(response => response.json())
+                                        .then(json => {
+                                            callback(json.items);
+                                        }).catch(()=>{
+                                            callback();
+                                        });
+                                },
+                                // custom rendering functions for options and items
+                                render: {
+                                    option: function(item, escape) {
+                                        return `<div class="py-2 d-flex">
+                                                    <div>
+                                                        <div class="mb-1">
+                                                            <span class="h4">
+                                                                ${ escape(item.label) }
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>`;
+                                    },
+                                    item: function(item, escape) {
+                                        return `<div class="py-2 d-flex">
+                                                    <div>
+                                                        <div class="mb-1">
+                                                            <span class="h4">
+                                                                ${ escape(item.label) }
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>`;
+                                    }
+                                },
+                            };
+                            new TomSelect('select[name="filter_{{key}}"]',settings);
+                        </script>
+                    </div>
+                {% else %}
+                <input class="form-control" value="{{ value.value }}" type="text" placeholder="" name="filter_{{key}}">
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+        <li>
+            <div class="mt-4">
+                <button class="btn btn-primary" type="submit">Apply</button>
+            </div>
+        </li>
+    </ul>
+</form>
