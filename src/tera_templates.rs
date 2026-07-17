@@ -88,7 +88,11 @@ fn get_icon<S: BuildHasher>(
     let font_awesome_icon = match field.as_str() {
         "true" => "<i class=\"fa-solid fa-check\"></i>",
         "false" => "<i class=\"fa-solid fa-xmark\"></i>",
-        _ => panic!("not implemented icon"),
+        other => {
+            return Err(tera::Error::msg(format!(
+                "get_icon: unsupported value '{other}' (expected 'true' or 'false')"
+            )))
+        }
     };
 
     Ok(to_value(font_awesome_icon).unwrap())
@@ -110,15 +114,14 @@ fn get_regex_val<S: BuildHasher>(
     match (field_val, field.list_regex_mask) {
         (Some(val), Some(r)) => {
             let val_str = val.to_string();
-            //let is_match = r.is_match(&val_str);
-            //println!("is match: {}, regex {}", is_match, r.to_string());
             let result_str = r.replace_all(&val_str, "*");
-            return Ok(to_value(result_str).unwrap());
+            Ok(to_value(result_str).unwrap())
         }
-        (Some(val), None) => {
-            return Ok(to_value(val).unwrap());
-        }
-        (_, _) => panic!("key {} not found in model values", &field.field_name),
+        (Some(val), None) => Ok(to_value(val).unwrap()),
+        (None, _) => Err(tera::Error::msg(format!(
+            "key '{}' not found in model values",
+            &field.field_name
+        ))),
     }
 }
 
@@ -134,7 +137,7 @@ fn get_html_input_type<S: BuildHasher>(
     );
 
     // TODO: convert to option
-    if field.html_input_type != "" {
+    if !field.html_input_type.is_empty() {
         return Ok(to_value(field.html_input_type).unwrap());
     }
 
@@ -175,7 +178,15 @@ fn add_templates_to_tera(tera: &mut Tera, tera_template: TeraTemplate) {
 }
 
 #[cfg(all(feature = "bootstrapv5_css", feature = "bulma_css"))]
-compile_error!("feature \"foo\" and feature \"bar\" cannot be enabled at the same time");
+compile_error!(
+    "features `bulma_css` and `bootstrapv5_css` cannot be enabled at the same time. \
+     Disable default features with `default-features = false`."
+);
+
+#[cfg(not(any(feature = "bulma_css", feature = "bootstrapv5_css")))]
+compile_error!(
+    "At least one CSS theme feature must be enabled: `bulma_css` or `bootstrapv5_css`."
+);
 
 // Cargo Features for CSS
 #[cfg(feature = "bulma_css")]

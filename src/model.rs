@@ -1,6 +1,6 @@
 use crate::view_model::{ActixAdminViewModelFilter, ActixAdminViewModelParams};
-use crate::{ActixAdminError, ActixAdminViewModelField};
-use actix_multipart::{Multipart, MultipartError};
+use crate::{ActixAdminError, ActixAdminErrorType, ActixAdminViewModelField};
+use actix_multipart::Multipart;
 use actix_web::web::Bytes;
 use async_trait::async_trait;
 use chrono::{NaiveDate, NaiveDateTime};
@@ -10,7 +10,46 @@ use serde_derive::Serialize;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
+use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+/// Maximum total upload size (default 25MB). Individual deployments should
+/// enforce their own limits via `actix_multipart::form::MultipartFormConfig`
+/// but this provides a defensive per-field cap so that a single field cannot
+/// exhaust memory in `create_from_payload`.
+pub const DEFAULT_MAX_FIELD_SIZE_BYTES: usize = 25 * 1024 * 1024;
+
+/// Sanitize a user-provided filename so that it can never traverse outside the
+/// upload directory. Strips path separators, `..`, control chars and NULs, and
+/// falls back to a timestamp-based name if the result would be empty.
+pub fn sanitize_upload_filename(raw: &str) -> String {
+    // Take just the last path component. Split manually on both '/' and '\\'
+    // so we correctly reject Windows-style traversal even on unix hosts.
+    let last = raw.rsplit(['/', '\\']).next().unwrap_or("");
+
+    let cleaned = sanitize_filename::sanitize_with_options(
+        last,
+        sanitize_filename::Options {
+            windows: true,
+            truncate: true,
+            replacement: "_",
+        },
+    );
+    let cleaned: String = cleaned
+        .chars()
+        .filter(|c| !c.is_control() && *c != '\0')
+        .collect();
+    let cleaned = cleaned.trim_matches(|c: char| c == '.' || c.is_whitespace());
+    if cleaned.is_empty() || cleaned.chars().all(|c| c == '.') {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        format!("upload_{now}")
+    } else {
+        cleaned.to_string()
+    }
+}
 
 #[async_trait]
 pub trait ActixAdminModelTrait {
@@ -26,7 +65,7 @@ pub trait ActixAdminModelTrait {
 
 pub trait ActixAdminModelValidationTrait<T> {
     fn validate(_model: &T) -> HashMap<String, String> {
-        return HashMap::new();
+        HashMap::new()
     }
 }
 
@@ -94,61 +133,88 @@ impl ActixAdminModel {
 
     pub async fn create_from_payload(
         id: Option<i32>,
-        mut payload: Multipart, file_upload_folder: &str
-    ) -> Result<ActixAdminModel, MultipartError> {
+        mut payload: Multipart,
+        file_upload_folder: &str,
+    ) -> Result<ActixAdminModel, ActixAdminError> {
         let mut hashmap = HashMap::<String, String>::new();
 
         while let Some(item) = payload.next().await {
             let mut field = item?;
 
             let mut binary_data: Vec<Bytes> = Vec::new();
+            let mut total_size: usize = 0;
             while let Some(chunk) = field.next().await {
-                binary_data.push(chunk.unwrap());
-                //println!("-- CHUNK: \n{:?}", String::from_utf8(chunk.map_or(Vec::new(), |c| c.to_vec())));
-                // let res_string = String::from_utf8(chunk.map_or(Vec::new(), |c| c.to_vec()));
+                let chunk = chunk?;
+                total_size = total_size.saturating_add(chunk.len());
+                if total_size > DEFAULT_MAX_FIELD_SIZE_BYTES {
+                    return Err(ActixAdminError::new(
+                        ActixAdminErrorType::UploadError,
+                        "Uploaded field exceeds maximum size",
+                    ));
+                }
+                binary_data.push(chunk);
             }
             let binary_data = binary_data.concat();
-            if field.content_disposition().expect("expected content disposition").get_filename().is_some() {
-                let mut filename = field
-                    .content_disposition()
-                    .expect("expected content disposition")
-                    .get_filename()
-                    .unwrap()
-                    .to_string();
 
-                let mut file_path = format!("{}/{}", file_upload_folder, filename);
-                let file_exists = std::path::Path::new(&file_path).exists();
-                // Avoid overwriting existing files
-                if file_exists {
-                    filename =  format!("{}_{}", SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(), filename);
-                    file_path = format!("{}/{}", file_upload_folder, filename);
+            let content_disposition = match field.content_disposition() {
+                Some(cd) => cd.clone(),
+                None => continue,
+            };
+            let field_name = match content_disposition.get_name() {
+                Some(name) => name.to_string(),
+                None => continue,
+            };
+
+            if let Some(raw_filename) = content_disposition.get_filename() {
+                // Skip empty file uploads silently (browsers submit empty file fields).
+                if raw_filename.is_empty() && binary_data.is_empty() {
+                    continue;
                 }
 
-                let file = File::create(file_path);
-                let _res = file.unwrap().write_all(&binary_data);
+                let mut filename = sanitize_upload_filename(raw_filename);
 
-                hashmap.insert(
-                    field.name().expect("expected file name").to_string(),
-                    filename.clone()
-                );
-            } else {
-                let res_string = String::from_utf8(binary_data);
-                if res_string.is_ok() {
-                    hashmap.insert(field.name().expect("expected file name").to_string(), res_string.unwrap());
+                let base = PathBuf::from(file_upload_folder);
+                let mut file_path = base.join(&filename);
+
+                // Avoid overwriting existing files by prefixing a timestamp.
+                if file_path.exists() {
+                    let ts = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .map(|d| d.as_millis())
+                        .unwrap_or(0);
+                    filename = format!("{ts}_{filename}");
+                    file_path = base.join(&filename);
                 }
+
+                // Defense in depth: reject any joined path that escapes the base.
+                let canonical_base = base.canonicalize().unwrap_or_else(|_| base.clone());
+                let parent = file_path.parent().unwrap_or(&base);
+                let canonical_parent = parent
+                    .canonicalize()
+                    .unwrap_or_else(|_| parent.to_path_buf());
+                if !canonical_parent.starts_with(&canonical_base) {
+                    return Err(ActixAdminError::new(
+                        ActixAdminErrorType::UploadError,
+                        "Uploaded filename resolves outside the upload directory",
+                    ));
+                }
+
+                let mut f = File::create(&file_path)?;
+                f.write_all(&binary_data)?;
+
+                hashmap.insert(field_name, filename);
+            } else if let Ok(res_string) = String::from_utf8(binary_data) {
+                hashmap.insert(field_name, res_string);
             }
         }
 
         Ok(ActixAdminModel {
-            primary_key: match id {
-                Some(id) => Some(id.to_string()),
-                None => None
-            },
+            primary_key: id.map(|id| id.to_string()),
             values: hashmap,
             errors: HashMap::new(),
             custom_errors: HashMap::new(),
             fk_values: HashMap::new(),
-            display_name: None
+            display_name: None,
         })
     }
 
@@ -235,6 +301,159 @@ impl ActixAdminModel {
     }
 
     pub fn has_errors(&self) -> bool {
-        return (&self.errors.len() + &self.custom_errors.len()) != 0 as usize;
+        (self.errors.len() + self.custom_errors.len()) != 0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn model_with(key: &str, value: &str) -> ActixAdminModel {
+        let mut m = ActixAdminModel::create_empty();
+        m.values.insert(key.to_string(), value.to_string());
+        m
+    }
+
+    // ---- sanitize_upload_filename ----
+
+    #[test]
+    fn sanitize_strips_traversal() {
+        assert_eq!(sanitize_upload_filename("../../etc/passwd"), "passwd");
+        assert_eq!(sanitize_upload_filename("..\\..\\evil.exe"), "evil.exe");
+        assert_eq!(sanitize_upload_filename("/absolute/path/x.txt"), "x.txt");
+    }
+
+    #[test]
+    fn sanitize_removes_control_chars_and_nul() {
+        let out = sanitize_upload_filename("foo\0bar\nbaz.txt");
+        assert!(!out.contains('\0'));
+        assert!(!out.contains('\n'));
+        assert!(out.ends_with(".txt"));
+    }
+
+    #[test]
+    fn sanitize_empty_or_dotfile_falls_back() {
+        let out = sanitize_upload_filename("");
+        assert!(out.starts_with("upload_"));
+        let out = sanitize_upload_filename("...");
+        // Result must not resolve to a traversal or hidden dotfile.
+        assert!(!out.contains(".."));
+        assert!(!out.starts_with('.'));
+        assert!(!out.is_empty());
+    }
+
+    // ---- get_value matrix ----
+
+    #[test]
+    fn get_value_present_parses() {
+        let m = model_with("n", "42");
+        let v: Option<i32> = m.get_value("n", false, false).unwrap();
+        assert_eq!(v, Some(42));
+    }
+
+    #[test]
+    fn get_value_invalid_returns_err() {
+        let m = model_with("n", "abc");
+        let r: Result<Option<i32>, _> = m.get_value("n", false, false);
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn get_value_empty_string_option_allowed_returns_none() {
+        let m = model_with("s", "");
+        let r: Result<Option<String>, _> = m.get_value("s", true, true);
+        assert_eq!(r.unwrap(), None);
+    }
+
+    #[test]
+    fn get_value_empty_string_option_not_allowed_returns_err() {
+        let m = model_with("s", "");
+        let r: Result<Option<String>, _> = m.get_value("s", true, false);
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn get_value_missing_option_allowed_returns_none() {
+        let m = ActixAdminModel::create_empty();
+        let r: Result<Option<String>, _> = m.get_value("missing", true, true);
+        assert_eq!(r.unwrap(), None);
+    }
+
+    #[test]
+    fn get_value_missing_option_not_allowed_returns_err() {
+        let m = ActixAdminModel::create_empty();
+        let r: Result<Option<String>, _> = m.get_value("missing", true, false);
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn get_value_missing_non_option_returns_err() {
+        let m = ActixAdminModel::create_empty();
+        let r: Result<Option<i32>, _> = m.get_value("missing", false, true);
+        assert!(r.is_err());
+    }
+
+    // ---- get_bool ----
+
+    #[test]
+    fn get_bool_true_yes() {
+        let m = model_with("b", "true");
+        assert_eq!(m.get_bool("b", false, true).unwrap(), Some(true));
+        let m = model_with("b", "yes");
+        assert_eq!(m.get_bool("b", false, true).unwrap(), Some(true));
+    }
+
+    #[test]
+    fn get_bool_other_values_are_false() {
+        let m = model_with("b", "off");
+        assert_eq!(m.get_bool("b", false, true).unwrap(), Some(false));
+    }
+
+    #[test]
+    fn get_bool_missing_falls_back_to_false() {
+        let m = ActixAdminModel::create_empty();
+        assert_eq!(m.get_bool("b", false, false).unwrap(), Some(false));
+    }
+
+    // ---- get_date / get_datetime ----
+
+    #[test]
+    fn get_date_valid() {
+        let m = model_with("d", "2024-01-02");
+        let d = m.get_date("d", false, false).unwrap().unwrap();
+        assert_eq!(d, chrono::NaiveDate::from_ymd_opt(2024, 1, 2).unwrap());
+    }
+
+    #[test]
+    fn get_date_invalid() {
+        let m = model_with("d", "nope");
+        assert!(m.get_date("d", false, false).is_err());
+    }
+
+    #[test]
+    fn get_datetime_valid_local_form() {
+        let m = model_with("d", "2024-01-02T03:04");
+        let dt = m.get_datetime("d", false, false).unwrap().unwrap();
+        assert_eq!(
+            dt,
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 2)
+                .unwrap()
+                .and_hms_opt(3, 4, 0)
+                .unwrap()
+        );
+    }
+
+    // ---- has_errors ----
+
+    #[test]
+    fn has_errors_reports_both_maps() {
+        let mut m = ActixAdminModel::create_empty();
+        assert!(!m.has_errors());
+        m.errors.insert("a".into(), "b".into());
+        assert!(m.has_errors());
+        m.errors.clear();
+        m.custom_errors.insert("a".into(), "b".into());
+        assert!(m.has_errors());
     }
 }

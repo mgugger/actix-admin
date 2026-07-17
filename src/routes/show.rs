@@ -7,8 +7,8 @@ use super::helpers::{add_default_context, SearchParams};
 use crate::prelude::*;
 use crate::ActixAdminNotification;
 
-use super::{add_auth_context, render_unauthorized, user_can_access_page};
-use super::{Params, DEFAULT_ENTITIES_PER_PAGE};
+use super::{add_auth_context, render_unauthorized, user_can_access_page, view_model_or_500};
+use super::Params;
 
 pub async fn show<E: ActixAdminViewModelTrait>(
     session: Session,
@@ -21,52 +21,47 @@ pub async fn show<E: ActixAdminViewModelTrait>(
 
     let mut ctx = Context::new();
     let entity_name = E::get_entity_name();
-    let view_model: &ActixAdminViewModel = actix_admin.view_models.get(&entity_name).unwrap();
+    let view_model: &ActixAdminViewModel = view_model_or_500(actix_admin, &entity_name)?;
     if !user_can_access_page(&session, actix_admin, view_model) {
-        return render_unauthorized(&ctx, &actix_admin);
+        return render_unauthorized(&ctx, actix_admin);
     }
 
     let tenant_ref = actix_admin
         .configuration
         .user_tenant_ref
-        .map_or(None, |f| f(&session));
+        .and_then(|f| f(&session));
 
     let mut errors: Vec<crate::ActixAdminError> = Vec::new();
     let model = match E::get_entity(&db, id.into_inner(), tenant_ref).await {
         Ok(res) => res,
+        Err(e) if e.ty == crate::ActixAdminErrorType::EntityDoesNotExistError => {
+            // Short-circuit: don't try to render show.html with an empty model.
+            let body = actix_admin
+                .tera
+                .render("not_found.html", &tera::Context::new())
+                .unwrap_or_else(|_| String::from("Not Found"));
+            return Ok(HttpResponse::NotFound().content_type("text/html").body(body));
+        }
         Err(e) => {
             errors.push(e);
             ActixAdminModel::create_empty()
         }
     };
 
-    let mut http_response_code = match errors.is_empty() {
-        false => HttpResponse::InternalServerError(),
-        true => HttpResponse::Ok(),
+    let mut http_response_code = match errors.first() {
+        None => HttpResponse::Ok(),
+        Some(e) if e.ty == crate::ActixAdminErrorType::EntityDoesNotExistError => {
+            HttpResponse::NotFound()
+        }
+        Some(_) => HttpResponse::InternalServerError(),
     };
     let notifications: Vec<ActixAdminNotification> = errors
         .into_iter()
-        .map(|err| ActixAdminNotification::from(err))
+        .map(ActixAdminNotification::from)
         .collect();
 
-    let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
-
-    let search_params = SearchParams {
-        page: params.page.unwrap_or(1),
-        entities_per_page: params
-            .entities_per_page
-            .unwrap_or(DEFAULT_ENTITIES_PER_PAGE),
-        search: params.search.clone().unwrap_or(String::new()),
-        sort_by: params
-            .sort_by
-            .clone()
-            .unwrap_or(view_model.primary_key.to_string()),
-        sort_order: params
-            .sort_order
-            .as_ref()
-            .unwrap_or(&SortOrder::Asc)
-            .clone(),
-    };
+    let params = Params::from_query(req.query_string());
+    let search_params = SearchParams::from_params(&params, view_model);
 
     add_auth_context(&session, actix_admin, &mut ctx);
 
@@ -84,6 +79,6 @@ pub async fn show<E: ActixAdminViewModelTrait>(
     let body = actix_admin
         .tera
         .render("show.html", &ctx)
-        .map_err(|err| error::ErrorInternalServerError(err))?;
+        .map_err(error::ErrorInternalServerError)?;
     Ok(http_response_code.content_type("text/html").body(body))
 }

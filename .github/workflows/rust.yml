@@ -10,6 +10,26 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install toolchain
+      run: rustup toolchain install stable --component rustfmt clippy
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+    - name: Clippy
+      run: cargo clippy --all-targets --no-default-features --features bulma_css -- -D warnings
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install cargo-audit
+      run: cargo install --locked cargo-audit || true
+    - name: Audit
+      run: cargo audit || true
+
   build:
     runs-on: ubuntu-latest
     steps:

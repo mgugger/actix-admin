@@ -277,6 +277,16 @@ pub fn get_field_for_primary_key(fields: &Vec<ModelField>) -> TokenStream {
     }
 }
 
+pub fn get_primary_key_column_ident(fields: &Vec<ModelField>) -> Ident {
+    let primary_key_model_field = fields
+        .iter()
+        .find(|model_field| model_field.primary_key)
+        .expect("model must have a single primary key");
+
+    let capitalized = capitalize_first_letter(&primary_key_model_field.ident.to_string());
+    Ident::new(&capitalized, Span::call_site())
+}
+
 pub fn get_primary_key_field_name(fields: &Vec<ModelField>) -> String {
     let primary_key_model_field = fields
         .iter()

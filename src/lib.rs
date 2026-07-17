@@ -43,7 +43,6 @@ pub mod prelude {
     };
     pub use actix_session::Session;
     pub use async_trait::async_trait;
-    pub use lazy_static::lazy_static;
 }
 
 use crate::prelude::*;
@@ -105,20 +104,27 @@ pub struct ActixAdminError {
 
 impl Display for ActixAdminError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        match &*self {
-            _ => write!(formatter, "{}: {}", &self.ty, &self.msg),
-        }
+        write!(formatter, "{}: {}", &self.ty, &self.msg)
     }
 }
 
 // Errors
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Display, Error, PartialEq, Eq)]
 pub enum ActixAdminErrorType {
     #[display("Internal error")]
     InternalError,
 
     #[display("Form has validation errors")]
     ValidationErrors,
+
+    #[display("Bad request")]
+    BadRequest,
+
+    #[display("Unauthorized")]
+    Unauthorized,
+
+    #[display("Forbidden")]
+    Forbidden,
 
     #[display("Could not list entities")]
     ListError,
@@ -137,6 +143,30 @@ pub enum ActixAdminErrorType {
 
     #[display("Entity does not exist")]
     EntityDoesNotExistError,
+
+    #[display("Upload error")]
+    UploadError,
+
+    #[display("IO error")]
+    IoError,
+}
+
+impl ActixAdminError {
+    pub fn new(ty: ActixAdminErrorType, msg: impl Into<String>) -> Self {
+        Self { ty, msg: msg.into() }
+    }
+
+    pub fn bad_request(msg: impl Into<String>) -> Self {
+        Self::new(ActixAdminErrorType::BadRequest, msg)
+    }
+
+    pub fn not_found(msg: impl Into<String>) -> Self {
+        Self::new(ActixAdminErrorType::EntityDoesNotExistError, msg)
+    }
+
+    pub fn internal(msg: impl Into<String>) -> Self {
+        Self::new(ActixAdminErrorType::InternalError, msg)
+    }
 }
 
 impl error::ResponseError for ActixAdminError {
@@ -147,8 +177,14 @@ impl error::ResponseError for ActixAdminError {
     }
 
     fn status_code(&self) -> StatusCode {
-        match *self {
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        use ActixAdminErrorType::*;
+        match self.ty {
+            BadRequest | ValidationErrors => StatusCode::BAD_REQUEST,
+            Unauthorized => StatusCode::UNAUTHORIZED,
+            Forbidden => StatusCode::FORBIDDEN,
+            EntityDoesNotExistError => StatusCode::NOT_FOUND,
+            InternalError | ListError | CreateError | DeleteError | EditError
+            | DatabaseError | UploadError | IoError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -157,6 +193,33 @@ impl std::convert::From<sea_orm::DbErr> for ActixAdminError {
     fn from(err: sea_orm::DbErr) -> ActixAdminError {
         ActixAdminError {
             ty: ActixAdminErrorType::DatabaseError,
+            msg: err.to_string(),
+        }
+    }
+}
+
+impl std::convert::From<std::io::Error> for ActixAdminError {
+    fn from(err: std::io::Error) -> ActixAdminError {
+        ActixAdminError {
+            ty: ActixAdminErrorType::IoError,
+            msg: err.to_string(),
+        }
+    }
+}
+
+impl std::convert::From<actix_multipart::MultipartError> for ActixAdminError {
+    fn from(err: actix_multipart::MultipartError) -> ActixAdminError {
+        ActixAdminError {
+            ty: ActixAdminErrorType::UploadError,
+            msg: err.to_string(),
+        }
+    }
+}
+
+impl std::convert::From<serde_urlencoded::de::Error> for ActixAdminError {
+    fn from(err: serde_urlencoded::de::Error) -> ActixAdminError {
+        ActixAdminError {
+            ty: ActixAdminErrorType::BadRequest,
             msg: err.to_string(),
         }
     }

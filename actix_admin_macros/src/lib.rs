@@ -52,6 +52,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
     let fields = get_fields_for_tokenstream(input);
 
     let name_primary_field_str = get_primary_key_field_name(&fields);
+    let primary_key_column = get_primary_key_column_ident(&fields);
     let fields_for_edit_model = get_fields_for_edit_model(&fields);
     let fields_searchable = get_actix_admin_fields_searchable(&fields);
     let has_searchable_fields = fields_searchable.len() > 0;
@@ -132,7 +133,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
             }
 
             async fn get_entity(db: &DatabaseConnection, id: i32, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError> {
-                let mut query = Entity::find().filter(Column::Id.eq(id));
+                let mut query = Entity::find().filter(Column::#primary_key_column.eq(id));
 
                 #tenant_ref_field
 
@@ -154,7 +155,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
             }
 
             async fn edit_entity(db: &DatabaseConnection, id: i32, mut model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError> {
-                let mut query = Entity::find().filter(Column::Id.eq(id));
+                let mut query = Entity::find().filter(Column::#primary_key_column.eq(id));
 
                 #tenant_ref_field
 
@@ -175,7 +176,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
             }
 
             async fn delete_entity(db: &DatabaseConnection, id: i32, tenant_ref: Option<i32>) -> Result<bool, ActixAdminError> {
-                let mut query = Entity::delete_many().filter(Column::Id.eq(id));
+                let mut query = Entity::delete_many().filter(Column::#primary_key_column.eq(id));
 
                 #tenant_ref_field
 
@@ -268,8 +269,13 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let tenant_ref_field = get_tenant_ref_field(&fields, true);
 
     let expanded = quote! {
-        actix_admin::prelude::lazy_static! {
-            pub static ref ACTIX_ADMIN_VIEWMODEL_FIELDS: Vec<ActixAdminViewModelField> = {
+        // Lazily-initialized static list of the entity's fields, populated on
+        // first access. Uses `std::sync::OnceLock` instead of `lazy_static` so
+        // there is no runtime crate dependency for statics.
+        fn __actix_admin_viewmodel_fields() -> &'static [ActixAdminViewModelField] {
+            static FIELDS: ::std::sync::OnceLock<::std::vec::Vec<ActixAdminViewModelField>> =
+                ::std::sync::OnceLock::new();
+            FIELDS.get_or_init(|| {
                 let mut vec = Vec::new();
 
             #(
@@ -316,9 +322,8 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                 });
             )*
 
-            vec
-        };
-
+                vec
+            }).as_slice()
         }
 
         impl From<Model> for ActixAdminModel {
@@ -449,7 +454,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
             }
 
             fn get_fields() -> &'static[ActixAdminViewModelField] {
-                ACTIX_ADMIN_VIEWMODEL_FIELDS.as_slice()
+                __actix_admin_viewmodel_fields()
             }
         }
     };

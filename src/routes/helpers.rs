@@ -3,7 +3,7 @@ use serde_derive::Deserialize;
 use tera::Context;
 
 use crate::{prelude::*, ActixAdminNotification};
-use actix_web::{error, web::Query, Error, HttpRequest, HttpResponse};
+use actix_web::{error, Error, HttpRequest, HttpResponse};
 
 use super::{Params, DEFAULT_ENTITIES_PER_PAGE};
 
@@ -37,9 +37,41 @@ pub fn user_can_access_page(session: &Session, actix_admin: &ActixAdmin, view_mo
 
 pub fn render_unauthorized(ctx: &Context, actix_admin: &ActixAdmin) -> Result<HttpResponse, Error> {
     let body = actix_admin.tera
-            .render("unauthorized.html", &ctx)
-            .map_err(|err| error::ErrorInternalServerError(err))?;
+            .render("unauthorized.html", ctx)
+            .map_err(error::ErrorInternalServerError)?;
     Ok(HttpResponse::Unauthorized().content_type("text/html").body(body))
+}
+
+/// Look up the view model for an entity name. Returns 500 rather than panicking
+/// if it is missing (should be impossible in normal operation).
+pub fn view_model_or_500<'a>(
+    actix_admin: &'a ActixAdmin,
+    entity_name: &str,
+) -> Result<&'a ActixAdminViewModel, Error> {
+    actix_admin
+        .view_models
+        .get(entity_name)
+        .ok_or_else(|| error::ErrorInternalServerError(
+            format!("View model for entity '{entity_name}' is not registered")
+        ))
+}
+
+/// Validate that `sort_by` refers to a real, non-hidden field on the view model.
+/// Returns Ok(sort_by) or a 400 error.
+pub fn validate_sort_by(
+    view_model: &ActixAdminViewModel,
+    sort_by: &str,
+) -> Result<(), Error> {
+    if sort_by == view_model.primary_key {
+        return Ok(());
+    }
+    if view_model.fields.iter().any(|f| f.field_name == sort_by) {
+        Ok(())
+    } else {
+        Err(error::ErrorBadRequest(format!(
+            "Unknown sort column: {sort_by}"
+        )))
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,23 +85,27 @@ pub struct SearchParams {
 
 impl SearchParams {
     pub fn to_query_string(&self) -> String {
+        use urlencoding::encode;
         format!(
             "page={0}&search={1}&sort_by={2}&sort_order={3}&entities_per_page={4}",
             self.page,
-            self.search,
-            self.sort_by,
+            encode(&self.search),
+            encode(&self.sort_by),
             self.sort_order,
             self.entities_per_page,
         )
     }
 
-    pub fn from_params(params: &Query<Params>, view_model: &ActixAdminViewModel) -> Self {
+    pub fn from_params(params: &Params, view_model: &ActixAdminViewModel) -> Self {
         SearchParams {
             page: params.page.unwrap_or(1),
             entities_per_page: params.entities_per_page.unwrap_or(DEFAULT_ENTITIES_PER_PAGE),
-            search: params.search.clone().unwrap_or(String::new()),
-            sort_by: params.sort_by.clone().unwrap_or(view_model.primary_key.to_string()),
-            sort_order: params.sort_order.as_ref().unwrap_or(&SortOrder::Asc).clone(),
+            search: params.search.clone().unwrap_or_default(),
+            sort_by: params
+                .sort_by
+                .clone()
+                .unwrap_or_else(|| view_model.primary_key.clone()),
+            sort_order: params.sort_order.clone().unwrap_or(SortOrder::Asc),
         }
     }
 }

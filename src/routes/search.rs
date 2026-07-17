@@ -1,27 +1,27 @@
-
-use actix_web::{web, Error, HttpRequest, HttpResponse};
+use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use sea_orm::DatabaseConnection;
 use tera::Context;
 use actix_session::Session;
 use serde_derive::{Serialize, Deserialize};
 use crate::prelude::*;
 use super::list::replace_regex;
-use super::{ add_auth_context, render_unauthorized, user_can_access_page};
+use super::{add_auth_context, render_unauthorized, user_can_access_page, view_model_or_500};
 
 #[derive(Serialize)]
 struct LabelValue {
     label: String,
-    value: String
+    value: String,
 }
 
 #[derive(Serialize)]
 struct SearchList {
-    items: Vec<LabelValue>
+    items: Vec<LabelValue>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct SearchParam {
-    q: String
+    #[serde(default)]
+    q: String,
 }
 
 pub async fn search<E: ActixAdminViewModelTrait>(
@@ -29,45 +29,50 @@ pub async fn search<E: ActixAdminViewModelTrait>(
     req: HttpRequest,
     data: web::Data<ActixAdmin>,
     db: web::Data<DatabaseConnection>,
-    _body: web::Payload,
-    _text: String,
 ) -> Result<HttpResponse, Error> {
     let db = db.get_ref();
 
-    let actix_admin = &data.get_ref();
+    let actix_admin = data.get_ref();
     let mut ctx = Context::new();
     add_auth_context(&session, actix_admin, &mut ctx);
     let entity_name = E::get_entity_name();
 
-    let view_model = actix_admin.view_models.get(&entity_name).unwrap();
+    let view_model = view_model_or_500(actix_admin, &entity_name)?;
 
     if !user_can_access_page(&session, actix_admin, view_model) {
         return render_unauthorized(&ctx, actix_admin);
     };
 
-    let search_query = web::Query::<SearchParam>::from_query(req.query_string()).unwrap();
+    let search_query: SearchParam =
+        serde_urlencoded::from_str(req.query_string()).unwrap_or_default();
 
     let params = ActixAdminViewModelParams {
         page: None,
         entities_per_page: None,
         viewmodel_filter: Vec::new(),
-        search: search_query.into_inner().q,
+        search: search_query.q,
         sort_by: view_model.primary_key.clone(),
         sort_order: SortOrder::Asc,
         tenant_ref: actix_admin.configuration.user_tenant_ref.and_then(|f| f(&session)),
     };
 
-    // TODO: Improve by not loading all values
-    let entities = match E::list(&db, &params).await {
+    // TODO: Improve by not loading all values (add a limit clause)
+    let entities = match E::list(db, &params).await {
         Ok(res) => {
             let mut entities = res.1;
             replace_regex(view_model, &mut entities);
-            entities.into_iter().map(|e| LabelValue {
-                label: e.display_name.unwrap_or_default(),
-                value: e.primary_key.unwrap()
-            }).collect()
+            entities
+                .into_iter()
+                .filter_map(|e| {
+                    let value = e.primary_key?;
+                    Some(LabelValue {
+                        label: e.display_name.unwrap_or_default(),
+                        value,
+                    })
+                })
+                .collect()
         }
-        Err(_) => Vec::new(),
+        Err(e) => return Err(error::ErrorInternalServerError(e.to_string())),
     };
 
     Ok(HttpResponse::Ok().json(SearchList { items: entities }))

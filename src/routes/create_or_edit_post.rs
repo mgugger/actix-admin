@@ -5,7 +5,6 @@ use crate::ActixAdminError;
 use crate::ActixAdminNotification;
 use crate::{prelude::*, ActixAdminErrorType};
 use actix_multipart::Multipart;
-use actix_multipart::MultipartError;
 use actix_session::Session;
 use actix_web::http::header;
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
@@ -60,7 +59,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
     session: &Session,
     req: HttpRequest,
     db: web::Data<DatabaseConnection>,
-    model_res: Result<ActixAdminModel, MultipartError>,
+    model_res: Result<ActixAdminModel, ActixAdminError>,
     id: Option<i32>,
     actix_admin: &ActixAdmin,
 ) -> Result<HttpResponse, Error> {
@@ -69,14 +68,26 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
     let mut errors: Vec<ActixAdminError> = Vec::new();
 
-    if !user_can_access_page(&session, actix_admin, view_model) {
+    if !user_can_access_page(session, actix_admin, view_model) {
         let mut ctx = Context::new();
         ctx.insert("render_partial", &true);
-        return render_unauthorized(&ctx, &actix_admin);
+        return render_unauthorized(&ctx, actix_admin);
     }
     let db = db.get_ref();
 
-    let mut model = model_res.unwrap();
+    let mut model = match model_res {
+        Ok(m) => m,
+        Err(e) => {
+            // Fail closed on multipart/upload errors instead of panicking.
+            return Err(actix_web::error::InternalError::from_response(
+                e.to_string(),
+                HttpResponse::build(actix_web::http::StatusCode::BAD_REQUEST)
+                    .content_type("text/plain")
+                    .body(e.to_string()),
+            )
+            .into());
+        }
+    };
     let _ = E::validate_entity(&mut model, db).await;
 
     if model.has_errors() {
@@ -90,7 +101,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
             req,
             actix_admin,
             view_model,
-            &db,
+            db,
             entity_name,
             &model,
             errors,
@@ -100,7 +111,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
         let tenant_ref = actix_admin
             .configuration
             .user_tenant_ref
-            .map_or(None, |f| f(&session));
+            .and_then(|f| f(session));
 
         let res = match id {
             Some(id) => E::edit_entity(db, id, model.clone(), tenant_ref).await,
@@ -109,33 +120,33 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
 
         match res {
             Ok(model) => {
-                let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
+                    let params = Params::from_query(req.query_string());
 
-                let entity_name = E::get_entity_name();
+                    let entity_name = E::get_entity_name();
 
-                let search_params = SearchParams::from_params(&params, view_model);
+                    let search_params = SearchParams::from_params(&params, view_model);
 
-                if view_model.inline_edit {
-                    let mut ctx = Context::new();
+                    if view_model.inline_edit {
+                        let mut ctx = Context::new();
 
-                    ctx.insert("entity", &model);
+                        ctx.insert("entity", &model);
 
-                    add_auth_context(&session, actix_admin, &mut ctx);
-                    add_default_context(&mut ctx, req, view_model, entity_name, actix_admin, Vec::new(), &search_params);
+                        add_auth_context(session, actix_admin, &mut ctx);
+                        add_default_context(&mut ctx, req, view_model, entity_name, actix_admin, Vec::new(), &search_params);
 
-                    let body = actix_admin
-                        .tera
-                        .render("list/row.html", &ctx)
-                        .map_err(|err| { error::ErrorInternalServerError(err) })?;
-                    Ok(HttpResponse::Ok().content_type("text/html").body(body))
-                } else {
-                    Ok(HttpResponse::SeeOther()
-                .append_header((
-                    header::LOCATION,
-                    format!("{0}/{1}/list?{2}", actix_admin.configuration.base_path, entity_name, search_params.to_query_string()),
-                ))
-                .finish())
-                }
+                        let body = actix_admin
+                            .tera
+                            .render("list/row.html", &ctx)
+                            .map_err(error::ErrorInternalServerError)?;
+                        Ok(HttpResponse::Ok().content_type("text/html").body(body))
+                    } else {
+                        Ok(HttpResponse::SeeOther()
+                    .append_header((
+                        header::LOCATION,
+                        format!("{0}/{1}/list?{2}", actix_admin.configuration.base_path, entity_name, search_params.to_query_string()),
+                    ))
+                    .finish())
+                    }
             }
             Err(e) => {
                 errors.push(e);
@@ -144,7 +155,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
                     req,
                     actix_admin,
                     view_model,
-                    &db,
+                    db,
                     entity_name,
                     &model,
                     errors,
@@ -160,29 +171,29 @@ async fn render_form<E: ActixAdminViewModelTrait>(
     req: HttpRequest,
     actix_admin: &ActixAdmin,
     view_model: &ActixAdminViewModel,
-    db: &&sea_orm::DatabaseConnection,
+    db: &sea_orm::DatabaseConnection,
     entity_name: String,
     model: &ActixAdminModel,
     errors: Vec<ActixAdminError>,
 ) -> Result<HttpResponse, Error> {
     let mut ctx = Context::new();
 
-    let params = web::Query::<Params>::from_query(req.query_string()).unwrap();
+    let params = Params::from_query(req.query_string());
 
     let tenant_ref = actix_admin
         .configuration
         .user_tenant_ref
-        .map_or(None, |f| f(&session));
+        .and_then(|f| f(session));
 
     ctx.insert("select_lists", &E::get_select_lists(db, tenant_ref).await?);
     ctx.insert("model", model);
 
     let notifications: Vec<ActixAdminNotification> = errors
-    .into_iter()
-    .map(|err| ActixAdminNotification::from(err))
-    .collect();
+        .into_iter()
+        .map(ActixAdminNotification::from)
+        .collect();
 
-    add_auth_context(&session, actix_admin, &mut ctx);
+    add_auth_context(session, actix_admin, &mut ctx);
 
     let search_params = SearchParams::from_params(&params, view_model);
     add_default_context(&mut ctx, req, view_model, entity_name, actix_admin, notifications, &search_params);
@@ -194,32 +205,24 @@ async fn render_form<E: ActixAdminViewModelTrait>(
     let body = actix_admin
         .tera
         .render(template_path, &ctx)
-        .map_err(|err| error::ErrorInternalServerError(err))?;
+        .map_err(error::ErrorInternalServerError)?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
 #[doc(hidden)]
 impl From<String> for ActixAdminModel {
     fn from(string: String) -> Self {
-        let mut hashmap = HashMap::new();
-        let key_values: Vec<&str> = string.split('&').collect();
-        for key_value in key_values {
-            if !key_value.is_empty() {
-                let mut iter = key_value.splitn(2, '=');
-                hashmap.insert(
-                    iter.next().unwrap().to_string().replace("%3A", ":"),
-                    iter.next().unwrap().to_string().replace("%3A", ":"),
-                );
-            }
-        }
+        // Parse application/x-www-form-urlencoded using the standard crate
+        // rather than a bespoke hand-parser (which used to only decode `%3A`).
+        let values: HashMap<String, String> = serde_urlencoded::from_str(&string).unwrap_or_default();
 
         ActixAdminModel {
             primary_key: None,
-            values: hashmap,
+            values,
             errors: HashMap::new(),
             custom_errors: HashMap::new(),
             fk_values: HashMap::new(),
-            display_name: None
+            display_name: None,
         }
     }
 }

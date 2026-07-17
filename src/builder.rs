@@ -90,7 +90,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 entity_names: HashMap::new(),
                 view_models: HashMap::new(),
                 card_grids: HashMap::new(),
-                configuration: configuration,
+                configuration,
                 tera: crate::tera_templates::get_tera(),
                 support_path: None
             },
@@ -304,13 +304,10 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
 
         if add_to_menu {
             let category = self.actix_admin.entity_names.get_mut(category_name);
-            match category {
-                Some(entity_list) => {
-                    if !entity_list.contains(&menu_element) {
-                        entity_list.push(menu_element);
-                    }
+            if let Some(entity_list) = category {
+                if !entity_list.contains(&menu_element) {
+                    entity_list.push(menu_element);
                 }
-                _ => (),
             }
         }
     }
@@ -320,7 +317,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
             Some(handler) => handler,
             _ => web::get().to(index),
         };
-        let mut admin_scope = web::scope(&self.actix_admin.configuration.base_path)
+        let mut admin_scope = web::scope(self.actix_admin.configuration.base_path)
             .route("/", index_handler)
             .default_service(web::to(not_found));
 
