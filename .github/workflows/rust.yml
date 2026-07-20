@@ -13,9 +13,9 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install toolchain
-      run: rustup toolchain install stable --component rustfmt clippy
+      run: rustup toolchain install stable --component rustfmt --component clippy
     - name: Check formatting
       run: cargo fmt --all -- --check
     - name: Clippy
@@ -24,7 +24,7 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install cargo-audit
       run: cargo install --locked cargo-audit || true
     - name: Audit
@@ -33,7 +33,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: browser-actions/setup-geckodriver@latest
     - uses: browser-actions/setup-firefox@latest
     - name: Build

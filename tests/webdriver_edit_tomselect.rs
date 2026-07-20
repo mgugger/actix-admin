@@ -61,11 +61,12 @@ mod webdriver_tests {
             .await?
             .click()
             .await?;
-        let url = c.current_url().await?;
-        tokio::time::sleep(Duration::from_secs(1)).await;
-        assert!(url
-            .as_ref()
-            .contains("http://localhost:5555/admin/comment/list"));
+        wait_for_url_contains(
+            &c,
+            "http://localhost:5555/admin/comment/list",
+            Duration::from_secs(10),
+        )
+        .await;
 
         // assert content of first row
         let table = c.find(Locator::Css("tbody")).await?;

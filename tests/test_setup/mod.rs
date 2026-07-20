@@ -15,7 +15,7 @@ pub use sample_with_tenant_id::Entity as SampleWithTenantId;
 pub mod prelude {
     pub use super::*;
     pub use crate::test_setup::helper::{create_actix_admin_builder, setup_db, BodyTest};
-    pub use crate::test_setup::webdriver::{setup, teardown};
+    pub use crate::test_setup::webdriver::{setup, teardown, wait_for_url_contains};
 }
 
 // setup

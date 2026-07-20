@@ -49,8 +49,7 @@ mod webdriver_tests {
             .await?
             .click()
             .await?;
-        let url = c.current_url().await?;
-        assert!(url.as_ref().contains("page=5"));
+        wait_for_url_contains(&c, "page=5", Duration::from_secs(10)).await;
         let first_tr = c.find(Locator::Css("tbody tr:first-child")).await?;
         let fourth_td = first_tr.find(Locator::Css("td:nth-child(3)")).await?;
         let td_text = fourth_td.text().await?;
@@ -75,9 +74,7 @@ mod webdriver_tests {
             vec![],
         )
         .await?;
-        tokio::time::sleep(Duration::from_secs(1)).await;
-        let url = c.current_url().await?;
-        assert!(url.as_ref().contains("page=4"));
+        wait_for_url_contains(&c, "page=4", Duration::from_secs(10)).await;
         let first_tr = c.find(Locator::Css("tbody tr:first-child")).await?;
         let fourth_td = first_tr.find(Locator::Css("td:nth-child(3)")).await?;
         let td_text = fourth_td.text().await?;
@@ -100,9 +97,7 @@ mod webdriver_tests {
             vec![],
         )
         .await?;
-        tokio::time::sleep(Duration::from_secs(1)).await;
-        let url = c.current_url().await?;
-        assert!(url.as_ref().contains("page=5"));
+        wait_for_url_contains(&c, "page=5", Duration::from_secs(10)).await;
         let first_tr = c.find(Locator::Css("tbody tr:first-child")).await?;
         let fourth_td = first_tr.find(Locator::Css("td:nth-child(3)")).await?;
         let td_text = fourth_td.text().await?;
@@ -115,15 +110,7 @@ mod webdriver_tests {
         // change entities per page
         let dropdown = c.find(Locator::Css("select#entities_per_page")).await?;
         dropdown.select_by_value("100").await?;
-        // The dropdown fires an HTMX request that rewrites the URL via
-        // `hx-push-url`. Wait for that round-trip before asserting.
-        tokio::time::sleep(Duration::from_secs(2)).await;
-        let url = c.current_url().await?;
-        assert!(
-            url.as_ref().contains("entities_per_page=100"),
-            "expected entities_per_page=100 in URL, got: {}",
-            url.as_ref()
-        );
+        wait_for_url_contains(&c, "entities_per_page=100", Duration::from_secs(10)).await;
         let table = c.find(Locator::Css("tbody")).await?;
         let row_count = table.find_all(Locator::Css("tr")).await?.len();
         assert_eq!(row_count, 100, "Expected default 100 rows in the table");

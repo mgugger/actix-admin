@@ -73,3 +73,32 @@ pub async fn teardown(
     let _server = server_task.abort();
     res
 }
+
+/// Poll `current_url()` until it contains `needle` or `timeout` elapses.
+///
+/// Clicks / form submits in the admin fire HTMX round-trips that update the
+/// URL via `hx-push-url`. Asserting on `current_url()` immediately after
+/// the click is racy — on a busy CI runner the swap has usually not happened
+/// yet. Every webdriver test uses this helper instead of a naked
+/// `assert!(url.contains(..))` for post-navigation URL checks.
+pub async fn wait_for_url_contains(
+    c: &Client,
+    needle: &str,
+    timeout: std::time::Duration,
+) -> String {
+    let deadline = std::time::Instant::now() + timeout;
+    let mut last = String::new();
+    while std::time::Instant::now() < deadline {
+        if let Ok(url) = c.current_url().await {
+            last = url.to_string();
+            if last.contains(needle) {
+                return last;
+            }
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    panic!(
+        "URL did not contain {:?} within {:?}. last url = {:?}",
+        needle, timeout, last
+    );
+}
