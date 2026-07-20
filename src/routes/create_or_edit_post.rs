@@ -1,4 +1,4 @@
-use super::helpers::{add_default_context, SearchParams};
+use super::helpers::{add_default_context_with_session, SearchParams};
 use super::{add_auth_context, render_template, render_unauthorized, user_can_access_page};
 use super::Params;
 use crate::ActixAdminError;
@@ -120,7 +120,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
                 let mut ctx = Context::new();
                 ctx.insert("entity", &model);
                 add_auth_context(session, actix_admin, &mut ctx);
-                add_default_context(&mut ctx, req, view_model, entity_name, actix_admin, Vec::new(), &search_params);
+                add_default_context_with_session(&mut ctx, req, view_model, entity_name, actix_admin, Vec::new(), &search_params, Some(session));
                 let body = actix_admin
                     .tera
                     .render("list/row.html", &ctx)
@@ -179,7 +179,7 @@ async fn render_form<E: ActixAdminViewModelTrait>(
     add_auth_context(session, actix_admin, &mut ctx);
 
     let search_params = SearchParams::from_params(&params, view_model);
-    add_default_context(&mut ctx, req, view_model, entity_name, actix_admin, notifications, &search_params);
+    add_default_context_with_session(&mut ctx, req, view_model, entity_name, actix_admin, notifications, &search_params, Some(session));
 
     let template_path = if view_model.inline_edit && model.primary_key.is_some() {
         "create_or_edit/inline.html"

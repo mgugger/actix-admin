@@ -73,8 +73,14 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                     fields: Entity::get_fields(),
                     show_search: #has_searchable_fields,
                     user_can_access: None,
+                    user_can_create: None,
+                    user_can_edit: None,
+                    user_can_delete: None,
+                    user_can_view_details: None,
+                    user_can_export: None,
                     default_show_aside: Entity::get_filter().len() > 0,
-                    inline_edit: false
+                    inline_edit: false,
+                    bulk_actions: Vec::new(),
                 }
             }
         }
@@ -127,7 +133,9 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                             value: None,
                             values: Entity::get_filter_values(&filter, db).await,
                             filter_type: Some(filter.filter_type),
-                            foreign_key: filter.foreign_key.clone()
+                            foreign_key: filter.foreign_key.clone(),
+                            operators: filter.operators.clone(),
+                            operator: None,
                         }
                     );
                 };
@@ -268,6 +276,18 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
         get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.textarea });
     let fields_file_upload =
         get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.file_upload });
+    let fields_image =
+        get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.image });
+    let fields_html_render =
+        get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.html_render });
+    let fields_url =
+        get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.url });
+    let fields_email =
+        get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.email });
+    let fields_wysiwyg =
+        get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.wysiwyg });
+    let fields_readonly =
+        get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.readonly });
     let fields_match_name_to_columns = get_match_name_to_column(&fields);
     let fields_list_sort_positions = get_fields_as_tokenstream(&fields, |model_field| -> usize {
         model_field.list_sort_position
@@ -325,7 +345,17 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     select_list: select_list.clone(),
                     is_option: #is_option_list,
                     list_sort_position: #fields_list_sort_positions,
-                    field_type: ActixAdminViewModelFieldType::get_field_type(#fields_type_path, select_list.clone(), #fields_textarea, #fields_file_upload),
+                    field_type: ActixAdminViewModelFieldType::get_field_type(
+                        #fields_type_path,
+                        select_list.clone(),
+                        #fields_textarea,
+                        #fields_file_upload,
+                        #fields_image,
+                        #fields_html_render,
+                        #fields_url,
+                        #fields_email,
+                        #fields_wysiwyg,
+                    ),
                     list_hide_column: #fields_list_hide_column,
                     list_regex_mask: list_regex_mask_regex,
                     foreign_key: stringify!(#field_foreign_key).to_string(),
@@ -334,7 +364,8 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     floor: floor,
                     dateformat: dateformat,
                     shorten: shorten,
-                    use_tom_select_callback: #fields_use_tom_select_callback
+                    use_tom_select_callback: #fields_use_tom_select_callback,
+                    readonly: #fields_readonly,
                 });
             )*
 
@@ -373,6 +404,11 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
         impl ActixAdminModelTrait for Entity {
             async fn list_model(db: &DatabaseConnection, params: &ActixAdminViewModelParams, filter_values: HashMap<String, Option<String>>) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError> {
 
+                let filter_operators: HashMap<String, Option<actix_admin::prelude::ActixAdminFilterOperator>> = params.viewmodel_filter
+                    .iter()
+                    .map(|f| (f.name.clone(), f.operator.clone()))
+                    .collect();
+
                 let sort_column = match params.sort_by.as_ref() {
                     #(#fields_match_name_to_columns)*
                     _ => panic!("Unknown column")
@@ -395,9 +431,12 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
 
                 let filters = Entity::get_filter();
                 for filter in filters {
-                    let myfn = filter.filter;
-                    let value = filter_values.get(&filter.name).unwrap_or_else(|| &None);
-                    query = myfn(query, value.clone());
+                    let value = filter_values.get(&filter.name).unwrap_or_else(|| &None).clone();
+                    let operator = filter_operators.get(&filter.name).cloned().flatten();
+                    query = match filter.filter_with_op {
+                        Some(f) => f(query, value, operator),
+                        None => (filter.filter)(query, value),
+                    };
                 }
 
                 let mut entities;

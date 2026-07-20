@@ -6,6 +6,13 @@
         <li class="list-group-item">
             <div class="mb-3">
                 <label class="form-label">{{key}}</label>
+                {% if value.operators and value.operators | length > 0 %}
+                <select class="form-select form-select-sm mb-1" name="filter_{{key}}__op">
+                    {% for op in value.operators %}
+                    <option value="{{ op }}" {% if value.operator and value.operator == op %}selected{% endif %}>{{ op | replace(from="_", to=" ") }}</option>
+                    {% endfor %}
+                </select>
+                {% endif %}
                 {% if value.filter_type == "Text" %}
                 <input class="form-control" value="{{ value.value }}" type="text" placeholder="" name="filter_{{key}}">
                 {% elif value.filter_type == "DateTime" %}

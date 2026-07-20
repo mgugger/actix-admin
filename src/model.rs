@@ -1,4 +1,4 @@
-use crate::view_model::{ActixAdminViewModelFilter, ActixAdminViewModelParams};
+use crate::view_model::{ActixAdminFilterOperator, ActixAdminViewModelFilter, ActixAdminViewModelParams};
 use crate::{ActixAdminError, ActixAdminErrorType, ActixAdminViewModelField};
 use actix_multipart::Multipart;
 use async_trait::async_trait;
@@ -67,12 +67,28 @@ pub trait ActixAdminModelValidationTrait<T> {
     }
 }
 
+/// A single filter registered on an entity via `ActixAdminModelFilterTrait`.
+///
+/// The `filter` closure receives the current query and the user-provided
+/// value (a plain `Option<String>`). If you also want to react to the user's
+/// choice of operator ("contains", ">", "<", ...), populate `operators` with
+/// the operators you support and read `operator` off the request via the
+/// `filter_with_op` closure alternative.
 pub struct ActixAdminModelFilter<E: EntityTrait> {
     pub name: String,
     pub filter_type: ActixAdminModelFilterType,
+    /// Legacy value-only filter. Called when `filter_with_op` is `None`.
     pub filter: fn(sea_orm::Select<E>, Option<String>) -> sea_orm::Select<E>,
     pub values: Option<Vec<(String, String)>>,
-    pub foreign_key: Option<String>
+    pub foreign_key: Option<String>,
+    /// Operators the user may pick from. When empty, no operator selector is
+    /// rendered.
+    pub operators: Vec<ActixAdminFilterOperator>,
+    /// Operator-aware alternative to `filter`. When set, it is called instead
+    /// of `filter`.
+    pub filter_with_op: Option<
+        fn(sea_orm::Select<E>, Option<String>, Option<ActixAdminFilterOperator>) -> sea_orm::Select<E>,
+    >,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -83,6 +99,53 @@ pub enum ActixAdminModelFilterType {
     DateTime,
     Checkbox,
     TomSelectSearch
+}
+
+impl<E: EntityTrait> ActixAdminModelFilter<E> {
+    /// Build a minimal legacy value-only filter. Equivalent to setting
+    /// `operators = vec![]` and `filter_with_op = None`.
+    pub fn new(
+        name: impl Into<String>,
+        filter_type: ActixAdminModelFilterType,
+        filter: fn(sea_orm::Select<E>, Option<String>) -> sea_orm::Select<E>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            filter_type,
+            filter,
+            values: None,
+            foreign_key: None,
+            operators: Vec::new(),
+            filter_with_op: None,
+        }
+    }
+
+    pub fn with_operators(mut self, operators: Vec<ActixAdminFilterOperator>) -> Self {
+        self.operators = operators;
+        self
+    }
+
+    pub fn with_operator_filter(
+        mut self,
+        f: fn(
+            sea_orm::Select<E>,
+            Option<String>,
+            Option<ActixAdminFilterOperator>,
+        ) -> sea_orm::Select<E>,
+    ) -> Self {
+        self.filter_with_op = Some(f);
+        self
+    }
+
+    pub fn with_foreign_key(mut self, fk: impl Into<String>) -> Self {
+        self.foreign_key = Some(fk.into());
+        self
+    }
+
+    pub fn with_values(mut self, values: Vec<(String, String)>) -> Self {
+        self.values = Some(values);
+        self
+    }
 }
 
 #[async_trait]
@@ -102,7 +165,9 @@ impl<T: EntityTrait> From<ActixAdminModelFilter<T>> for ActixAdminViewModelFilte
             value: None,
             values: None,
             filter_type: Some(filter.filter_type),
-            foreign_key: None
+            foreign_key: None,
+            operators: filter.operators,
+            operator: None,
         }
     }
 }

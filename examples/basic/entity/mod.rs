@@ -38,6 +38,12 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
         .col(ColumnDef::new(post::Column::TeaOptional).string())
         .col(ColumnDef::new(post::Column::InsertDate).date().not_null())
         .col(ColumnDef::new(post::Column::Attachment).string())
+        .col(ColumnDef::new(post::Column::SummaryHtml).string())
+        .col(ColumnDef::new(post::Column::Homepage).string())
+        .col(ColumnDef::new(post::Column::ContactEmail).string())
+        .col(ColumnDef::new(post::Column::CoverImage).string())
+        .col(ColumnDef::new(post::Column::NotesMd).string())
+        .col(ColumnDef::new(post::Column::ExternalId).string())
         .to_owned();
 
     let _result = create_table(db, &stmt).await;
@@ -98,12 +104,32 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
     let _res = create_table(db, &stmt).await;
 
     for i in 1..1000 {
+        // Cycle through the new nullable columns so the demo shows off
+        // every renderer (Html/Url/Email/Image/RichText/readonly) while
+        // also demonstrating the NULL rendering path.
+        let is_null_row = i % 5 == 0;
         let row = post::ActiveModel {
             title: Set(format!("Test {}", i)),
             text: Set("some content".to_string()),
             tea_mandatory: Set(post::Tea::EverydayTea),
             tea_optional: Set(None),
             insert_date: Set(Local::now().date_naive()),
+            summary_html: Set(if is_null_row { None } else {
+                Some(format!("<strong>#{}</strong> highlighted", i))
+            }),
+            homepage: Set(if is_null_row { None } else {
+                Some(format!("https://example.com/posts/{}", i))
+            }),
+            contact_email: Set(if is_null_row { None } else {
+                Some(format!("author{}@example.com", i))
+            }),
+            // Only every third row references an existing uploaded file; the
+            // rest stay NULL so the empty-thumbnail branch is exercised too.
+            cover_image: Set(if i % 3 == 0 { Some("placeholder.png".to_string()) } else { None }),
+            notes_md: Set(if is_null_row { None } else {
+                Some(format!("# Notes for post {}\n\n* markdown works\n* really", i))
+            }),
+            external_id: Set(Some(format!("EXT-{:05}", i))),
             ..Default::default()
         };
         let _res = Post::insert(row).exec(db).await;

@@ -54,14 +54,32 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
         user_tenant_ref: None,
         base_path: "/admin",
         custom_css_paths: None,
-        custom_js_paths: None
+        custom_js_paths: None,
+        enable_csrf: true,
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
 
     let mut post_view_model = ActixAdminViewModel::from(Post);
     post_view_model.inline_edit = true;
+    // Per-view access control demo: everyone can list/view posts, but only
+    // a user with the `edit_posts` claim in the session may edit or delete.
+    post_view_model.user_can_edit = Some(|s: &Session| {
+        s.get::<bool>("edit_posts").ok().flatten().unwrap_or(true)
+    });
+    post_view_model.user_can_delete = Some(|s: &Session| {
+        s.get::<bool>("delete_posts").ok().flatten().unwrap_or(true)
+    });
     admin_builder.add_entity::<Post>(&post_view_model);
+
+    // Register a custom bulk action on Post. The dispatcher is implemented
+    // via `impl ActixAdminBulkActionDispatch for Post` in entity/post.rs.
+    admin_builder.add_bulk_action_for_entity::<Post>(ActixAdminBulkAction {
+        name: "mark_reviewed".to_string(),
+        label: "Mark selected as reviewed".to_string(),
+        icon: Some("fa-solid fa-check".to_string()),
+        confirm: Some("Mark the selected posts as reviewed?".to_string()),
+    });
 
     let some_category = "Group";
     let comment_view_model = ActixAdminViewModel::from(Comment);

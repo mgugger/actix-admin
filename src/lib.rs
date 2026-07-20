@@ -19,6 +19,7 @@ use std::collections::{BTreeMap, HashMap};
 use tera::Tera;
 
 pub mod builder;
+pub mod csrf;
 pub mod model;
 pub mod routes;
 pub mod tera_templates;
@@ -26,15 +27,16 @@ pub mod view_model;
 
 pub mod prelude {
     pub use crate::builder::{ActixAdminBuilder, ActixAdminBuilderTrait};
+    pub use crate::csrf::{csrf_token_for, verify_csrf, CsrfError, CSRF_HEADER, CSRF_QUERY_PARAM, CSRF_SESSION_KEY};
     pub use crate::model::{
         ActixAdminModel, ActixAdminModelFilter, ActixAdminModelFilterTrait,
         ActixAdminModelFilterType, ActixAdminModelTrait, ActixAdminModelValidationTrait,
     };
-    pub use crate::routes::{create_or_edit_post, get_admin_ctx, SortOrder};
+    pub use crate::routes::{bulk_action, create_or_edit_post, get_admin_ctx, SortOrder};
     pub use crate::view_model::{
-        ActixAdminPrimaryKey, ActixAdminViewModel, ActixAdminViewModelField,
-        ActixAdminViewModelFieldType, ActixAdminViewModelFilter, ActixAdminViewModelParams,
-        ActixAdminViewModelSerializable, ActixAdminViewModelTrait,
+        ActixAdminBulkAction, ActixAdminFilterOperator, ActixAdminPrimaryKey, ActixAdminViewModel,
+        ActixAdminViewModelField, ActixAdminViewModelFieldType, ActixAdminViewModelFilter,
+        ActixAdminViewModelParams, ActixAdminViewModelSerializable, ActixAdminViewModelTrait,
     };
     pub use crate::{hashmap, ActixAdminSelectListTrait};
     pub use crate::{ActixAdmin, ActixAdminConfiguration, ActixAdminError, ActixAdminErrorType};
@@ -77,7 +79,34 @@ pub struct ActixAdminConfiguration {
     pub navbar_title: &'static str,
     pub base_path: &'static str,
     pub custom_css_paths: Option<Vec<String>>,
-    pub custom_js_paths: Option<Vec<String>>
+    pub custom_js_paths: Option<Vec<String>>,
+    /// When `true` (default), every state-changing route (POST/DELETE/PUT) is
+    /// gated by a CSRF token stored in the actix-session cookie. Templates
+    /// automatically wire the token into every HTMX request as the
+    /// `X-CSRF-Token` header, and inject a hidden `_csrf` input into forms.
+    ///
+    /// Requires an `actix-session` middleware to be installed. If your admin
+    /// deployment is behind a non-cookie-session auth flow and you do not want
+    /// this protection (e.g. tests, an isolated intranet), set to `false`.
+    pub enable_csrf: bool,
+}
+
+impl Default for ActixAdminConfiguration {
+    fn default() -> Self {
+        Self {
+            enable_auth: false,
+            user_is_logged_in: None,
+            user_tenant_ref: None,
+            login_link: None,
+            logout_link: None,
+            file_upload_directory: "./file_uploads",
+            navbar_title: "Actix Admin",
+            base_path: "/admin",
+            custom_css_paths: None,
+            custom_js_paths: None,
+            enable_csrf: true,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -150,6 +179,12 @@ pub enum ActixAdminErrorType {
 
     #[display("IO error")]
     IoError,
+
+    #[display("CSRF token missing or invalid")]
+    CsrfError,
+
+    #[display("Unknown bulk action")]
+    UnknownBulkAction,
 }
 
 impl ActixAdminError {
@@ -182,8 +217,8 @@ impl error::ResponseError for ActixAdminError {
         match self.ty {
             BadRequest | ValidationErrors => StatusCode::BAD_REQUEST,
             Unauthorized => StatusCode::UNAUTHORIZED,
-            Forbidden => StatusCode::FORBIDDEN,
-            EntityDoesNotExistError => StatusCode::NOT_FOUND,
+            Forbidden | CsrfError => StatusCode::FORBIDDEN,
+            EntityDoesNotExistError | UnknownBulkAction => StatusCode::NOT_FOUND,
             InternalError | ListError | CreateError | DeleteError | EditError
             | DatabaseError | UploadError | IoError => StatusCode::INTERNAL_SERVER_ERROR,
         }

@@ -3,6 +3,7 @@ use regex::Regex;
 use sea_orm::DatabaseConnection;
 use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
+
 use crate::{ActixAdminModel, SortOrder, model::ActixAdminModelFilterType};
 use actix_session::Session;
 use std::convert::From;
@@ -79,15 +80,43 @@ pub trait ActixAdminViewModelTrait {
     fn get_entity_name() -> String;
 }
 
+/// A user-visible action that can be applied to a selection of rows on the
+/// list page ("Archive selected", "Send email", ...). Register via
+/// `ActixAdminBuilder::add_bulk_action_for_entity::<E>(...)`.
+#[derive(Clone, Debug, Serialize)]
+pub struct ActixAdminBulkAction {
+    /// URL-safe identifier used as the route segment (`/entity/action/{name}`).
+    pub name: String,
+    /// Human-readable label rendered in the actions dropdown.
+    pub label: String,
+    /// Optional Font Awesome icon class, e.g. `"fa-solid fa-archive"`.
+    pub icon: Option<String>,
+    /// If set, the UI prompts the user with this text before submitting.
+    pub confirm: Option<String>,
+}
+
 #[derive(Clone)]
 pub struct ActixAdminViewModel {
     pub entity_name: String,
     pub primary_key: String,
     pub fields: &'static[ActixAdminViewModelField],
     pub show_search: bool,
+    /// Top-level page access. If set and returns `false`, the entity is
+    /// invisible and every route 401s. Auth-independent (i.e. also honored
+    /// when `enable_auth = false`).
     pub user_can_access: Option<fn(&Session) -> bool>,
+    /// Per-action permissions. When `None`, the action defaults to the value of
+    /// `user_can_access` (or `true` if that is also `None`).
+    pub user_can_create: Option<fn(&Session) -> bool>,
+    pub user_can_edit: Option<fn(&Session) -> bool>,
+    pub user_can_delete: Option<fn(&Session) -> bool>,
+    pub user_can_view_details: Option<fn(&Session) -> bool>,
+    pub user_can_export: Option<fn(&Session) -> bool>,
     pub default_show_aside: bool,
-    pub inline_edit: bool
+    pub inline_edit: bool,
+    /// Bulk actions registered for this entity. Cloned into the ViewModel by
+    /// the builder when `add_bulk_action_for_entity` is called.
+    pub bulk_actions: Vec<ActixAdminBulkAction>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -97,7 +126,90 @@ pub struct ActixAdminViewModelSerializable {
     pub fields: &'static [ActixAdminViewModelField],
     pub show_search: bool,
     pub default_show_aside: bool,
-    pub inline_edit: bool
+    pub inline_edit: bool,
+    /// Serialized permission flags, resolved for the current session. Filled
+    /// in per-request by `add_default_context` since the fn hooks themselves
+    /// are not serializable.
+    #[serde(default)]
+    pub can_create: bool,
+    #[serde(default)]
+    pub can_edit: bool,
+    #[serde(default)]
+    pub can_delete: bool,
+    #[serde(default)]
+    pub can_view_details: bool,
+    #[serde(default)]
+    pub can_export: bool,
+    pub bulk_actions: Vec<ActixAdminBulkAction>,
+}
+
+/// Comparison operator applied by an advanced filter. Encoded on the wire as
+/// `filter_<name>__op=<snake_case_variant>` (case-insensitive).
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ActixAdminFilterOperator {
+    Equals,
+    NotEquals,
+    Contains,
+    NotContains,
+    GreaterThan,
+    LessThan,
+    GreaterEquals,
+    LessEquals,
+    IsNull,
+    IsNotNull,
+    InList,
+}
+
+impl ActixAdminFilterOperator {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Equals => "equals",
+            Self::NotEquals => "not_equals",
+            Self::Contains => "contains",
+            Self::NotContains => "not_contains",
+            Self::GreaterThan => "gt",
+            Self::LessThan => "lt",
+            Self::GreaterEquals => "gte",
+            Self::LessEquals => "lte",
+            Self::IsNull => "is_null",
+            Self::IsNotNull => "is_not_null",
+            Self::InList => "in",
+        }
+    }
+
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::Equals => "=",
+            Self::NotEquals => "≠",
+            Self::Contains => "contains",
+            Self::NotContains => "does not contain",
+            Self::GreaterThan => ">",
+            Self::LessThan => "<",
+            Self::GreaterEquals => "≥",
+            Self::LessEquals => "≤",
+            Self::IsNull => "is empty",
+            Self::IsNotNull => "is not empty",
+            Self::InList => "in list",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "equals" | "eq" | "=" => Some(Self::Equals),
+            "not_equals" | "ne" | "!=" => Some(Self::NotEquals),
+            "contains" | "like" => Some(Self::Contains),
+            "not_contains" | "not_like" => Some(Self::NotContains),
+            "gt" | ">" => Some(Self::GreaterThan),
+            "lt" | "<" => Some(Self::LessThan),
+            "gte" | ">=" => Some(Self::GreaterEquals),
+            "lte" | "<=" => Some(Self::LessEquals),
+            "is_null" | "empty" => Some(Self::IsNull),
+            "is_not_null" | "not_empty" => Some(Self::IsNotNull),
+            "in" | "in_list" => Some(Self::InList),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -106,7 +218,15 @@ pub struct ActixAdminViewModelFilter {
     pub value: Option<String>,
     pub foreign_key: Option<String>,
     pub values: Option<Vec<(String, String)>>,
-    pub filter_type: Option<ActixAdminModelFilterType>
+    pub filter_type: Option<ActixAdminModelFilterType>,
+    /// Which comparison operators the user may pick from. When empty, no
+    /// operator picker is rendered and the filter closure receives
+    /// `operator = None` (legacy behavior).
+    #[serde(default)]
+    pub operators: Vec<ActixAdminFilterOperator>,
+    /// The operator selected by the current request, if any.
+    #[serde(default)]
+    pub operator: Option<ActixAdminFilterOperator>,
 }
 
 // TODO: better alternative to serialize only specific fields for ActixAdminViewModel
@@ -118,7 +238,13 @@ impl From<ActixAdminViewModel> for ActixAdminViewModelSerializable {
             fields: entity.fields,
             show_search: entity.show_search,
             default_show_aside: entity.default_show_aside,
-            inline_edit: entity.inline_edit
+            inline_edit: entity.inline_edit,
+            can_create: true,
+            can_edit: true,
+            can_delete: true,
+            can_view_details: true,
+            can_export: true,
+            bulk_actions: entity.bulk_actions,
         }
     }
 }
@@ -133,7 +259,20 @@ pub enum ActixAdminViewModelFieldType {
     Time,
     DateTime,
     SelectList,
-    FileUpload
+    FileUpload,
+    /// Rendered as raw HTML in list/show views (value comes from the model as-is).
+    /// **Only use this for trusted values** — the field is emitted with `| safe`.
+    Html,
+    /// A URL that is rendered as an anchor tag in list/show views.
+    Url,
+    /// An email address that is rendered as a `mailto:` link.
+    Email,
+    /// A file-upload field whose value is a filename in the entity's upload
+    /// directory; rendered as a `<img>` thumbnail in list/show views.
+    Image,
+    /// A textarea backed by a Markdown WYSIWYG editor (EasyMDE) in the
+    /// create/edit form.
+    RichText,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -153,19 +292,48 @@ pub struct ActixAdminViewModelField {
     pub ceil: Option<u8>,
     pub floor: Option<u8>,
     pub shorten: Option<u16>,
-    pub use_tom_select_callback: bool
+    pub use_tom_select_callback: bool,
+    /// Optional read-only field flag (present but not writable). Read-only
+    /// fields are still shown in the show view and in the edit form (disabled).
+    #[serde(default)]
+    pub readonly: bool,
 }
 
 impl ActixAdminViewModelFieldType {
-    pub fn get_field_type(type_path: &str, select_list: String, is_textarea: bool, is_file_upload: bool) -> ActixAdminViewModelFieldType {
+    pub fn get_field_type(
+        type_path: &str,
+        select_list: String,
+        is_textarea: bool,
+        is_file_upload: bool,
+        is_image: bool,
+        is_html: bool,
+        is_url: bool,
+        is_email: bool,
+        is_wysiwyg: bool,
+    ) -> ActixAdminViewModelFieldType {
         if !select_list.is_empty() {
             return ActixAdminViewModelFieldType::SelectList;
+        }
+        if is_image {
+            return ActixAdminViewModelFieldType::Image;
+        }
+        if is_wysiwyg {
+            return ActixAdminViewModelFieldType::RichText;
         }
         if is_textarea {
             return ActixAdminViewModelFieldType::TextArea;
         }
         if is_file_upload {
             return ActixAdminViewModelFieldType::FileUpload;
+        }
+        if is_html {
+            return ActixAdminViewModelFieldType::Html;
+        }
+        if is_url {
+            return ActixAdminViewModelFieldType::Url;
+        }
+        if is_email {
+            return ActixAdminViewModelFieldType::Email;
         }
 
         match type_path {

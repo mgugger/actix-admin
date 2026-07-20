@@ -43,6 +43,12 @@ pub async fn create_tables(db: &DbConn) -> Result<ExecResult, DbErr> {
         )
         .col(ColumnDef::new(post::Column::TeaOptional).string())
         .col(ColumnDef::new(post::Column::InsertDate).date())
+        .col(ColumnDef::new(post::Column::SummaryHtml).string())
+        .col(ColumnDef::new(post::Column::Homepage).string())
+        .col(ColumnDef::new(post::Column::ContactEmail).string())
+        .col(ColumnDef::new(post::Column::CoverImage).string())
+        .col(ColumnDef::new(post::Column::NotesMd).string())
+        .col(ColumnDef::new(post::Column::ExternalId).string())
         .to_owned();
 
     let _result = create_table(db, &stmt).await;

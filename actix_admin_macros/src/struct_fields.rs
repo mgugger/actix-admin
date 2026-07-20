@@ -69,6 +69,24 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let is_file_upload = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.file_upload.is_some());
+                let is_image = actix_admin_attr
+                    .clone()
+                    .map_or(false, |attr| attr.image.is_some());
+                let is_html_render = actix_admin_attr
+                    .clone()
+                    .map_or(false, |attr| attr.html_render.is_some());
+                let is_url = actix_admin_attr
+                    .clone()
+                    .map_or(false, |attr| attr.url.is_some());
+                let is_email = actix_admin_attr
+                    .clone()
+                    .map_or(false, |attr| attr.email.is_some());
+                let is_wysiwyg = actix_admin_attr
+                    .clone()
+                    .map_or(false, |attr| attr.wysiwyg.is_some());
+                let is_readonly = actix_admin_attr
+                    .clone()
+                    .map_or(false, |attr| attr.readonly.is_some());
                 let is_list_hide_column = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.list_hide_column.is_some() || attr.tenant_ref.is_some());
@@ -125,6 +143,12 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     searchable: is_searchable,
                     textarea: is_textarea,
                     file_upload: is_file_upload,
+                    image: is_image,
+                    html_render: is_html_render,
+                    url: is_url,
+                    email: is_email,
+                    wysiwyg: is_wysiwyg,
+                    readonly: is_readonly,
                     not_empty: is_not_empty,
                     list_sort_position: list_sort_position,
                     list_hide_column: is_list_hide_column,

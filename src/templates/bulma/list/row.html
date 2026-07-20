@@ -19,6 +19,19 @@
     <td><a href="file/{{ entity.primary_key }}/{{ model_field.field_name }}">{{
             entity.values
             | get(key=model_field.field_name, default="") }}</a></td>
+    {% elif model_field.field_type == "Image" %}
+    <td>
+        {% set img = entity.values | get(key=model_field.field_name, default="") %}
+        {% if img %}<img src="{{ base_path }}/{{ entity_name }}/file/{{ entity.primary_key }}/{{ model_field.field_name }}" alt="{{ img }}" style="max-height: 40px; border-radius: 3px;">{% endif %}
+    </td>
+    {% elif model_field.field_type == "Html" %}
+    <td>{{ entity.values | get(key=model_field.field_name, default="") | safe }}</td>
+    {% elif model_field.field_type == "Url" %}
+    <td>{% set v = entity.values | get(key=model_field.field_name, default="") %}{% if v %}<a href="{{ v }}" target="_blank" rel="noopener noreferrer">{{ v | shorten(max_length=40) }}</a>{% endif %}</td>
+    {% elif model_field.field_type == "Email" %}
+    <td>{% set v = entity.values | get(key=model_field.field_name, default="") %}{% if v %}<a href="mailto:{{ v }}">{{ v }}</a>{% endif %}</td>
+    {% elif model_field.field_type == "RichText" %}
+    <td>{{ entity.values | get(key=model_field.field_name, default="") | shorten(max_length=80) }}</td>
     {% else %}
 
     {% if entity.fk_values is containing(pat=model_field.field_name) %}
@@ -53,6 +66,7 @@
     {%- endfor %}
     <td class="has-text-right">
         <div class="control is-flex">
+        {% if view_model.can_edit %}
         {% if view_model.inline_edit %}
             <a class="has-text-link" href="#"
                     hx-target="closest tr" hx-swap="outerHTML"
@@ -81,9 +95,12 @@
             <i class="fa-solid fa-pen-to-square"></i>
         </a>
         {% endif %}
+        {% endif %}
+        {% if view_model.can_delete %}
         <a hx-target="closest tr" hx-confirm="Are you sure?" hx-delete="delete/{{ entity.primary_key }}">
             <i class="ml-1 fa-solid fa-trash"></i>
         </a>
+        {% endif %}
         </div>
     </td>
 </tr>

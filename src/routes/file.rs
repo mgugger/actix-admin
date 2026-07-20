@@ -4,11 +4,11 @@ use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use sea_orm::DatabaseConnection;
 use tera::Context;
 
-use super::{render_unauthorized, user_can_access_page, view_model_or_500};
+use super::{render_unauthorized, user_can_perform, view_model_or_500, AdminAction};
 
-/// Returns the field descriptor if `column_name` refers to a `FileUpload` field
-/// on the given view model. Rejects anything else to prevent path traversal /
-/// disclosure through arbitrary column reads.
+/// Returns the field descriptor if `column_name` refers to a `FileUpload`
+/// or `Image` field on the given view model. Rejects anything else to
+/// prevent path traversal / disclosure through arbitrary column reads.
 fn file_upload_field<'a>(
     view_model: &'a ActixAdminViewModel,
     column_name: &str,
@@ -16,7 +16,13 @@ fn file_upload_field<'a>(
     view_model
         .fields
         .iter()
-        .find(|f| f.field_name == column_name && f.field_type == ActixAdminViewModelFieldType::FileUpload)
+        .find(|f| {
+            f.field_name == column_name
+                && matches!(
+                    f.field_type,
+                    ActixAdminViewModelFieldType::FileUpload | ActixAdminViewModelFieldType::Image
+                )
+        })
         .ok_or_else(|| error::ErrorBadRequest(format!("'{column_name}' is not a file upload field")))
 }
 
@@ -33,7 +39,7 @@ pub async fn download<E: ActixAdminViewModelTrait>(
     let ctx = Context::new();
     let entity_name = E::get_entity_name();
     let view_model: &ActixAdminViewModel = view_model_or_500(actix_admin, &entity_name)?;
-    if !user_can_access_page(&session, actix_admin, view_model) {
+    if !user_can_perform(&session, actix_admin, view_model, AdminAction::View) {
         return render_unauthorized(&ctx, actix_admin);
     }
 
@@ -75,6 +81,7 @@ pub async fn download<E: ActixAdminViewModelTrait>(
 
 pub async fn delete_file<E: ActixAdminViewModelTrait>(
     session: Session,
+    req: HttpRequest,
     data: web::Data<ActixAdmin>,
     db: web::Data<DatabaseConnection>,
     params: web::Path<(E::Id, String)>,
@@ -84,8 +91,11 @@ pub async fn delete_file<E: ActixAdminViewModelTrait>(
     let mut ctx = Context::new();
     let entity_name = E::get_entity_name();
     let view_model: &ActixAdminViewModel = view_model_or_500(actix_admin, &entity_name)?;
-    if !user_can_access_page(&session, actix_admin, view_model) {
+    if !user_can_perform(&session, actix_admin, view_model, AdminAction::Edit) {
         return render_unauthorized(&ctx, actix_admin);
+    }
+    if let Err(e) = crate::csrf::verify_csrf(actix_admin, &session, &req) {
+        return Err(e.into());
     }
 
     let (id, column_name) = params.into_inner();

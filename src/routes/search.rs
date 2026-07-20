@@ -5,7 +5,7 @@ use actix_session::Session;
 use serde_derive::{Serialize, Deserialize};
 use crate::prelude::*;
 use super::list::replace_regex;
-use super::{add_auth_context, render_unauthorized, user_can_access_page, view_model_or_500};
+use super::{add_auth_context, render_unauthorized, user_can_perform, view_model_or_500, AdminAction};
 
 #[derive(Serialize)]
 struct LabelValue {
@@ -39,7 +39,7 @@ pub async fn search<E: ActixAdminViewModelTrait>(
 
     let view_model = view_model_or_500(actix_admin, &entity_name)?;
 
-    if !user_can_access_page(&session, actix_admin, view_model) {
+    if !user_can_perform(&session, actix_admin, view_model, AdminAction::View) {
         return render_unauthorized(&ctx, actix_admin);
     };
 

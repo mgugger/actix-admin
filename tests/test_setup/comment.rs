@@ -56,7 +56,40 @@ impl ActixAdminModelValidationTrait<ActiveModel> for Entity {
     }
 }
 
-impl ActixAdminModelFilterTrait<Entity> for Entity {}
+impl ActixAdminModelFilterTrait<Entity> for Entity {
+    fn get_filter() -> Vec<ActixAdminModelFilter<Entity>> {
+        vec![
+            // Operator-aware filter used by the new-features integration test
+            // to assert that the `filter_<name>__op=` query param is
+            // rendered and accepted.
+            ActixAdminModelFilter::new(
+                "User",
+                ActixAdminModelFilterType::Text,
+                |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
+                    q.apply_if(v, |query, val: String| query.filter(Column::User.eq(val)))
+                },
+            )
+            .with_operators(vec![
+                ActixAdminFilterOperator::Contains,
+                ActixAdminFilterOperator::Equals,
+                ActixAdminFilterOperator::NotEquals,
+                ActixAdminFilterOperator::IsNull,
+            ])
+            .with_operator_filter(
+                |q: sea_orm::Select<Entity>, v, op| -> sea_orm::Select<Entity> {
+                    use ActixAdminFilterOperator::*;
+                    match (v, op) {
+                        (_, Some(IsNull)) => q.filter(Column::User.eq("")),
+                        (Some(val), Some(NotEquals)) => q.filter(Column::User.ne(val)),
+                        (Some(val), Some(Contains)) => q.filter(Column::User.contains(&val)),
+                        (Some(val), _) => q.filter(Column::User.eq(val)),
+                        _ => q,
+                    }
+                },
+            ),
+        ]
+    }
+}
 
 impl Display for Model {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {

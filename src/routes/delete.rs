@@ -1,4 +1,4 @@
-use super::{render_unauthorized, user_can_access_page, view_model_or_500};
+use super::{render_unauthorized, user_can_perform, view_model_or_500, AdminAction};
 use crate::prelude::*;
 use actix_session::Session;
 use actix_web::http::header;
@@ -50,10 +50,13 @@ pub async fn delete<E: ActixAdminViewModelTrait>(
 
     let view_model = view_model_or_500(actix_admin, &entity_name)?;
 
-    if !user_can_access_page(&session, actix_admin, view_model) {
+    if !user_can_perform(&session, actix_admin, view_model, AdminAction::Delete) {
         let mut ctx = Context::new();
         ctx.insert("render_partial", &true);
         return render_unauthorized(&ctx, actix_admin);
+    }
+    if let Err(e) = crate::csrf::verify_csrf(actix_admin, &session, &_req) {
+        return Err(e.into());
     }
 
     let db = db.get_ref();
@@ -93,10 +96,13 @@ pub async fn delete_many<E: ActixAdminViewModelTrait>(
     let view_model = view_model_or_500(actix_admin, &entity_name)?;
     let mut errors: Vec<crate::ActixAdminError> = Vec::new();
 
-    if !user_can_access_page(&session, actix_admin, view_model) {
+    if !user_can_perform(&session, actix_admin, view_model, AdminAction::Delete) {
         let mut ctx = Context::new();
         ctx.insert("render_partial", &true);
         return render_unauthorized(&ctx, actix_admin);
+    }
+    if let Err(e) = crate::csrf::verify_csrf(actix_admin, &session, &_req) {
+        return Err(e.into());
     }
 
     let db = db.get_ref();

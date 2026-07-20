@@ -5,6 +5,7 @@
 
     <form onsubmit="disableButton(this)" hx-boost="true" hx-indicator="#loading" hx-push-url="true"
         hx-encoding="multipart/form-data" method="post" enctype="multipart/form-data">
+        {% if enable_csrf %}<input type="hidden" name="_csrf" value="{{ csrf_token }}">{% endif %}
 
         <div>
             <input type="hidden" id="sort_by" name="sort_by" value="{{ sort_by }}">

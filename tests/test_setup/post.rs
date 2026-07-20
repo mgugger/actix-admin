@@ -22,6 +22,21 @@ pub struct Model {
     #[actix_admin(select_list="Tea")]
     pub tea_optional: Option<Tea>,
     pub insert_date: Date,
+
+    // New nullable columns — one per new field type — used by
+    // integration tests to verify list/show rendering.
+    #[actix_admin(html_render)]
+    pub summary_html: Option<String>,
+    #[actix_admin(url)]
+    pub homepage: Option<String>,
+    #[actix_admin(email)]
+    pub contact_email: Option<String>,
+    #[actix_admin(image)]
+    pub cover_image: Option<String>,
+    #[actix_admin(wysiwyg)]
+    pub notes_md: Option<String>,
+    #[actix_admin(readonly)]
+    pub external_id: Option<String>,
 }
 
 impl Display for Model {

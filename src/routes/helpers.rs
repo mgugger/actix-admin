@@ -7,6 +7,20 @@ use actix_web::{error, Error, HttpRequest, HttpResponse};
 
 use super::{Params, DEFAULT_ENTITIES_PER_PAGE};
 
+/// The set of gated actions on an entity view. Used by [`user_can_perform`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AdminAction {
+    /// Access the list, show and (read-only) detail routes.
+    View,
+    Create,
+    Edit,
+    Delete,
+    /// Export the list as CSV / other formats.
+    Export,
+    /// Trigger a custom bulk action.
+    BulkAction,
+}
+
 pub fn add_auth_context(session: &Session, actix_admin: &ActixAdmin, ctx: &mut Context) {
     let cfg = &actix_admin.configuration;
     ctx.insert("enable_auth", &cfg.enable_auth);
@@ -15,6 +29,14 @@ pub fn add_auth_context(session: &Session, actix_admin: &ActixAdmin, ctx: &mut C
     ctx.insert("navbar_title", &cfg.navbar_title);
     ctx.insert("base_path", &cfg.base_path);
     ctx.insert("support_path", &actix_admin.support_path.as_ref());
+    ctx.insert("enable_csrf", &cfg.enable_csrf);
+    // Always insert a (possibly empty) csrf_token so templates can reference
+    // it unconditionally without checking `enable_csrf`.
+    let mut token_value = String::new();
+    if cfg.enable_csrf {
+        token_value = csrf_token_for(session).unwrap_or_default();
+    }
+    ctx.insert("csrf_token", &token_value);
     if cfg.enable_auth {
         let func = cfg.user_is_logged_in.unwrap();
         ctx.insert("user_is_logged_in", &func(session));
@@ -32,11 +54,58 @@ pub fn user_can_access_page(session: &Session, actix_admin: &ActixAdmin, view_mo
     }
 }
 
+/// True iff the user can perform `action` on `view_model`. Always requires
+/// top-level page access via [`user_can_access_page`] first.
+pub fn user_can_perform(
+    session: &Session,
+    actix_admin: &ActixAdmin,
+    view_model: &ActixAdminViewModel,
+    action: AdminAction,
+) -> bool {
+    if !user_can_access_page(session, actix_admin, view_model) {
+        return false;
+    }
+    let hook = match action {
+        AdminAction::View => view_model.user_can_view_details,
+        AdminAction::Create => view_model.user_can_create,
+        AdminAction::Edit => view_model.user_can_edit,
+        AdminAction::Delete => view_model.user_can_delete,
+        AdminAction::Export => view_model.user_can_export,
+        // Bulk actions inherit the top-level page permission by default;
+        // fine-grained gating happens inside individual action handlers.
+        AdminAction::BulkAction => return true,
+    };
+    match hook {
+        Some(f) => f(session),
+        None => true,
+    }
+}
+
+/// Same as [`user_can_perform`] but returns a ready-made 403 response when
+/// the user is denied. Convenience for route handlers.
+pub fn forbid_if_denied(
+    session: &Session,
+    actix_admin: &ActixAdmin,
+    view_model: &ActixAdminViewModel,
+    action: AdminAction,
+) -> Option<HttpResponse> {
+    if user_can_perform(session, actix_admin, view_model, action) {
+        None
+    } else {
+        Some(HttpResponse::Forbidden().finish())
+    }
+}
+
 pub fn render_unauthorized(ctx: &Context, actix_admin: &ActixAdmin) -> Result<HttpResponse, Error> {
-    let body = actix_admin.tera
-            .render("unauthorized.html", ctx)
-            .map_err(error::ErrorInternalServerError)?;
-    Ok(HttpResponse::Unauthorized().content_type("text/html").body(body))
+    // Fall back to a short plain-text body if the template render fails
+    // (e.g. the caller only supplied a partial context). Returning 500
+    // here would leak an internal error to a user who simply lacks a
+    // permission.
+    let body = actix_admin
+        .tera
+        .render("unauthorized.html", ctx)
+        .unwrap_or_else(|_| String::from("Forbidden"));
+    Ok(HttpResponse::Forbidden().content_type("text/html").body(body))
 }
 
 /// Render `template_name` with `ctx`, falling back to rendering only the
@@ -128,6 +197,7 @@ impl SearchParams {
     }
 }
 
+#[allow(dead_code)]
 pub fn add_default_context(
     ctx: &mut Context,
     req: HttpRequest,
@@ -137,12 +207,37 @@ pub fn add_default_context(
     notifications: Vec<ActixAdminNotification>,
     search_params: &SearchParams,
 ) {
+    add_default_context_with_session(
+        ctx, req, view_model, entity_name, actix_admin, notifications, search_params, None,
+    )
+}
+
+/// Variant that also resolves per-view permission hooks against `session`
+/// and pushes them into the template context as `view_model.can_*` booleans.
+pub fn add_default_context_with_session(
+    ctx: &mut Context,
+    req: HttpRequest,
+    view_model: &ActixAdminViewModel,
+    entity_name: String,
+    actix_admin: &ActixAdmin,
+    notifications: Vec<ActixAdminNotification>,
+    search_params: &SearchParams,
+    session: Option<&Session>,
+) {
     let render_partial = req.headers().contains_key("HX-Target");
 
-    ctx.insert(
-        "view_model",
-        &ActixAdminViewModelSerializable::from(view_model.clone()),
-    );
+    let mut serializable = ActixAdminViewModelSerializable::from(view_model.clone());
+    if let Some(session) = session {
+        serializable.can_create = user_can_perform(session, actix_admin, view_model, AdminAction::Create);
+        serializable.can_edit = user_can_perform(session, actix_admin, view_model, AdminAction::Edit);
+        serializable.can_delete = user_can_perform(session, actix_admin, view_model, AdminAction::Delete);
+        serializable.can_view_details =
+            user_can_perform(session, actix_admin, view_model, AdminAction::View);
+        serializable.can_export =
+            user_can_perform(session, actix_admin, view_model, AdminAction::Export);
+    }
+
+    ctx.insert("view_model", &serializable);
     ctx.insert("entity_name", &entity_name);
     ctx.insert("entity_names", &actix_admin.entity_names);
     ctx.insert("notifications", &notifications);

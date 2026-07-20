@@ -1,4 +1,4 @@
-use crate::{prelude::*, routes::{delete_file, display_card_grid, export_csv, search}, ActixAdminMenuElement};
+use crate::{prelude::*, routes::{delete_file, display_card_grid, export_csv, search, bulk_action, ActixAdminBulkActionDispatch}, ActixAdminMenuElement};
 use actix_web::{web, Route };
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
@@ -78,6 +78,15 @@ pub trait ActixAdminBuilderTrait {
         add_to_menu: bool,
     );
     fn add_custom_handler_for_index(&mut self, route: Route);
+    /// Register a custom bulk action on an entity. `action` is the metadata
+    /// rendered in the list-page actions dropdown; the entity type `E` must
+    /// provide a `run_bulk_action` implementation (via
+    /// `impl ActixAdminBulkActionDispatch for Entity`) that matches on
+    /// `action.name` and executes the requested work.
+    fn add_bulk_action_for_entity<E: ActixAdminViewModelTrait + ActixAdminBulkActionDispatch + 'static>(
+        &mut self,
+        action: ActixAdminBulkAction,
+    );
     fn get_scope(self) -> actix_web::Scope;
     fn get_actix_admin(&self) -> ActixAdmin;
     fn add_support_handler(&mut self, arg: &str, support: Route);
@@ -146,6 +155,34 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
 
     fn add_custom_handler_for_index(&mut self, route: Route) {
         self.custom_index = Some(route);
+    }
+
+    fn add_bulk_action_for_entity<E: ActixAdminViewModelTrait + ActixAdminBulkActionDispatch + 'static>(
+        &mut self,
+        action: ActixAdminBulkAction,
+    ) {
+        let entity_name = E::get_entity_name();
+        let vm = self
+            .actix_admin
+            .view_models
+            .get_mut(&entity_name)
+            .unwrap_or_else(|| panic!("add_bulk_action_for_entity: entity `{entity_name}` must be registered via add_entity first"));
+        let is_first_action = vm.bulk_actions.is_empty();
+        vm.bulk_actions.push(action);
+
+        // Register the `/action/{name}` route the first time we get an
+        // action for this entity, so entities that never opt in don't have
+        // to satisfy the ActixAdminBulkActionDispatch bound.
+        if is_first_action {
+            let scope = self
+                .scopes
+                .remove(&entity_name)
+                .unwrap_or_else(|| web::scope(&format!("/{}", entity_name)));
+            self.scopes.insert(
+                entity_name,
+                scope.route("/action/{name}", web::post().to(bulk_action::<E>)),
+            );
+        }
     }
 
     fn add_custom_handler_to_category(

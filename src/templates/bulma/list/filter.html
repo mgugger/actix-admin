@@ -6,6 +6,15 @@
         <li>
             <div class="field mt-3">
                 <label class="label">{{key}}</label>
+                {% if value.operators and value.operators | length > 0 %}
+                <div class="select is-small is-fullwidth mb-1">
+                    <select name="filter_{{key}}__op">
+                        {% for op in value.operators %}
+                        <option value="{{ op }}" {% if value.operator and value.operator == op %}selected{% endif %}>{{ op | replace(from="_", to=" ") }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
                 {% if value.filter_type == "Text" %}
                 <div class="control">
                     <input class="input" value="{{ value.value }}" type="text" placeholder="" name="filter_{{key}}">

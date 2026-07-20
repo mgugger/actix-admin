@@ -13,6 +13,23 @@
                 {% elif model_field.field_type == "FileUpload" %}
                 <a href="file/{{ view_model.primary_key }}/{{ model_field.field_name }}">{{ model.values |
                     get(key=model_field.field_name) }}</a>
+                {% elif model_field.field_type == "Image" %}
+                    {% set img = model.values | get(key=model_field.field_name, default="") %}
+                    {% if img %}
+                    <a href="{{ base_path }}/{{ entity_name }}/file/{{ model.primary_key }}/{{ model_field.field_name }}">
+                        <img src="{{ base_path }}/{{ entity_name }}/file/{{ model.primary_key }}/{{ model_field.field_name }}" alt="{{ img }}" style="max-height: 300px; max-width: 100%; border-radius: 4px;">
+                    </a>
+                    {% endif %}
+                {% elif model_field.field_type == "Html" %}
+                <div>{{ model.values | get(key=model_field.field_name, default="") | safe }}</div>
+                {% elif model_field.field_type == "Url" %}
+                    {% set v = model.values | get(key=model_field.field_name, default="") %}
+                    {% if v %}<a href="{{ v }}" target="_blank" rel="noopener noreferrer">{{ v }}</a>{% endif %}
+                {% elif model_field.field_type == "Email" %}
+                    {% set v = model.values | get(key=model_field.field_name, default="") %}
+                    {% if v %}<a href="mailto:{{ v }}">{{ v }}</a>{% endif %}
+                {% elif model_field.field_type == "RichText" %}
+                <div class="content">{{ model.values | get(key=model_field.field_name, default="") }}</div>
                 {% else %}
                 {% if model.fk_values is containing(pat=model_field.field_name) %}
                 {%- set value = model.fk_values[model_field.field_name] %}

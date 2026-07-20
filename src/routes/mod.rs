@@ -16,8 +16,11 @@ pub use show::show;
 mod delete;
 pub use delete::{ delete, delete_many };
 
+mod bulk_action;
+pub use bulk_action::{ bulk_action, ActixAdminBulkActionDispatch };
+
 mod helpers;
-pub use helpers::{add_auth_context, render_template, render_unauthorized, user_can_access_page, validate_sort_by, view_model_or_500};
+pub use helpers::{add_auth_context, forbid_if_denied, render_template, render_unauthorized, user_can_access_page, user_can_perform, validate_sort_by, view_model_or_500, AdminAction};
 
 mod file;
 pub use file::{download, delete_file};
@@ -49,25 +52,50 @@ impl Params {
 /// Parse `filter_<name>=value` querystring fragments into filters, without
 /// panicking on malformed input.
 ///
+/// Also recognises operator selectors of the form `filter_<name>__op=<op>`
+/// (see [`crate::view_model::ActixAdminFilterOperator::from_str`]). Operators
+/// are merged onto the corresponding value filter; a bare `__op` without a
+/// matching value is silently ignored.
+///
 /// Uses `form_urlencoded` so that `+` is decoded as a space (matching the
 /// way browsers submit HTML forms) and each key/value is decoded
 /// independently.
 pub(crate) fn parse_filters_from_query(qs: &str) -> Vec<crate::view_model::ActixAdminViewModelFilter> {
-    form_urlencoded::parse(qs.as_bytes())
-        .filter_map(|(key, value)| {
-            let name = key.strip_prefix("filter_")?.to_string();
-            let value = if value.is_empty() {
-                None
-            } else {
-                Some(value.into_owned())
-            };
-            Some(crate::view_model::ActixAdminViewModelFilter {
+    use crate::view_model::{ActixAdminFilterOperator, ActixAdminViewModelFilter};
+    use std::collections::HashMap;
+
+    let mut values: Vec<(String, Option<String>)> = Vec::new();
+    let mut operators: HashMap<String, ActixAdminFilterOperator> = HashMap::new();
+
+    for (key, value) in form_urlencoded::parse(qs.as_bytes()) {
+        let Some(rest) = key.strip_prefix("filter_") else { continue };
+        if let Some(name) = rest.strip_suffix("__op") {
+            if let Some(op) = ActixAdminFilterOperator::from_str(&value) {
+                operators.insert(name.to_string(), op);
+            }
+            continue;
+        }
+        let v = if value.is_empty() {
+            None
+        } else {
+            Some(value.into_owned())
+        };
+        values.push((rest.to_string(), v));
+    }
+
+    values
+        .into_iter()
+        .map(|(name, value)| {
+            let operator = operators.remove(&name);
+            ActixAdminViewModelFilter {
                 name,
                 value,
                 values: None,
                 filter_type: None,
                 foreign_key: None,
-            })
+                operators: Vec::new(),
+                operator,
+            }
         })
         .collect()
 }

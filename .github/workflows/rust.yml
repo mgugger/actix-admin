@@ -39,6 +39,9 @@ jobs:
     - name: Build
       run: cargo build --verbose
     - name: Run tests with bulma_css feature
-      run: cargo test --verbose --features bulma_css --no-default-features
+      # -j 1 / --test-threads=1: each webdriver test spins up its own actix
+      # server on :5555 and its own geckodriver on :4444, so both the test
+      # binaries and the tests within a binary must run serially.
+      run: cargo test --verbose --features bulma_css --no-default-features -j 1 -- --test-threads=1
     - name: Run tests with bootstrapv5_css feature
-      run: cargo test --verbose --features bootstrapv5_css --no-default-features
+      run: cargo test --verbose --features bootstrapv5_css --no-default-features -j 1 -- --test-threads=1

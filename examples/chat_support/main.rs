@@ -71,7 +71,8 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
         user_tenant_ref: None,
         base_path: "/absproxy/5000/admin",
         custom_css_paths: None,
-        custom_js_paths: None
+        custom_js_paths: None,
+        enable_csrf: false,
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);

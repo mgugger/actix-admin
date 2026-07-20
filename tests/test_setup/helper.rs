@@ -27,6 +27,24 @@ pub async fn setup_db(create_entities: bool) -> DatabaseConnection {
                 tea_mandatory: Set(post::Tea::EverydayTea),
                 tea_optional: Set(None),
                 insert_date: Set(Local::now().date_naive()),
+                // Cover every branch of the new nullable renderers:
+                //   * some rows are all-NULL (i % 5 == 0)
+                //   * other rows have populated values including a
+                //     characteristic marker so we can grep the response.
+                summary_html: Set(if i % 5 == 0 { None } else {
+                    Some(format!("<em>row-{}</em>", i))
+                }),
+                homepage: Set(if i % 5 == 0 { None } else {
+                    Some(format!("https://example.com/{}", i))
+                }),
+                contact_email: Set(if i % 5 == 0 { None } else {
+                    Some(format!("row{}@example.com", i))
+                }),
+                cover_image: Set(if i % 3 == 0 { Some("placeholder.png".to_string()) } else { None }),
+                notes_md: Set(if i % 5 == 0 { None } else {
+                    Some(format!("# markdown-{}", i))
+                }),
+                external_id: Set(Some(format!("EXT-{:05}", i))),
                 ..Default::default()
             };
             let insert_res = Post::insert(row)
@@ -124,6 +142,7 @@ pub fn create_actix_admin_builder(
         base_path: "/admin",
         custom_css_paths: None,
         custom_js_paths: None,
+        enable_csrf: false,
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);

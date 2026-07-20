@@ -35,6 +35,18 @@ pub mod derive_attr {
         #[darling(default)]
         pub file_upload: Option<()>,
         #[darling(default)]
+        pub image: Option<()>,
+        #[darling(default)]
+        pub html_render: Option<()>,
+        #[darling(default)]
+        pub url: Option<()>,
+        #[darling(default)]
+        pub email: Option<()>,
+        #[darling(default)]
+        pub wysiwyg: Option<()>,
+        #[darling(default)]
+        pub readonly: Option<()>,
+        #[darling(default)]
         pub not_empty: Option<()>,
         #[darling(default)]
         pub list_sort_position: Option<syn::LitStr>,

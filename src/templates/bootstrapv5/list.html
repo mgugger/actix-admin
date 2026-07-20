@@ -12,8 +12,10 @@
         <div class="row">
             <div class="col">
                 <div class="btn-group">
+                    {% if view_model.can_create %}
                     <a class="btn btn-primary" href="{{ base_path }}/{{ entity_name }}/create" hx-boost="true"
                         hx-indicator="#loading"><i class="fa-solid fa-circle-plus"></i></a>
+                    {% endif %}
                     {% if viewmodel_filter | length > 0 %}
                     <button class="btn btn-secondary" onclick="toggle_hidden('nav_aside')"><i
                             class="fa-solid fa-filter"></i></button>
@@ -24,15 +26,30 @@
                             <i class="fa-solid fa-list"></i>
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                            {% if view_model.can_export %}
                             <li><a class="dropdown-item" hx-include="[id='filter_form'], [id='table_form']" hx-vals='{ 
                             "search" : "{{ search }}",
                             "sort_by" : "{{ sort_by }}",
                             "sort_order" : "{{ sort_order }}"
                         }' hx-indicator="#loading" href="export_csv">Export as CSV</a></li>
+                            {% endif %}
+                            {% if view_model.can_delete %}
                             <hr class="dropdown-divider">
                             <li><a class="dropdown-item" hx-include="#table_form" hx-target="#{{ entity_name }}table"
                                     href="#" hx-indicator="#loading" hx-confirm="Are you sure?"
-                                    hx-delete="delete">Delete</a></li>
+                                    hx-delete="delete?_csrf={{ csrf_token }}">Delete</a></li>
+                            {% endif %}
+                            {% if view_model.bulk_actions | length > 0 %}
+                            <hr class="dropdown-divider">
+                            {% for a in view_model.bulk_actions %}
+                            <li><a class="dropdown-item" hx-include="#table_form" hx-target="#content"
+                                    href="#" hx-indicator="#loading"
+                                    {% if a.confirm %}hx-confirm="{{ a.confirm }}"{% endif %}
+                                    hx-post="action/{{ a.name }}?_csrf={{ csrf_token }}">
+                                    {% if a.icon %}<i class="{{ a.icon }}"></i> {% endif %}{{ a.label }}
+                            </a></li>
+                            {% endfor %}
+                            {% endif %}
                         </ul>
                     </div>
                 </div>

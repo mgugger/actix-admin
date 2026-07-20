@@ -26,7 +26,34 @@ pub struct Model {
     #[actix_admin(list_sort_position="1")]
     pub insert_date: Date,
     #[actix_admin(file_upload)]
-    pub attachment: Option<String>
+    pub attachment: Option<String>,
+
+    // --- New nullable columns exercising every new field type ---
+    /// Renders a small snippet of HTML (marked as safe) directly in the
+    /// list and show views. Never enable this on user-controlled input.
+    #[actix_admin(html_render)]
+    pub summary_html: Option<String>,
+
+    /// Rendered as a clickable `<a href>` in the list/show views.
+    #[actix_admin(url)]
+    pub homepage: Option<String>,
+
+    /// Rendered as a `mailto:` link in the list/show views.
+    #[actix_admin(email)]
+    pub contact_email: Option<String>,
+
+    /// Filename of an uploaded image; renders a thumbnail on the list
+    /// view and a larger preview on show / edit.
+    #[actix_admin(image)]
+    pub cover_image: Option<String>,
+
+    /// Markdown-editable rich text (EasyMDE) on create/edit.
+    #[actix_admin(wysiwyg)]
+    pub notes_md: Option<String>,
+
+    /// Read-only field on the create/edit form (still visible on list/show).
+    #[actix_admin(readonly)]
+    pub external_id: Option<String>,
 }
 
 impl Display for Model {
@@ -75,3 +102,26 @@ impl FromStr for Tea {
 impl ActixAdminModelValidationTrait<ActiveModel> for Entity {}
 
 impl ActixAdminModelFilterTrait<Entity> for Entity {}
+
+// Custom bulk action registered via `add_bulk_action_for_entity` in main.rs.
+// This implementation simply logs which ids were selected; a real handler
+// would run an update via SeaORM. Note the trait implementation is generated
+// with a default empty impl by `DeriveActixAdminViewModel` — we override it
+// here.
+#[actix_admin::prelude::async_trait(?Send)]
+impl actix_admin::routes::ActixAdminBulkActionDispatch for Entity {
+    async fn run_bulk_action(
+        name: &str,
+        _db: &sea_orm::DatabaseConnection,
+        ids: Vec<Self::Id>,
+        _tenant_ref: Option<i32>,
+    ) -> Result<Option<String>, ActixAdminError> {
+        match name {
+            "mark_reviewed" => Ok(Some(format!(
+                "marked {} post(s) as reviewed",
+                ids.len()
+            ))),
+            _ => Ok(None),
+        }
+    }
+}

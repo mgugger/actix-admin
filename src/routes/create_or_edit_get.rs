@@ -6,10 +6,10 @@ use crate::ActixAdminError;
 use crate::ActixAdminNotification;
 use crate::prelude::*;
 
-use super::helpers::add_default_context;
+use super::helpers::add_default_context_with_session;
 use super::helpers::SearchParams;
 use super::Params;
-use super::{add_auth_context, render_template, render_unauthorized, user_can_access_page, view_model_or_500};
+use super::{add_auth_context, render_template, render_unauthorized, user_can_perform, view_model_or_500, AdminAction};
 
 pub async fn create_get<E: ActixAdminViewModelTrait>(
     session: Session,
@@ -69,7 +69,14 @@ async fn create_or_edit_get<E: ActixAdminViewModelTrait>(
 
     let view_model = view_model_or_500(actix_admin, &entity_name)?;
 
-    if !user_can_access_page(session, actix_admin, view_model) {
+    let is_edit = model_result
+        .as_ref()
+        .ok()
+        .and_then(|m| m.primary_key.clone())
+        .is_some();
+    let required_action = if is_edit { AdminAction::Edit } else { AdminAction::Create };
+
+    if !user_can_perform(session, actix_admin, view_model, required_action) {
         return render_unauthorized(&ctx, actix_admin);
     }
 
@@ -95,7 +102,7 @@ async fn create_or_edit_get<E: ActixAdminViewModelTrait>(
 
     let params = Params::from_query(req.query_string());
     let search_params = SearchParams::from_params(&params, view_model);
-    add_default_context(&mut ctx, req, view_model, entity_name, actix_admin, notifications, &search_params);
+    add_default_context_with_session(&mut ctx, req, view_model, entity_name, actix_admin, notifications, &search_params, Some(session));
 
     let tenant_ref = actix_admin
         .configuration

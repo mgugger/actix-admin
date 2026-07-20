@@ -8,10 +8,10 @@ use serde_derive::{Deserialize, Serialize};
 use std::fmt;
 use tera::Context;
 
-use super::helpers::{add_default_context, SearchParams};
+use super::helpers::{add_default_context_with_session, SearchParams};
 use super::{
     add_auth_context, parse_filters_from_query, render_template, render_unauthorized, user_can_access_page,
-    validate_sort_by, view_model_or_500, Params,
+    user_can_perform, validate_sort_by, view_model_or_500, AdminAction, Params,
 };
 use crate::ActixAdminModel;
 use crate::ActixAdminNotification;
@@ -55,7 +55,7 @@ pub async fn export_csv<E: ActixAdminViewModelTrait>(
     let entity_name = E::get_entity_name();
     let view_model = view_model_or_500(actix_admin, &entity_name)?;
 
-    if !user_can_access_page(&session, actix_admin, view_model) {
+    if !user_can_perform(&session, actix_admin, view_model, AdminAction::Export) {
         return render_unauthorized(&Context::new(), actix_admin);
     }
 
@@ -184,13 +184,29 @@ pub async fn list<E: ActixAdminViewModelTrait>(
         }
     };
 
+    // Best-effort in-memory sort on the FK display column when the user
+    // requested to sort by a foreign-key field. This only re-orders within
+    // the current page (the primary query still orders on the FK id) but
+    // gives visually correct alphabetical order in the common case of
+    // browsing without paging past `entities_per_page`.
+    if let Some(field) = view_model.fields.iter().find(|f| f.field_name == search_params.sort_by) {
+        if !field.foreign_key.is_empty() {
+            let asc = matches!(search_params.sort_order, SortOrder::Asc);
+            entities.sort_by(|a, b| {
+                let av = a.fk_values.get(&field.field_name).cloned().unwrap_or_default();
+                let bv = b.fk_values.get(&field.field_name).cloned().unwrap_or_default();
+                if asc { av.cmp(&bv) } else { bv.cmp(&av) }
+            });
+        }
+    }
+
     replace_regex(view_model, &mut entities);
     let num_pages = num_pages.unwrap_or(1);
     let page = search_params.page.min(num_pages);
     let min_show_page = page.saturating_sub(4).max(1);
     let max_show_page = (page + 4).min(num_pages);
 
-    add_default_context(
+    add_default_context_with_session(
         &mut ctx,
         req,
         view_model,
@@ -198,6 +214,7 @@ pub async fn list<E: ActixAdminViewModelTrait>(
         actix_admin,
         Vec::new(),
         &search_params,
+        Some(&session),
     );
 
     ctx.insert("entities", &entities);
@@ -211,6 +228,7 @@ pub async fn list<E: ActixAdminViewModelTrait>(
     for f in &vm_params.viewmodel_filter {
         if let Some(entry) = viewmodel_filter.get_mut(&f.name) {
             entry.value = f.value.clone();
+            entry.operator = f.operator.clone();
         }
     }
     ctx.insert("viewmodel_filter", &viewmodel_filter);

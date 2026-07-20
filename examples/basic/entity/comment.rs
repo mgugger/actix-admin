@@ -86,19 +86,38 @@ impl Display for Model {
 impl ActixAdminModelFilterTrait<Entity> for Entity {
     fn get_filter() -> Vec<ActixAdminModelFilter<Entity>> {
         vec![
-            ActixAdminModelFilter::<Entity> {
-                name: "User".to_string(),
-                filter_type: ActixAdminModelFilterType::Text,
-                filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
+            // Example of the new operator-aware filter form: users can
+            // choose whether "user" should match with equality or a
+            // substring lookup.
+            ActixAdminModelFilter::new(
+                "User",
+                ActixAdminModelFilterType::Text,
+                |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
                     q.apply_if(v, |query, val: String| query.filter(Column::User.eq(val)))
                 },
-                values: None,
-                foreign_key: None,
-            },
-            ActixAdminModelFilter::<Entity> {
-                name: "Insert Date After".to_string(),
-                filter_type: ActixAdminModelFilterType::DateTime,
-                filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
+            )
+            .with_operators(vec![
+                ActixAdminFilterOperator::Contains,
+                ActixAdminFilterOperator::Equals,
+                ActixAdminFilterOperator::NotEquals,
+                ActixAdminFilterOperator::IsNull,
+            ])
+            .with_operator_filter(
+                |q: sea_orm::Select<Entity>, v, op| -> sea_orm::Select<Entity> {
+                    use ActixAdminFilterOperator::*;
+                    match (v, op) {
+                        (_, Some(IsNull)) => q.filter(Column::User.eq("")),
+                        (Some(val), Some(NotEquals)) => q.filter(Column::User.ne(val)),
+                        (Some(val), Some(Contains)) => q.filter(Column::User.contains(&val)),
+                        (Some(val), _) => q.filter(Column::User.eq(val)),
+                        _ => q,
+                    }
+                },
+            ),
+            ActixAdminModelFilter::new(
+                "Insert Date After",
+                ActixAdminModelFilterType::DateTime,
+                |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
                     q.apply_if(v, |query, val: String| {
                         let naive_dt =
                             NaiveDateTime::parse_from_str(&val, "%Y-%m-%dT%H:%M").unwrap();
@@ -106,38 +125,31 @@ impl ActixAdminModelFilterTrait<Entity> for Entity {
                         query.filter(Column::InsertDate.gte(naive_utc))
                     })
                 },
-                values: None,
-                foreign_key: None,
-            },
-            ActixAdminModelFilter::<Entity> {
-                name: "Is Visible".to_string(),
-                filter_type: ActixAdminModelFilterType::Checkbox,
-                filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
+            ),
+            ActixAdminModelFilter::new(
+                "Is Visible",
+                ActixAdminModelFilterType::Checkbox,
+                |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
                     q.apply_if(v, |query, val: String| {
                         query.filter(Column::IsVisible.eq(val))
                     })
                 },
-                values: None,
-                foreign_key: None,
-            },
-            ActixAdminModelFilter::<Entity> {
-                name: "Post".to_string(),
-                filter_type: ActixAdminModelFilterType::SelectList,
-                filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
+            ),
+            ActixAdminModelFilter::new(
+                "Post",
+                ActixAdminModelFilterType::SelectList,
+                |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
                     q.apply_if(v, |query, val: String| query.filter(Column::PostId.eq(val)))
                 },
-                values: None,
-                foreign_key: None,
-            },
-            ActixAdminModelFilter::<Entity> {
-                name: "Post with Tom Select".to_string(),
-                filter_type: ActixAdminModelFilterType::TomSelectSearch,
-                filter: |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
+            ),
+            ActixAdminModelFilter::new(
+                "Post with Tom Select",
+                ActixAdminModelFilterType::TomSelectSearch,
+                |q: sea_orm::Select<Entity>, v| -> sea_orm::Select<Entity> {
                     q.apply_if(v, |query, val: String| query.filter(Column::PostId.eq(val)))
                 },
-                values: None,
-                foreign_key: Some("post".to_string()),
-            },
+            )
+            .with_foreign_key("post"),
         ]
     }
 

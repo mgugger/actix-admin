@@ -23,6 +23,22 @@
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js"></script>
 
+<!-- EasyMDE (Markdown WYSIWYG) for #[actix_admin(wysiwyg)] fields -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+
+{% if enable_csrf %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+<script>
+    // Attach the CSRF token to every HTMX request. Non-HTMX form posts
+    // include the token as a hidden `_csrf` input rendered inside the form.
+    document.addEventListener('htmx:configRequest', function (evt) {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta) { evt.detail.headers['X-CSRF-Token'] = meta.getAttribute('content'); }
+    });
+</script>
+{% endif %}
+
 <script>
     document.onkeydown = function (e) {
         if (document.activeElement.tagName.toLowerCase() !== 'input') {

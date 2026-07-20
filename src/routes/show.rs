@@ -3,11 +3,11 @@ use actix_web::HttpRequest;
 use actix_web::{error, web, Error, HttpResponse};
 use sea_orm::DatabaseConnection;
 use tera::Context;
-use super::helpers::{add_default_context, SearchParams};
+use super::helpers::{add_default_context_with_session, SearchParams};
 use crate::prelude::*;
 use crate::ActixAdminNotification;
 
-use super::{add_auth_context, render_template, render_unauthorized, user_can_access_page, view_model_or_500};
+use super::{add_auth_context, render_template, render_unauthorized, user_can_perform, view_model_or_500, AdminAction};
 use super::Params;
 
 pub async fn show<E: ActixAdminViewModelTrait>(
@@ -22,7 +22,7 @@ pub async fn show<E: ActixAdminViewModelTrait>(
     let mut ctx = Context::new();
     let entity_name = E::get_entity_name();
     let view_model: &ActixAdminViewModel = view_model_or_500(actix_admin, &entity_name)?;
-    if !user_can_access_page(&session, actix_admin, view_model) {
+    if !user_can_perform(&session, actix_admin, view_model, AdminAction::View) {
         return render_unauthorized(&ctx, actix_admin);
     }
 
@@ -65,7 +65,7 @@ pub async fn show<E: ActixAdminViewModelTrait>(
 
     add_auth_context(&session, actix_admin, &mut ctx);
 
-    add_default_context(
+    add_default_context_with_session(
         &mut ctx,
         req,
         view_model,
@@ -73,6 +73,7 @@ pub async fn show<E: ActixAdminViewModelTrait>(
         actix_admin,
         notifications,
         &search_params,
+        Some(&session),
     );
     ctx.insert("model", &model);
 
