@@ -8,30 +8,27 @@ use actix_web::{error, Error, HttpRequest, HttpResponse};
 use super::{Params, DEFAULT_ENTITIES_PER_PAGE};
 
 pub fn add_auth_context(session: &Session, actix_admin: &ActixAdmin, ctx: &mut Context) {
-    let enable_auth = &actix_admin.configuration.enable_auth;
-    ctx.insert("enable_auth", &enable_auth);
-    ctx.insert("custom_css_paths", &actix_admin.configuration.custom_css_paths);
-    ctx.insert("custom_js_paths", &actix_admin.configuration.custom_js_paths);
-    ctx.insert("navbar_title", &actix_admin.configuration.navbar_title);
-    ctx.insert("base_path", &actix_admin.configuration.base_path);
+    let cfg = &actix_admin.configuration;
+    ctx.insert("enable_auth", &cfg.enable_auth);
+    ctx.insert("custom_css_paths", &cfg.custom_css_paths);
+    ctx.insert("custom_js_paths", &cfg.custom_js_paths);
+    ctx.insert("navbar_title", &cfg.navbar_title);
+    ctx.insert("base_path", &cfg.base_path);
     ctx.insert("support_path", &actix_admin.support_path.as_ref());
-    if *enable_auth {
-        let func = &actix_admin.configuration.user_is_logged_in.unwrap();
+    if cfg.enable_auth {
+        let func = cfg.user_is_logged_in.unwrap();
         ctx.insert("user_is_logged_in", &func(session));
-        ctx.insert("login_link", &actix_admin.configuration.login_link.as_ref().unwrap_or(&String::new()));
-        ctx.insert("logout_link", &actix_admin.configuration.logout_link.as_ref().unwrap_or(&String::new()));
+        ctx.insert("login_link", cfg.login_link.as_deref().unwrap_or(""));
+        ctx.insert("logout_link", cfg.logout_link.as_deref().unwrap_or(""));
     }
 }
 
 pub fn user_can_access_page(session: &Session, actix_admin: &ActixAdmin, view_model: &ActixAdminViewModel) -> bool {
-    let auth_is_enabled = &actix_admin.configuration.enable_auth;
-    let user_is_logged_in = &actix_admin.configuration.user_is_logged_in;
-    let user_can_access_view_model = &view_model.user_can_access;
-
-    match (auth_is_enabled, user_is_logged_in, user_can_access_view_model) {
-        (true, Some(auth_func), Some(view_model_access_func)) => auth_func(session) && view_model_access_func(session),
-        (true, Some(auth_func), _) => auth_func(session),
-        (_, _, _) => !auth_is_enabled,
+    let cfg = &actix_admin.configuration;
+    match (cfg.enable_auth, cfg.user_is_logged_in, view_model.user_can_access) {
+        (true, Some(auth), Some(vm_access)) => auth(session) && vm_access(session),
+        (true, Some(auth), None) => auth(session),
+        _ => !cfg.enable_auth,
     }
 }
 

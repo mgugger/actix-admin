@@ -104,8 +104,7 @@ pub async fn delete_many<E: ActixAdminViewModelTrait>(
     // Silently skip un-parseable ids rather than panicking on client input.
     let ids: Vec<E::Id> = form
         .iter()
-        .filter(|el| el.0 == "ids")
-        .filter_map(|el| el.1.parse::<E::Id>().ok())
+        .filter_map(|(k, v)| (k == "ids").then(|| v.parse::<E::Id>().ok()).flatten())
         .collect();
 
     let tenant_ref = actix_admin
@@ -135,9 +134,10 @@ pub async fn delete_many<E: ActixAdminViewModelTrait>(
 
     let field = |key: &str, default: &str| -> String {
         form.iter()
-            .find(|el| el.0 == key)
-            .map(|e| e.1.to_string())
-            .unwrap_or_else(|| default.to_string())
+            .find(|(k, _)| k == key)
+            .map(|(_, v)| v.as_str())
+            .unwrap_or(default)
+            .to_string()
     };
     let entities_per_page = field("entities_per_page", "10");
     let search = urlencoding::encode(&field("search", "")).into_owned();

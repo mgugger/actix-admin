@@ -1,7 +1,6 @@
 use crate::view_model::{ActixAdminViewModelFilter, ActixAdminViewModelParams};
 use crate::{ActixAdminError, ActixAdminErrorType, ActixAdminViewModelField};
 use actix_multipart::Multipart;
-use actix_web::web::Bytes;
 use async_trait::async_trait;
 use chrono::{NaiveDate, NaiveDateTime};
 use futures_util::stream::StreamExt as _;
@@ -27,20 +26,19 @@ pub fn sanitize_upload_filename(raw: &str) -> String {
     // so we correctly reject Windows-style traversal even on unix hosts.
     let last = raw.rsplit(['/', '\\']).next().unwrap_or("");
 
-    let cleaned = sanitize_filename::sanitize_with_options(
+    let cleaned: String = sanitize_filename::sanitize_with_options(
         last,
         sanitize_filename::Options {
             windows: true,
             truncate: true,
             replacement: "_",
         },
-    );
-    let cleaned: String = cleaned
-        .chars()
-        .filter(|c| !c.is_control() && *c != '\0')
-        .collect();
+    )
+    .chars()
+    .filter(|c| !c.is_control() && *c != '\0')
+    .collect();
     let cleaned = cleaned.trim_matches(|c: char| c == '.' || c.is_whitespace());
-    if cleaned.is_empty() || cleaned.chars().all(|c| c == '.') {
+    if cleaned.is_empty() {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_millis())
@@ -127,7 +125,7 @@ impl ActixAdminModel {
             errors: HashMap::new(),
             custom_errors: HashMap::new(),
             fk_values: HashMap::new(),
-            display_name: None
+            display_name: None,
         }
     }
 
@@ -141,20 +139,17 @@ impl ActixAdminModel {
         while let Some(item) = payload.next().await {
             let mut field = item?;
 
-            let mut binary_data: Vec<Bytes> = Vec::new();
-            let mut total_size: usize = 0;
+            let mut binary_data: Vec<u8> = Vec::new();
             while let Some(chunk) = field.next().await {
                 let chunk = chunk?;
-                total_size = total_size.saturating_add(chunk.len());
-                if total_size > DEFAULT_MAX_FIELD_SIZE_BYTES {
+                if binary_data.len().saturating_add(chunk.len()) > DEFAULT_MAX_FIELD_SIZE_BYTES {
                     return Err(ActixAdminError::new(
                         ActixAdminErrorType::UploadError,
                         "Uploaded field exceeds maximum size",
                     ));
                 }
-                binary_data.push(chunk);
+                binary_data.extend_from_slice(&chunk);
             }
-            let binary_data = binary_data.concat();
 
             let content_disposition = match field.content_disposition() {
                 Some(cd) => cd.clone(),
@@ -211,10 +206,7 @@ impl ActixAdminModel {
         Ok(ActixAdminModel {
             primary_key: id,
             values: hashmap,
-            errors: HashMap::new(),
-            custom_errors: HashMap::new(),
-            fk_values: HashMap::new(),
-            display_name: None,
+            ..ActixAdminModel::create_empty()
         })
     }
 
@@ -250,18 +242,11 @@ impl ActixAdminModel {
     }
 
     pub fn get_bool(&self, key: &str, is_option_or_string: bool, is_allowed_to_be_empty: bool) -> Result<Option<bool>, String> {
-        let val = self.get_value_by_closure(key, is_option_or_string, is_allowed_to_be_empty ,|val| {
-            if !val.is_empty() && (val == "true" || val == "yes") {
-                Ok(true)
-            } else {
-                Ok(false)
-            }
+        // A missing/invalid bool from a checkbox means "unchecked".
+        let val = self.get_value_by_closure(key, is_option_or_string, is_allowed_to_be_empty, |val| {
+            Ok::<bool, std::str::ParseBoolError>(matches!(val.as_str(), "true" | "yes"))
         });
-        // not selected bool field equals to false and not to missing
-        match val {
-            Ok(val) => Ok(val),
-            Err(_) => Ok(Some(false)),
-        }
+        Ok(val.unwrap_or(Some(false)))
     }
 
     fn get_value_by_closure<T: std::str::FromStr>(
@@ -271,37 +256,27 @@ impl ActixAdminModel {
         is_allowed_to_be_empty: bool,
         f: impl Fn(&String) -> Result<T, <T as std::str::FromStr>::Err>,
     ) -> Result<Option<T>, String> {
-        let value = self.values.get(key);
-
-        let res: Result<Option<T>, String> = match value {
+        match self.values.get(key) {
             Some(val) => {
-                match (val.is_empty(), is_option_or_string, is_allowed_to_be_empty) {
-                    (true, true, true) => return Ok(None),
-                    (true, true, false) => return Err("Cannot be empty".to_string()),
-                    _ => {}
-                };
-
-                let parsed_val = f(val);
-
-                match parsed_val {
-                    Ok(val) => Ok(Some(val)),
-                    Err(_) => Err("Invalid Value".to_string()),
+                if val.is_empty() && is_option_or_string {
+                    return if is_allowed_to_be_empty {
+                        Ok(None)
+                    } else {
+                        Err("Cannot be empty".to_string())
+                    };
                 }
+                f(val).map(Some).map_err(|_| "Invalid Value".to_string())
             }
-            _ => {
-                match (is_option_or_string, is_allowed_to_be_empty) {
-                    (true, true) => Ok(None),
-                    (true, false) => Err("Cannot be empty".to_string()),
-                    (false, _) => Err("Invalid Value".to_string()), // a missing value in the form for a non-optional value
-                }
-            }
-        };
-
-        res
+            None => match (is_option_or_string, is_allowed_to_be_empty) {
+                (true, true) => Ok(None),
+                (true, false) => Err("Cannot be empty".to_string()),
+                (false, _) => Err("Invalid Value".to_string()),
+            },
+        }
     }
 
     pub fn has_errors(&self) -> bool {
-        (self.errors.len() + self.custom_errors.len()) != 0
+        !self.errors.is_empty() || !self.custom_errors.is_empty()
     }
 }
 

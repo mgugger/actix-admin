@@ -81,7 +81,7 @@ async fn create_or_edit_get<E: ActixAdminViewModelTrait>(
         }
     };
 
-    let http_response_code = match errors.first() {
+    let mut http_response_code = match errors.first() {
         None => HttpResponse::Ok(),
         Some(e) if e.ty == crate::ActixAdminErrorType::EntityDoesNotExistError => {
             HttpResponse::NotFound()
@@ -102,7 +102,6 @@ async fn create_or_edit_get<E: ActixAdminViewModelTrait>(
         .user_tenant_ref
         .and_then(|f| f(session));
 
-    ctx.insert("view_model", &ActixAdminViewModelSerializable::from(view_model.clone()));
     ctx.insert("select_lists", &E::get_select_lists(db, tenant_ref).await?);
     ctx.insert("model", &model);
 
@@ -111,8 +110,7 @@ async fn create_or_edit_get<E: ActixAdminViewModelTrait>(
     } else {
         "create_or_edit.html"
     };
-    let mut resp = http_response_code;
     let body = render_template(&actix_admin.tera, template_path, &ctx)
         .map_err(error::ErrorInternalServerError)?;
-    Ok(resp.content_type("text/html").body(body))
+    Ok(http_response_code.content_type("text/html").body(body))
 }

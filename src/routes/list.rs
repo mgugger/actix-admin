@@ -154,11 +154,6 @@ pub async fn list<E: ActixAdminViewModelTrait>(
     validate_sort_by(view_model, &search_params.sort_by)?;
 
     let actixadminfilters = parse_filters_from_query(req.query_string());
-    let filter_values_by_name: std::collections::HashMap<String, Option<String>> =
-        actixadminfilters
-            .iter()
-            .map(|f| (f.name.clone(), f.value.clone()))
-            .collect();
 
     let vm_params = ActixAdminViewModelParams {
         page: Some(search_params.page),
@@ -213,9 +208,9 @@ pub async fn list<E: ActixAdminViewModelTrait>(
     // Round-trip the current query's filter values back into the view-model
     // filter map so templates can pre-select them (and so re-submitting the
     // filter form doesn't silently clear the current selection).
-    for (name, v) in &filter_values_by_name {
-        if let Some(entry) = viewmodel_filter.get_mut(name) {
-            entry.value = v.clone();
+    for f in &vm_params.viewmodel_filter {
+        if let Some(entry) = viewmodel_filter.get_mut(&f.name) {
+            entry.value = f.value.clone();
         }
     }
     ctx.insert("viewmodel_filter", &viewmodel_filter);

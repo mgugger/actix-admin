@@ -41,7 +41,7 @@ pub async fn edit_post<E: ActixAdminViewModelTrait>(
     payload: Multipart,
     id: web::Path<E::Id>,
 ) -> Result<HttpResponse, Error> {
-    let actix_admin = &data.get_ref();
+    let actix_admin = data.get_ref();
     let id = id.into_inner();
     let model = ActixAdminModel::create_from_payload(
         Some(id.to_string()),
@@ -67,7 +67,6 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
     let entity_name = E::get_entity_name();
 
     let view_model = actix_admin.view_models.get(&entity_name).unwrap();
-    let mut errors: Vec<ActixAdminError> = Vec::new();
 
     if !user_can_access_page(session, actix_admin, view_model) {
         let mut ctx = Context::new();
@@ -92,77 +91,60 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
     let _ = E::validate_entity(&mut model, db).await;
 
     if model.has_errors() {
-        let error = ActixAdminError {
+        let errors = vec![ActixAdminError {
             ty: ActixAdminErrorType::ValidationErrors,
-            msg: "".to_owned(),
-        };
-        errors.push(error);
-        render_form::<E>(
-            session,
-            req,
-            actix_admin,
-            view_model,
-            db,
-            entity_name,
-            &model,
-            errors,
+            msg: String::new(),
+        }];
+        return render_form::<E>(
+            session, req, actix_admin, view_model, db, entity_name, &model, errors,
         )
-        .await
-    } else {
-        let tenant_ref = actix_admin
-            .configuration
-            .user_tenant_ref
-            .and_then(|f| f(session));
+        .await;
+    }
 
-        let res = match id {
-            Some(id) => E::edit_entity(db, id, model.clone(), tenant_ref).await,
-            None => E::create_entity(db, model.clone(), tenant_ref).await,
-        };
+    let tenant_ref = actix_admin
+        .configuration
+        .user_tenant_ref
+        .and_then(|f| f(session));
 
-        match res {
-            Ok(model) => {
-                    let params = Params::from_query(req.query_string());
+    let res = match id {
+        Some(id) => E::edit_entity(db, id, model.clone(), tenant_ref).await,
+        None => E::create_entity(db, model.clone(), tenant_ref).await,
+    };
 
-                    let entity_name = E::get_entity_name();
+    match res {
+        Ok(model) => {
+            let params = Params::from_query(req.query_string());
+            let search_params = SearchParams::from_params(&params, view_model);
 
-                    let search_params = SearchParams::from_params(&params, view_model);
-
-                    if view_model.inline_edit {
-                        let mut ctx = Context::new();
-
-                        ctx.insert("entity", &model);
-
-                        add_auth_context(session, actix_admin, &mut ctx);
-                        add_default_context(&mut ctx, req, view_model, entity_name, actix_admin, Vec::new(), &search_params);
-
-                        let body = actix_admin
-                            .tera
-                            .render("list/row.html", &ctx)
-                            .map_err(error::ErrorInternalServerError)?;
-                        Ok(HttpResponse::Ok().content_type("text/html").body(body))
-                    } else {
-                        Ok(HttpResponse::SeeOther()
+            if view_model.inline_edit {
+                let mut ctx = Context::new();
+                ctx.insert("entity", &model);
+                add_auth_context(session, actix_admin, &mut ctx);
+                add_default_context(&mut ctx, req, view_model, entity_name, actix_admin, Vec::new(), &search_params);
+                let body = actix_admin
+                    .tera
+                    .render("list/row.html", &ctx)
+                    .map_err(error::ErrorInternalServerError)?;
+                Ok(HttpResponse::Ok().content_type("text/html").body(body))
+            } else {
+                Ok(HttpResponse::SeeOther()
                     .append_header((
                         header::LOCATION,
-                        format!("{0}/{1}/list?{2}", actix_admin.configuration.base_path, entity_name, search_params.to_query_string()),
+                        format!(
+                            "{0}/{1}/list?{2}",
+                            actix_admin.configuration.base_path,
+                            entity_name,
+                            search_params.to_query_string()
+                        ),
                     ))
                     .finish())
-                    }
             }
-            Err(e) => {
-                errors.push(e);
-                render_form::<E>(
-                    session,
-                    req,
-                    actix_admin,
-                    view_model,
-                    db,
-                    entity_name,
-                    &model,
-                    errors,
-                )
-                .await
-            }
+        }
+        Err(e) => {
+            render_form::<E>(
+                session, req, actix_admin, view_model, db, entity_name, &model, vec![e],
+            )
+            .await
         }
     }
 }
@@ -199,9 +181,10 @@ async fn render_form<E: ActixAdminViewModelTrait>(
     let search_params = SearchParams::from_params(&params, view_model);
     add_default_context(&mut ctx, req, view_model, entity_name, actix_admin, notifications, &search_params);
 
-    let template_path = match (view_model.inline_edit, model.primary_key.is_some()) {
-        (true, true) => "create_or_edit/inline.html",
-        (_, _) => "create_or_edit.html",
+    let template_path = if view_model.inline_edit && model.primary_key.is_some() {
+        "create_or_edit/inline.html"
+    } else {
+        "create_or_edit.html"
     };
     let body = render_template(&actix_admin.tera, template_path, &ctx)
         .map_err(error::ErrorInternalServerError)?;

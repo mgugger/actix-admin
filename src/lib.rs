@@ -190,40 +190,23 @@ impl error::ResponseError for ActixAdminError {
     }
 }
 
-impl std::convert::From<sea_orm::DbErr> for ActixAdminError {
-    fn from(err: sea_orm::DbErr) -> ActixAdminError {
-        ActixAdminError {
-            ty: ActixAdminErrorType::DatabaseError,
-            msg: err.to_string(),
-        }
-    }
+macro_rules! impl_from_error {
+    ($($err:ty => $ty:ident),* $(,)?) => {
+        $(
+            impl From<$err> for ActixAdminError {
+                fn from(err: $err) -> Self {
+                    Self { ty: ActixAdminErrorType::$ty, msg: err.to_string() }
+                }
+            }
+        )*
+    };
 }
 
-impl std::convert::From<std::io::Error> for ActixAdminError {
-    fn from(err: std::io::Error) -> ActixAdminError {
-        ActixAdminError {
-            ty: ActixAdminErrorType::IoError,
-            msg: err.to_string(),
-        }
-    }
-}
-
-impl std::convert::From<actix_multipart::MultipartError> for ActixAdminError {
-    fn from(err: actix_multipart::MultipartError) -> ActixAdminError {
-        ActixAdminError {
-            ty: ActixAdminErrorType::UploadError,
-            msg: err.to_string(),
-        }
-    }
-}
-
-impl std::convert::From<serde_urlencoded::de::Error> for ActixAdminError {
-    fn from(err: serde_urlencoded::de::Error) -> ActixAdminError {
-        ActixAdminError {
-            ty: ActixAdminErrorType::BadRequest,
-            msg: err.to_string(),
-        }
-    }
+impl_from_error! {
+    sea_orm::DbErr => DatabaseError,
+    std::io::Error => IoError,
+    actix_multipart::MultipartError => UploadError,
+    serde_urlencoded::de::Error => BadRequest,
 }
 
 // Notifications
@@ -239,9 +222,9 @@ pub struct ActixAdminNotification {
     message: String,
 }
 
-impl std::convert::From<ActixAdminError> for ActixAdminNotification {
-    fn from(e: ActixAdminError) -> ActixAdminNotification {
-        ActixAdminNotification {
+impl From<ActixAdminError> for ActixAdminNotification {
+    fn from(e: ActixAdminError) -> Self {
+        Self {
             css_class: ActixAdminNotificationType::Danger.to_string(),
             message: e.to_string(),
         }

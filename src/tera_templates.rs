@@ -197,28 +197,26 @@ fn filter_attribute(value: &Value, kwargs: Kwargs, _: &State) -> TeraResult<Valu
     Ok(Value::from(filtered))
 }
 
-fn add_templates_to_tera(tera: &mut Tera, tera_template: TeraTemplate) {
-    tera.add_raw_templates(vec![
-        ("base.html", tera_template.base_html),
-        ("list.html", tera_template.list_html),
-        ("create_or_edit.html", tera_template.create_or_edit_html),
-        ("head.html", tera_template.head_html),
-        ("index.html", tera_template.index_html),
-        ("loader.html", tera_template.loader_html),
-        ("navbar.html", tera_template.navbar_html),
-        ("not_found.html", tera_template.not_found_html),
-        ("show.html", tera_template.show_html),
-        ("unauthorized.html", tera_template.unauthorized_html),
-        // create or edit
-        ("create_or_edit/checkbox.html", tera_template.checkbox_html),
-        ("create_or_edit/input.html", tera_template.input_html),
-        ("create_or_edit/selectlist.html", tera_template.selectlist_html),
-        ("create_or_edit/inline.html", tera_template.create_or_edit_inline_html),
-        // list
-        ("list/header.html", tera_template.list_header_html),
-        ("list/row.html", tera_template.list_row_html),
-        ("list/filter.html", tera_template.list_filter_html),
-        ("card_grid.html", tera_template.card_grid_html),
+fn add_templates_to_tera(tera: &mut Tera, t: TeraTemplate) {
+    tera.add_raw_templates([
+        ("base.html", t.base_html),
+        ("list.html", t.list_html),
+        ("create_or_edit.html", t.create_or_edit_html),
+        ("head.html", t.head_html),
+        ("index.html", t.index_html),
+        ("loader.html", t.loader_html),
+        ("navbar.html", t.navbar_html),
+        ("not_found.html", t.not_found_html),
+        ("show.html", t.show_html),
+        ("unauthorized.html", t.unauthorized_html),
+        ("create_or_edit/checkbox.html", t.checkbox_html),
+        ("create_or_edit/input.html", t.input_html),
+        ("create_or_edit/selectlist.html", t.selectlist_html),
+        ("create_or_edit/inline.html", t.create_or_edit_inline_html),
+        ("list/header.html", t.list_header_html),
+        ("list/row.html", t.list_row_html),
+        ("list/filter.html", t.list_filter_html),
+        ("card_grid.html", t.card_grid_html),
     ])
     .expect("failed to register built-in actix-admin templates");
 }

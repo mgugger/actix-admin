@@ -9,24 +9,29 @@ use super::add_auth_context;
 pub async fn display_card_grid(session: Session, data: web::Data<ActixAdmin>, req: HttpRequest) -> Result<HttpResponse, Error> {
     let actix_admin = &data.into_inner();
     let path = req.path().replace(actix_admin.configuration.base_path, "").replace("/", "");
-    let card_grid = actix_admin.card_grids.get(path.as_str());
+    let card_grid = actix_admin
+        .card_grids
+        .get(path.as_str())
+        .ok_or_else(|| error::ErrorNotFound("Card grid not found"))?;
 
-    if card_grid.is_none() {
-        return Err(error::ErrorNotFound("Card grid not found"));
-    }
-    
-    let notifications: Vec<crate::ActixAdminNotification> = Vec::new();
+    let entity_name = actix_admin
+        .entity_names
+        .values()
+        .flatten()
+        .find(|el| el.link == path)
+        .map(|el| el.name.as_str())
+        .unwrap_or("");
 
     let mut ctx = Context::new();
-    ctx.insert("entity_name", &actix_admin.entity_names.iter().flat_map(|el| el.1).find(|el| el.link == path).unwrap().name);
+    ctx.insert("entity_name", entity_name);
     ctx.insert("entity_names", &actix_admin.entity_names);
-    ctx.insert("notifications", &notifications);    
-    ctx.insert("card_grid", &card_grid.unwrap());
+    ctx.insert("notifications", &Vec::<crate::ActixAdminNotification>::new());
+    ctx.insert("card_grid", card_grid);
 
     add_auth_context(&session, actix_admin, &mut ctx);
 
     let body = actix_admin.tera
         .render("card_grid.html", &ctx)
-        .map_err(|_| error::ErrorInternalServerError("Template error {err:?}"))?;
+        .map_err(|e| error::ErrorInternalServerError(format!("Template error: {e}")))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }

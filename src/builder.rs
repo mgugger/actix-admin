@@ -104,7 +104,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         &mut self,
         view_model: &ActixAdminViewModel,
     ) {
-        let _ = &self.add_entity_to_category::<E>(view_model, "");
+        self.add_entity_to_category::<E>(view_model, "");
     }
 
     fn add_entity_to_category<
@@ -134,25 +134,14 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
 
         fs::create_dir_all(format!("{}/{}", &self.actix_admin.configuration.file_upload_directory, E::get_entity_name())).unwrap();
 
-        let category = self.actix_admin.entity_names.get_mut(category_name);
         let menu_element = ActixAdminMenuElement {
             name: E::get_entity_name(),
             link: E::get_entity_name(),
             is_custom_handler: false,
         };
-        match category {
-            Some(entity_list) => entity_list.push(menu_element),
-            None => {
-                let mut entity_list = Vec::new();
-                entity_list.push(menu_element);
-                self.actix_admin
-                    .entity_names
-                    .insert(category_name.to_string(), entity_list);
-            }
-        }
+        self.push_menu_element(category_name, menu_element, false);
 
-        let key = E::get_entity_name();
-        self.actix_admin.view_models.insert(key, view_model.clone());
+        self.actix_admin.view_models.insert(E::get_entity_name(), view_model.clone());
     }
 
     fn add_custom_handler_for_index(&mut self, route: Route) {
@@ -175,21 +164,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 link: path.replacen("/", "", 1),
                 is_custom_handler: true,
             };
-            let category = self.actix_admin.entity_names.get_mut(category_name);
-            match category {
-                Some(entity_list) => {
-                    if !entity_list.contains(&menu_element) {
-                        entity_list.push(menu_element);
-                    }
-                }
-                None => {
-                    let mut entity_list = Vec::new();
-                    entity_list.push(menu_element);
-                    self.actix_admin
-                        .entity_names
-                        .insert(category_name.to_string(), entity_list);
-                },
-            }
+            self.push_menu_element(category_name, menu_element, true);
         }
     }
 
@@ -212,7 +187,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         category_name: &str
     ) {
         self.custom_routes.push((path.to_string(), web::get().to(display_card_grid)));
-        self.actix_admin.card_grids.insert(path.to_string().replace("/", ""), elements);
+        self.actix_admin.card_grids.insert(path.replace("/", ""), elements);
 
         if add_to_menu {
             let menu_element = ActixAdminMenuElement {
@@ -220,21 +195,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 link: path.replacen("/", "", 1),
                 is_custom_handler: true,
             };
-            let category = self.actix_admin.entity_names.get_mut(category_name);
-            match category {
-                Some(entity_list) => {
-                    if !entity_list.contains(&menu_element) {
-                        entity_list.push(menu_element);
-                    }
-                }
-                None => {
-                    let mut entity_list = Vec::new();
-                    entity_list.push(menu_element);
-                    self.actix_admin
-                        .entity_names
-                        .insert(category_name.to_string(), entity_list);
-                },
-            }
+            self.push_menu_element(category_name, menu_element, true);
         }
     }
 
@@ -250,7 +211,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
 
     fn add_support_handler(&mut self, arg: &str, support: Route) {
         self.custom_routes.push((arg.to_string(), support));
-        self.actix_admin.support_path = Some(arg.to_string().replace("/", ""));
+        self.actix_admin.support_path = Some(arg.replace("/", ""));
     }
 
     fn add_custom_handler_for_entity<
@@ -262,7 +223,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         route: Route,
         add_to_menu: bool,
     ) {
-        let _ = &self.add_custom_handler_for_entity_in_category::<E>(
+        self.add_custom_handler_for_entity_in_category::<E>(
             menu_element_name,
             path,
             route,
@@ -287,24 +248,15 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
             is_custom_handler: true,
         };
 
-        let existing_scope = self.scopes.remove(&E::get_entity_name());
-
-        match existing_scope {
-            Some(scope) => {
-                let existing_scope = scope.route(path, route);
-                self.scopes
-                    .insert(E::get_entity_name(), existing_scope);
-            }
-            _ => {
-                let new_scope =
-                    web::scope(&format!("/{}", E::get_entity_name())).route(path, route);
-                self.scopes.insert(E::get_entity_name(), new_scope);
-            }
-        }
+        let entity_name = E::get_entity_name();
+        let scope = self
+            .scopes
+            .remove(&entity_name)
+            .unwrap_or_else(|| web::scope(&format!("/{}", entity_name)));
+        self.scopes.insert(entity_name, scope.route(path, route));
 
         if add_to_menu {
-            let category = self.actix_admin.entity_names.get_mut(category_name);
-            if let Some(entity_list) = category {
+            if let Some(entity_list) = self.actix_admin.entity_names.get_mut(category_name) {
                 if !entity_list.contains(&menu_element) {
                     entity_list.push(menu_element);
                 }
@@ -313,26 +265,36 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
     }
 
     fn get_scope(self) -> actix_web::Scope {
-        let index_handler = match self.custom_index {
-            Some(handler) => handler,
-            _ => web::get().to(index),
-        };
+        let index_handler = self.custom_index.unwrap_or_else(|| web::get().to(index));
         let mut admin_scope = web::scope(self.actix_admin.configuration.base_path)
             .route("/", index_handler)
             .default_service(web::to(not_found));
 
-        for (_entity, scope) in self.scopes {
+        for (_, scope) in self.scopes {
             admin_scope = admin_scope.service(scope);
         }
-
         for (path, route) in self.custom_routes {
             admin_scope = admin_scope.route(&path, route);
         }
-
         admin_scope
     }
 
     fn get_actix_admin(&self) -> ActixAdmin {
         self.actix_admin.clone()
+    }
+}
+
+impl ActixAdminBuilder {
+    /// Insert `element` under `category_name` in the menu, creating the category
+    /// entry if it doesn't exist. If `dedupe` is true, skip elements already present.
+    fn push_menu_element(&mut self, category_name: &str, element: ActixAdminMenuElement, dedupe: bool) {
+        let list = self
+            .actix_admin
+            .entity_names
+            .entry(category_name.to_string())
+            .or_default();
+        if !dedupe || !list.contains(&element) {
+            list.push(element);
+        }
     }
 }

@@ -19,11 +19,10 @@ pub fn get_admin_ctx(session: Session, data: &web::Data<ActixAdmin>) -> Context 
 
 pub async fn index(session: Session, data: web::Data<ActixAdmin>) -> Result<HttpResponse, Error> {
     let actix_admin = &data.into_inner();
-    let notifications: Vec<crate::ActixAdminNotification> = Vec::new();
 
     let mut ctx = Context::new();
     ctx.insert("entity_names", &actix_admin.entity_names);
-    ctx.insert("notifications", &notifications);
+    ctx.insert("notifications", &Vec::<crate::ActixAdminNotification>::new());
 
     add_auth_context(&session, actix_admin, &mut ctx);
 
