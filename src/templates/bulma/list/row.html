@@ -21,7 +21,7 @@
             | get(key=model_field.field_name, default="") }}</a></td>
     {% else %}
 
-    {% if entity.fk_values is containing(model_field.field_name) %}
+    {% if entity.fk_values is containing(pat=model_field.field_name) %}
     {%- set value = entity.fk_values[model_field.field_name] %}
     {%- if model_field.ceil %}
     <td>{{ value | float | round(method="ceil", precision=model_field.ceil) }}</td>
@@ -54,24 +54,18 @@
     <td class="has-text-right">
         <div class="control is-flex">
         {% if view_model.inline_edit %}
-            <a class="btn danger"
+            <a class="has-text-link" href="#"
                     hx-target="closest tr" hx-swap="outerHTML"
                     hx-get="{{ base_path }}/{{ entity_name }}/edit/{{ entity.primary_key }}"
                     hx-trigger="edit"
-                    onClick="let editing = document.querySelector('.editing')
+                    onClick="let editing = document.querySelector('.editing');
                             if(editing) {
-                            Swal.fire({title: 'Already Editing',
-                                        showCancelButton: true,
-                                        confirmButtonText: 'Yep, Edit This Row!',
-                                        text:'Hey!  You are already editing a row!  Do you want to cancel that edit and continue?'})
-                            .then((result) => {
-                                    if(result.isConfirmed) {
-                                    htmx.trigger(editing, 'cancel')
-                                    htmx.trigger(this, 'edit')
-                                    }
-                                })
+                                if(confirm('You are already editing a row. Cancel that edit and continue?')) {
+                                    htmx.trigger(editing, 'cancel');
+                                    htmx.trigger(this, 'edit');
+                                }
                             } else {
-                                htmx.trigger(this, 'edit')
+                                htmx.trigger(this, 'edit');
                             }">
                 <i class="fa-solid fa-pen-to-square"></i>
             </a>

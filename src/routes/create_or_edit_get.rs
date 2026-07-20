@@ -9,7 +9,7 @@ use crate::prelude::*;
 use super::helpers::add_default_context;
 use super::helpers::SearchParams;
 use super::Params;
-use super::{add_auth_context, render_unauthorized, user_can_access_page, view_model_or_500};
+use super::{add_auth_context, render_template, render_unauthorized, user_can_access_page, view_model_or_500};
 
 pub async fn create_get<E: ActixAdminViewModelTrait>(
     session: Session,
@@ -28,7 +28,7 @@ pub async fn edit_get<E: ActixAdminViewModelTrait>(
     req: HttpRequest,
     data: web::Data<ActixAdmin>,
     db: web::Data<DatabaseConnection>,
-    id: web::Path<i32>,
+    id: web::Path<E::Id>,
 ) -> Result<HttpResponse, Error> {
     let db = db.get_ref();
     let actix_admin = data.get_ref();
@@ -112,8 +112,7 @@ async fn create_or_edit_get<E: ActixAdminViewModelTrait>(
         "create_or_edit.html"
     };
     let mut resp = http_response_code;
-    let body = actix_admin.tera
-        .render(template_path, &ctx)
+    let body = render_template(&actix_admin.tera, template_path, &ctx)
         .map_err(error::ErrorInternalServerError)?;
     Ok(resp.content_type("text/html").body(body))
 }

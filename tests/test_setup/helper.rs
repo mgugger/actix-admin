@@ -187,7 +187,7 @@ async fn create_post_from_plaintext<E: ActixAdminViewModelTrait>(
 ) -> Result<HttpResponse, Error> {
     let actix_admin = data.get_ref();
     let model = ActixAdminModel::from(text);
-    create_or_edit_post::<E>(&session, req, db, Ok(model), None, actix_admin).await
+    create_or_edit_post::<E>(&session, req, db, Ok(model), None::<E::Id>, actix_admin).await
 }
 
 async fn edit_post_from_plaintext<E: ActixAdminViewModelTrait>(
@@ -196,7 +196,7 @@ async fn edit_post_from_plaintext<E: ActixAdminViewModelTrait>(
     data: web::Data<ActixAdmin>,
     db: web::Data<DatabaseConnection>,
     text: String,
-    id: web::Path<i32>,
+    id: web::Path<E::Id>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = data.get_ref();
     let model = ActixAdminModel::from(text);

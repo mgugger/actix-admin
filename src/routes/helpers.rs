@@ -42,6 +42,27 @@ pub fn render_unauthorized(ctx: &Context, actix_admin: &ActixAdmin) -> Result<Ht
     Ok(HttpResponse::Unauthorized().content_type("text/html").body(body))
 }
 
+/// Render `template_name` with `ctx`, falling back to rendering only the
+/// `content` block when the context has `render_partial == true`.
+///
+/// Tera 2 no longer allows `{% block %}` inside `{% if %}`, so the partial
+/// vs. full page decision is made here in Rust instead of inside `base.html`.
+pub fn render_template(
+    tera: &tera::Tera,
+    template_name: &str,
+    ctx: &Context,
+) -> Result<String, tera::Error> {
+    let render_partial = ctx
+        .get("render_partial")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    if render_partial {
+        tera.render_block(template_name, "content", ctx)
+    } else {
+        tera.render(template_name, ctx)
+    }
+}
+
 /// Look up the view model for an entity name. Returns 500 rather than panicking
 /// if it is missing (should be impossible in normal operation).
 pub fn view_model_or_500<'a>(

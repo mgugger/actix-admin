@@ -8,8 +8,8 @@ pub use post::Entity as Post;
 
 // setup
 async fn create_table(db: &DbConn, stmt: &TableCreateStatement) -> Result<ExecResult, DbErr> {
-    let builder = db.get_database_backend();
-    db.execute(builder.build(stmt)).await
+    
+    db.execute(stmt).await
 }
 
 pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {

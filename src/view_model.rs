@@ -17,8 +17,32 @@ pub struct ActixAdminViewModelParams {
     pub tenant_ref: Option<i32>
 }
 
+/// Blanket bound for anything usable as an entity primary key in the admin.
+///
+/// This is what powers the `ActixAdminViewModelTrait::Id` associated type,
+/// letting an entity be keyed by `i32`, `i64`, `String`, `uuid::Uuid`, ...
+/// as long as the type satisfies the four ubiquitous requirements:
+///
+/// * `DeserializeOwned` — needed by `actix_web::web::Path<Id>`.
+/// * `FromStr`         — needed to parse ids out of form bodies (bulk delete).
+/// * `Display`         — needed to render ids into URLs and templates.
+/// * `Clone + 'static` — needed by the generated Sea-ORM queries.
+pub trait ActixAdminPrimaryKey:
+    serde::de::DeserializeOwned + std::str::FromStr + std::fmt::Display + Clone + 'static
+{
+}
+impl<T> ActixAdminPrimaryKey for T where
+    T: serde::de::DeserializeOwned + std::str::FromStr + std::fmt::Display + Clone + 'static
+{
+}
+
 #[async_trait(?Send)]
 pub trait ActixAdminViewModelTrait {
+    /// The primary-key type of this entity. Defaults to `i32` in the derive
+    /// macro output; override by having a `#[actix_admin(primary_key)]` field
+    /// with a different type (e.g. `Uuid`, `i64`, `String`).
+    type Id: ActixAdminPrimaryKey;
+
     async fn list(
         db: &DatabaseConnection,
         params: &ActixAdminViewModelParams
@@ -26,9 +50,28 @@ pub trait ActixAdminViewModelTrait {
     
     // TODO: Replace return value with proper Result Type containing Ok or Err
     async fn create_entity(db: &DatabaseConnection, model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError>;
-    async fn delete_entity(db: &DatabaseConnection, id: i32, tenant_ref: Option<i32>) -> Result<bool, ActixAdminError>;
-    async fn get_entity(db: &DatabaseConnection, id: i32, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError>;
-    async fn edit_entity(db: &DatabaseConnection, id: i32, model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError>;
+    async fn delete_entity(db: &DatabaseConnection, id: Self::Id, tenant_ref: Option<i32>) -> Result<bool, ActixAdminError>;
+
+    /// Bulk-delete many entities in a single query. Default implementation
+    /// falls back to a per-id loop over `delete_entity`, so existing
+    /// implementations keep working; the derive-macro override does a single
+    /// `DELETE ... WHERE pk IN (...)` query.
+    async fn delete_entities(
+        db: &DatabaseConnection,
+        ids: &[Self::Id],
+        tenant_ref: Option<i32>,
+    ) -> Result<u64, ActixAdminError> {
+        let mut deleted = 0u64;
+        for id in ids {
+            if Self::delete_entity(db, id.clone(), tenant_ref).await? {
+                deleted += 1;
+            }
+        }
+        Ok(deleted)
+    }
+
+    async fn get_entity(db: &DatabaseConnection, id: Self::Id, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError>;
+    async fn edit_entity(db: &DatabaseConnection, id: Self::Id, model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError>;
     async fn get_select_lists(db: &DatabaseConnection, tenant_ref: Option<i32>) -> Result<HashMap<String, Vec<(String, String)>>, ActixAdminError>;
     async fn get_viewmodel_filter(db: &DatabaseConnection) -> HashMap<String, ActixAdminViewModelFilter>;
     async fn validate_entity(model: &mut ActixAdminModel, db: &DatabaseConnection);

@@ -7,14 +7,14 @@ use super::helpers::{add_default_context, SearchParams};
 use crate::prelude::*;
 use crate::ActixAdminNotification;
 
-use super::{add_auth_context, render_unauthorized, user_can_access_page, view_model_or_500};
+use super::{add_auth_context, render_template, render_unauthorized, user_can_access_page, view_model_or_500};
 use super::Params;
 
 pub async fn show<E: ActixAdminViewModelTrait>(
     session: Session,
     req: HttpRequest,
     data: web::Data<ActixAdmin>,
-    id: web::Path<i32>,
+    id: web::Path<E::Id>,
     db: web::Data<DatabaseConnection>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = &data.into_inner();
@@ -76,9 +76,7 @@ pub async fn show<E: ActixAdminViewModelTrait>(
     );
     ctx.insert("model", &model);
 
-    let body = actix_admin
-        .tera
-        .render("show.html", &ctx)
+    let body = render_template(&actix_admin.tera, "show.html", &ctx)
         .map_err(error::ErrorInternalServerError)?;
     Ok(http_response_code.content_type("text/html").body(body))
 }

@@ -1,6 +1,6 @@
 use crate::{prelude::*, routes::{delete_file, display_card_grid, export_csv, search}, ActixAdminMenuElement};
 use actix_web::{web, Route };
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use crate::routes::{
     create_get, create_post, delete, delete_many, edit_get, edit_post, index, list, not_found, show, download
@@ -87,7 +87,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
     fn new(configuration: ActixAdminConfiguration) -> Self {
         ActixAdminBuilder {
             actix_admin: ActixAdmin {
-                entity_names: HashMap::new(),
+                entity_names: BTreeMap::new(),
                 view_models: HashMap::new(),
                 card_grids: HashMap::new(),
                 configuration,

@@ -3,8 +3,7 @@ extern crate serde_derive;
 use actix_admin::prelude::*;
 use actix_session::{Session, SessionMiddleware, storage::CookieSessionStore};
 use actix_web::{cookie::Key, web, App, HttpResponse, HttpServer, middleware};
-use azure_auth::{AppDataTrait as AzureAuthAppDataTrait, AzureAuth, UserInfo};
-use oauth2::basic::BasicClient;
+use azure_auth::{AppDataTrait as AzureAuthAppDataTrait, AzureAuth, AzureBasicClient, UserInfo};
 use oauth2::RedirectUrl;
 use sea_orm::ConnectOptions;
 use std::env;
@@ -17,13 +16,17 @@ use entity::{Post, Comment};
 
 #[derive(Clone)]
 pub struct AppState {
-    pub oauth: BasicClient,
-    pub tmpl: Tera
+    pub oauth: AzureBasicClient,
+    pub http_client: oauth2::reqwest::Client,
+    pub tmpl: Tera,
 }
 
 impl AzureAuthAppDataTrait for AppState {
-    fn get_oauth(&self) -> &BasicClient {
+    fn get_oauth(&self) -> &AzureBasicClient {
         &self.oauth
+    }
+    fn get_http_client(&self) -> &oauth2::reqwest::Client {
+        &self.http_client
     }
 }
 
@@ -150,12 +153,14 @@ async fn main() {
         let actix_admin_builder = create_actix_admin_builder();
 
         let actix_admin = actix_admin_builder.get_actix_admin();
-        let mut tera = Tera::parse(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
-        tera.extend(&actix_admin.tera).unwrap();
-        let _tera_res = tera.build_inheritance_chains();
+        // Start from actix-admin's tera (filters + templates) and layer
+        // the example's own templates on top.
+        let mut tera = actix_admin.tera.clone();
+        tera.load_from_glob(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
         
         let app_state = AppState {
             oauth: client.clone(),
+            http_client: AzureAuth::build_http_client(),
             tmpl: tera.clone()
         };
 

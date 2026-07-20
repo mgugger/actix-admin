@@ -1,8 +1,17 @@
-use std::{collections::HashMap, hash::BuildHasher};
-use tera::Tera;
-use tera::{to_value, try_get_value, Result};
+use serde::Deserialize;
+use tera::{Kwargs, State, Tera, TeraResult, Value};
 
 use crate::view_model::{ActixAdminViewModelField, ActixAdminViewModelFieldType};
+
+/// Deserialize a tera `Value` into `T`, wrapping the error into a tera error
+/// prefixed with the filter name (mimics the old `try_get_value!` macro).
+fn from_value<'de, T: Deserialize<'de>>(filter_name: &str, value: &'de Value) -> TeraResult<T> {
+    T::deserialize(value).map_err(|e| {
+        tera::Error::message(format!(
+            "Filter `{filter_name}` was called on an incorrect value: {e}"
+        ))
+    })
+}
 
 struct TeraTemplate {
     // Pages
@@ -25,120 +34,97 @@ struct TeraTemplate {
     list_header_html: &'static str,
     list_row_html: &'static str,
     list_filter_html: &'static str,
+    // misc
+    card_grid_html: &'static str,
 }
 
 pub fn get_tera() -> Tera {
-    let mut tera = load_templates();
-
+    // Register filters BEFORE adding templates: tera 2 validates filter
+    // references when templates are added.
+    let mut tera = Tera::new();
     tera.register_filter("get_html_input_type", get_html_input_type);
     tera.register_filter("get_html_input_class", get_html_input_class);
     tera.register_filter("get_icon", get_icon);
     tera.register_filter("get_regex_val", get_regex_val);
     tera.register_filter("shorten", shorten_filter);
+    // Filters that existed in tera 1 but were removed in tera 2. We
+    // provide compatibility shims so the shipped templates keep working.
+    tera.register_filter("date", date_filter);
+    tera.register_filter("filter", filter_attribute);
+
+    load_templates_into(&mut tera);
     tera
 }
 
-fn shorten_filter<S: BuildHasher>(
-    value: &tera::Value,
-    args: &HashMap<String, tera::Value, S>,
-) -> Result<tera::Value> {
-    let max_length = args
-        .get("max_length")
-        .and_then(|v| v.as_number())
-        .and_then(|s| s.as_u64());
-    let input = value.as_str().unwrap();
+fn shorten_filter(value: &Value, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
+    let max_length: Option<u64> = kwargs.get("max_length")?;
+    let input = value.as_str().unwrap_or("");
 
     if let Some(max) = max_length {
         if input.len() <= max as usize {
-            Ok(tera::Value::String(input.to_string()))
+            Ok(Value::from(input))
         } else {
-            Ok(tera::Value::String(
-                input.chars().take(max as usize).collect(),
-            ))
+            let shortened: String = input.chars().take(max as usize).collect();
+            Ok(Value::from(shortened))
         }
     } else {
-        Ok(tera::Value::String(input.to_string()))
+        Ok(Value::from(input))
     }
 }
 
-fn get_html_input_class<S: BuildHasher>(
-    value: &tera::Value,
-    _: &HashMap<String, tera::Value, S>,
-) -> Result<tera::Value> {
-    let field = try_get_value!(
-        "get_html_input_class",
-        "value",
-        ActixAdminViewModelField,
-        value
-    );
+fn get_html_input_class(value: &Value, _: Kwargs, _: &State) -> TeraResult<Value> {
+    let field: ActixAdminViewModelField = from_value("get_html_input_class", value)?;
     let html_input_type = match field.field_type {
         ActixAdminViewModelFieldType::TextArea => "textarea",
         ActixAdminViewModelFieldType::Checkbox => "checkbox",
         _ => "input",
     };
 
-    Ok(to_value(html_input_type).unwrap())
+    Ok(Value::from(html_input_type))
 }
 
-fn get_icon<S: BuildHasher>(
-    value: &tera::Value,
-    _: &HashMap<String, tera::Value, S>,
-) -> Result<tera::Value> {
-    let field = try_get_value!("get_icon", "value", String, value);
+fn get_icon(value: &Value, _: Kwargs, _: &State) -> TeraResult<Value> {
+    let field: String = from_value("get_icon", value)?;
     let font_awesome_icon = match field.as_str() {
         "true" => "<i class=\"fa-solid fa-check\"></i>",
         "false" => "<i class=\"fa-solid fa-xmark\"></i>",
         other => {
-            return Err(tera::Error::msg(format!(
+            return Err(tera::Error::message(format!(
                 "get_icon: unsupported value '{other}' (expected 'true' or 'false')"
             )))
         }
     };
 
-    Ok(to_value(font_awesome_icon).unwrap())
+    Ok(Value::from(font_awesome_icon))
 }
 
-fn get_regex_val<S: BuildHasher>(
-    value: &tera::Value,
-    args: &HashMap<String, tera::Value, S>,
-) -> Result<tera::Value> {
-    let field = try_get_value!("get_regex_val", "value", ActixAdminViewModelField, value);
+fn get_regex_val(value: &Value, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
+    let field: ActixAdminViewModelField = from_value("get_regex_val", value)?;
 
-    let s = args.get("values");
-    let field_val = s.unwrap().get(&field.field_name);
+    // `values` is expected to be a map keyed by field name.
+    let values: &tera::Map = kwargs.must_get("values")?;
+    let field_val = values.get(&tera::value::Key::Str(&field.field_name));
 
-    // println!(
-    //     "field {} regex {:?}",
-    //     field.field_name, field.list_regex_mask
-    // );
     match (field_val, field.list_regex_mask) {
         (Some(val), Some(r)) => {
             let val_str = val.to_string();
-            let result_str = r.replace_all(&val_str, "*");
-            Ok(to_value(result_str).unwrap())
+            let result_str = r.replace_all(&val_str, "*").into_owned();
+            Ok(Value::from(result_str))
         }
-        (Some(val), None) => Ok(to_value(val).unwrap()),
-        (None, _) => Err(tera::Error::msg(format!(
+        (Some(val), None) => Ok(val.clone()),
+        (None, _) => Err(tera::Error::message(format!(
             "key '{}' not found in model values",
             &field.field_name
         ))),
     }
 }
 
-fn get_html_input_type<S: BuildHasher>(
-    value: &tera::Value,
-    _: &HashMap<String, tera::Value, S>,
-) -> Result<tera::Value> {
-    let field = try_get_value!(
-        "get_html_input_type",
-        "value",
-        ActixAdminViewModelField,
-        value
-    );
+fn get_html_input_type(value: &Value, _: Kwargs, _: &State) -> TeraResult<Value> {
+    let field: ActixAdminViewModelField = from_value("get_html_input_type", value)?;
 
     // TODO: convert to option
     if !field.html_input_type.is_empty() {
-        return Ok(to_value(field.html_input_type).unwrap());
+        return Ok(Value::from(field.html_input_type));
     }
 
     let html_input_type = match field.field_type {
@@ -150,11 +136,69 @@ fn get_html_input_type<S: BuildHasher>(
         _ => "text",
     };
 
-    Ok(to_value(html_input_type).unwrap())
+    Ok(Value::from(html_input_type))
+}
+
+/// Minimal reimplementation of tera 1's `date` filter for the (limited) usage
+/// in shipped templates: `{{ value | date(format="...") }}`.
+///
+/// Accepts either a stringly-typed RFC3339-ish datetime or a naive date; falls
+/// back to returning the input unchanged if it cannot be parsed.
+fn date_filter(value: &Value, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
+    use chrono::{DateTime, NaiveDate, NaiveDateTime};
+
+    let format: String = kwargs
+        .get("format")?
+        .unwrap_or_else(|| "%Y-%m-%d".to_string());
+    let Some(input) = value.as_str() else {
+        return Ok(value.clone());
+    };
+
+    if let Ok(dt) = DateTime::parse_from_rfc3339(input) {
+        return Ok(Value::from(dt.format(&format).to_string()));
+    }
+    if let Ok(dt) = NaiveDateTime::parse_from_str(input, "%Y-%m-%dT%H:%M:%S") {
+        return Ok(Value::from(dt.format(&format).to_string()));
+    }
+    if let Ok(dt) = NaiveDateTime::parse_from_str(input, "%Y-%m-%d %H:%M:%S") {
+        return Ok(Value::from(dt.format(&format).to_string()));
+    }
+    if let Ok(d) = NaiveDate::parse_from_str(input, "%Y-%m-%d") {
+        return Ok(Value::from(d.format(&format).to_string()));
+    }
+    Ok(Value::from(input))
+}
+
+/// Reimplementation of tera 1's `filter` filter:
+/// `{{ array | filter(attribute="foo", value=<v>) }}` keeps only the elements
+/// of `array` whose `foo` attribute equals `<v>` (or, if `value` is omitted,
+/// only the elements where `foo` is defined and truthy).
+fn filter_attribute(value: &Value, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
+    let attribute: String = kwargs.must_get("attribute")?;
+    let target: Option<&Value> = kwargs.get("value")?;
+
+    let arr = value.as_array().ok_or_else(|| {
+        tera::Error::message("`filter` expects an array as input".to_string())
+    })?;
+
+    let key = tera::value::Key::Str(&attribute);
+    let filtered: Vec<Value> = arr
+        .iter()
+        .filter(|item| {
+            let Some(map) = item.as_map() else { return false };
+            match (map.get(&key), target) {
+                (Some(v), Some(t)) => v == t,
+                (Some(v), None) => !v.is_none() && !v.is_undefined(),
+                _ => false,
+            }
+        })
+        .cloned()
+        .collect();
+    Ok(Value::from(filtered))
 }
 
 fn add_templates_to_tera(tera: &mut Tera, tera_template: TeraTemplate) {
-    let _res = tera.add_raw_templates(vec![
+    tera.add_raw_templates(vec![
         ("base.html", tera_template.base_html),
         ("list.html", tera_template.list_html),
         ("create_or_edit.html", tera_template.create_or_edit_html),
@@ -174,7 +218,9 @@ fn add_templates_to_tera(tera: &mut Tera, tera_template: TeraTemplate) {
         ("list/header.html", tera_template.list_header_html),
         ("list/row.html", tera_template.list_row_html),
         ("list/filter.html", tera_template.list_filter_html),
-    ]);
+        ("card_grid.html", tera_template.card_grid_html),
+    ])
+    .expect("failed to register built-in actix-admin templates");
 }
 
 #[cfg(all(feature = "bootstrapv5_css", feature = "bulma_css"))]
@@ -190,12 +236,7 @@ compile_error!(
 
 // Cargo Features for CSS
 #[cfg(feature = "bulma_css")]
-fn load_templates() -> Tera {
-    let mut tera = Tera::new(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/templates/bulma/*.html"
-    ))
-    .unwrap();
+fn load_templates_into(tera: &mut Tera) {
     let tera_template = TeraTemplate {
         list_html: include_str!("templates/bulma/list.html"),
         create_or_edit_html: include_str!("templates/bulma/create_or_edit.html"),
@@ -216,20 +257,14 @@ fn load_templates() -> Tera {
         list_header_html: include_str!("templates/bulma/list/header.html"),
         list_row_html: include_str!("templates/bulma/list/row.html"),
         list_filter_html: include_str!("templates/bulma/list/filter.html"),
+        card_grid_html: include_str!("templates/bulma/card_grid.html"),
     };
 
-    add_templates_to_tera(&mut tera, tera_template);
-
-    tera
+    add_templates_to_tera(tera, tera_template);
 }
 
 #[cfg(feature = "bootstrapv5_css")]
-fn load_templates() -> Tera {
-    let mut tera = Tera::new(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/templates/bootstrapv5/*.html"
-    ))
-    .unwrap();
+fn load_templates_into(tera: &mut Tera) {
     let tera_template = TeraTemplate {
         list_html: include_str!("templates/bootstrapv5/list.html"),
         create_or_edit_html: include_str!("templates/bootstrapv5/create_or_edit.html"),
@@ -250,9 +285,8 @@ fn load_templates() -> Tera {
         list_header_html: include_str!("templates/bootstrapv5/list/header.html"),
         list_row_html: include_str!("templates/bootstrapv5/list/row.html"),
         list_filter_html: include_str!("templates/bootstrapv5/list/filter.html"),
+        card_grid_html: include_str!("templates/bootstrapv5/card_grid.html"),
     };
 
-    add_templates_to_tera(&mut tera, tera_template);
-
-    tera
+    add_templates_to_tera(tera, tera_template);
 }

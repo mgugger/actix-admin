@@ -53,6 +53,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
 
     let name_primary_field_str = get_primary_key_field_name(&fields);
     let primary_key_column = get_primary_key_column_ident(&fields);
+    let primary_key_type = get_primary_key_type(&fields);
     let fields_for_edit_model = get_fields_for_edit_model(&fields);
     let fields_searchable = get_actix_admin_fields_searchable(&fields);
     let has_searchable_fields = fields_searchable.len() > 0;
@@ -80,6 +81,8 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
 
         #[actix_admin::prelude::async_trait(?Send)]
         impl ActixAdminViewModelTrait for Entity {
+            type Id = #primary_key_type;
+
             async fn list(db: &DatabaseConnection, params: &ActixAdminViewModelParams) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError> {
                 let filter_values: HashMap<String, Option<String>> = params.viewmodel_filter.iter().map(|f| (f.name.to_string(), f.value.clone())).collect();
                 let entities = Entity::list_model(db, params, filter_values).await;
@@ -132,7 +135,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 hashmap
             }
 
-            async fn get_entity(db: &DatabaseConnection, id: i32, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError> {
+            async fn get_entity(db: &DatabaseConnection, id: Self::Id, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError> {
                 let mut query = Entity::find().filter(Column::#primary_key_column.eq(id));
 
                 #tenant_ref_field
@@ -154,7 +157,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 }
             }
 
-            async fn edit_entity(db: &DatabaseConnection, id: i32, mut model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError> {
+            async fn edit_entity(db: &DatabaseConnection, id: Self::Id, mut model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError> {
                 let mut query = Entity::find().filter(Column::#primary_key_column.eq(id));
 
                 #tenant_ref_field
@@ -175,7 +178,7 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                 }
             }
 
-            async fn delete_entity(db: &DatabaseConnection, id: i32, tenant_ref: Option<i32>) -> Result<bool, ActixAdminError> {
+            async fn delete_entity(db: &DatabaseConnection, id: Self::Id, tenant_ref: Option<i32>) -> Result<bool, ActixAdminError> {
                 let mut query = Entity::delete_many().filter(Column::#primary_key_column.eq(id));
 
                 #tenant_ref_field
@@ -190,6 +193,19 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
                         msg: "".to_string()
                     })
                 }
+            }
+
+            async fn delete_entities(db: &DatabaseConnection, ids: &[Self::Id], tenant_ref: Option<i32>) -> Result<u64, ActixAdminError> {
+                if ids.is_empty() {
+                    return Ok(0);
+                }
+                let mut query = Entity::delete_many()
+                    .filter(Column::#primary_key_column.is_in(ids.iter().cloned()));
+
+                #tenant_ref_field
+
+                let del_result = query.exec(db).await?;
+                Ok(del_result.rows_affected)
             }
 
             async fn get_select_lists(db: &DatabaseConnection, tenant_ref: Option<i32>) -> Result<HashMap<String, Vec<(String, String)>>, ActixAdminError> {

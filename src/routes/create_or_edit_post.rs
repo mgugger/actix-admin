@@ -1,5 +1,5 @@
 use super::helpers::{add_default_context, SearchParams};
-use super::{add_auth_context, render_unauthorized, user_can_access_page};
+use super::{add_auth_context, render_template, render_unauthorized, user_can_access_page};
 use super::Params;
 use crate::ActixAdminError;
 use crate::ActixAdminNotification;
@@ -30,7 +30,7 @@ pub async fn create_post<E: ActixAdminViewModelTrait>(
         ),
     )
     .await;
-    create_or_edit_post::<E>(&session, req, db, model, None, actix_admin).await
+    create_or_edit_post::<E>(&session, req, db, model, None::<E::Id>, actix_admin).await
 }
 
 pub async fn edit_post<E: ActixAdminViewModelTrait>(
@@ -39,12 +39,13 @@ pub async fn edit_post<E: ActixAdminViewModelTrait>(
     data: web::Data<ActixAdmin>,
     db: web::Data<DatabaseConnection>,
     payload: Multipart,
-    id: web::Path<i32>,
+    id: web::Path<E::Id>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = &data.get_ref();
     let id = id.into_inner();
     let model = ActixAdminModel::create_from_payload(
-        Some(id), payload,
+        Some(id.to_string()),
+        payload,
         &format!(
             "{}/{}",
             actix_admin.configuration.file_upload_directory,
@@ -60,7 +61,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
     req: HttpRequest,
     db: web::Data<DatabaseConnection>,
     model_res: Result<ActixAdminModel, ActixAdminError>,
-    id: Option<i32>,
+    id: Option<E::Id>,
     actix_admin: &ActixAdmin,
 ) -> Result<HttpResponse, Error> {
     let entity_name = E::get_entity_name();
@@ -202,9 +203,7 @@ async fn render_form<E: ActixAdminViewModelTrait>(
         (true, true) => "create_or_edit/inline.html",
         (_, _) => "create_or_edit.html",
     };
-    let body = actix_admin
-        .tera
-        .render(template_path, &ctx)
+    let body = render_template(&actix_admin.tera, template_path, &ctx)
         .map_err(error::ErrorInternalServerError)?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }

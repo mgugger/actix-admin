@@ -14,7 +14,8 @@ use async_trait::async_trait;
 use derive_more::{Display, Error};
 use sea_orm::DatabaseConnection;
 use serde_derive::Serialize;
-use std::{collections::HashMap, fmt};
+use std::fmt::{self, Display as FmtDisplay};
+use std::collections::{BTreeMap, HashMap};
 use tera::Tera;
 
 pub mod builder;
@@ -31,9 +32,9 @@ pub mod prelude {
     };
     pub use crate::routes::{create_or_edit_post, get_admin_ctx, SortOrder};
     pub use crate::view_model::{
-        ActixAdminViewModel, ActixAdminViewModelField, ActixAdminViewModelFieldType,
-        ActixAdminViewModelFilter, ActixAdminViewModelParams, ActixAdminViewModelSerializable,
-        ActixAdminViewModelTrait,
+        ActixAdminPrimaryKey, ActixAdminViewModel, ActixAdminViewModelField,
+        ActixAdminViewModelFieldType, ActixAdminViewModelFilter, ActixAdminViewModelParams,
+        ActixAdminViewModelSerializable, ActixAdminViewModelTrait,
     };
     pub use crate::{hashmap, ActixAdminSelectListTrait};
     pub use crate::{ActixAdmin, ActixAdminConfiguration, ActixAdminError, ActixAdminErrorType};
@@ -81,7 +82,7 @@ pub struct ActixAdminConfiguration {
 
 #[derive(Clone)]
 pub struct ActixAdmin {
-    pub entity_names: HashMap<String, Vec<ActixAdminMenuElement>>,
+    pub entity_names: BTreeMap<String, Vec<ActixAdminMenuElement>>,
     pub view_models: HashMap<String, ActixAdminViewModel>,
     pub card_grids: HashMap<String, Vec<Vec<String>>>,
     pub configuration: ActixAdminConfiguration,
@@ -102,7 +103,7 @@ pub struct ActixAdminError {
     pub msg: String,
 }
 
-impl Display for ActixAdminError {
+impl FmtDisplay for ActixAdminError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "{}: {}", &self.ty, &self.msg)
     }

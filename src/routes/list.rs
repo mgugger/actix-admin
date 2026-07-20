@@ -10,7 +10,7 @@ use tera::Context;
 
 use super::helpers::{add_default_context, SearchParams};
 use super::{
-    add_auth_context, parse_filters_from_query, render_unauthorized, user_can_access_page,
+    add_auth_context, parse_filters_from_query, render_template, render_unauthorized, user_can_access_page,
     validate_sort_by, view_model_or_500, Params,
 };
 use crate::ActixAdminModel;
@@ -154,6 +154,11 @@ pub async fn list<E: ActixAdminViewModelTrait>(
     validate_sort_by(view_model, &search_params.sort_by)?;
 
     let actixadminfilters = parse_filters_from_query(req.query_string());
+    let filter_values_by_name: std::collections::HashMap<String, Option<String>> =
+        actixadminfilters
+            .iter()
+            .map(|f| (f.name.clone(), f.value.clone()))
+            .collect();
 
     let vm_params = ActixAdminViewModelParams {
         page: Some(search_params.page),
@@ -178,9 +183,7 @@ pub async fn list<E: ActixAdminViewModelTrait>(
             ctx.insert("page", &1);
             ctx.insert("notifications", &[ActixAdminNotification::from(e)]);
             return Ok(HttpResponse::InternalServerError().content_type("text/html").body(
-                actix_admin
-                    .tera
-                    .render("list.html", &ctx)
+                render_template(&actix_admin.tera, "list.html", &ctx)
                     .map_err(error::ErrorInternalServerError)?,
             ));
         }
@@ -206,12 +209,19 @@ pub async fn list<E: ActixAdminViewModelTrait>(
     ctx.insert("num_pages", &num_pages);
     ctx.insert("min_show_page", &min_show_page);
     ctx.insert("max_show_page", &max_show_page);
-    ctx.insert("viewmodel_filter", &E::get_viewmodel_filter(&db).await);
+    let mut viewmodel_filter = E::get_viewmodel_filter(&db).await;
+    // Round-trip the current query's filter values back into the view-model
+    // filter map so templates can pre-select them (and so re-submitting the
+    // filter form doesn't silently clear the current selection).
+    for (name, v) in &filter_values_by_name {
+        if let Some(entry) = viewmodel_filter.get_mut(name) {
+            entry.value = v.clone();
+        }
+    }
+    ctx.insert("viewmodel_filter", &viewmodel_filter);
 
     Ok(HttpResponse::Ok().content_type("text/html").body(
-        actix_admin
-            .tera
-            .render("list.html", &ctx)
+        render_template(&actix_admin.tera, "list.html", &ctx)
             .map_err(|err| error::ErrorInternalServerError(format!("{err:?}")))?,
     ))
 }

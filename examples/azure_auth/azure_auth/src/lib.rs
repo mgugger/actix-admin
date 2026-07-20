@@ -1,31 +1,36 @@
 #[macro_use]
 extern crate serde_derive;
 
-use actix_session::{Session};
+use actix_session::Session;
 use actix_web::http::header;
 use actix_web::{web, HttpResponse};
-use http::{HeaderMap, Method};
-use oauth2::basic::BasicClient;
-use oauth2::reqwest::async_http_client;
+use oauth2::basic::{BasicClient, BasicTokenType};
 use oauth2::{
-    AccessToken, AuthorizationCode, CsrfToken, //PkceCodeChallenge,
-    Scope, TokenResponse
+    AccessToken, AuthorizationCode, CsrfToken, EmptyExtraTokenFields, EndpointNotSet, EndpointSet,
+    Scope, StandardTokenResponse, TokenResponse,
 };
-use std::str;
-use url::Url;
-use oauth2::{
-    AuthUrl, ClientId, ClientSecret, TokenUrl,
-};
+use oauth2::{AuthUrl, ClientId, ClientSecret, TokenUrl};
+
+/// Fully-configured `BasicClient` type used throughout the example (auth URL,
+/// token URL and redirect URL set; other endpoints unset).
+pub type AzureBasicClient = BasicClient<
+    EndpointSet,    // HasAuthUrl
+    EndpointNotSet, // HasDeviceAuthUrl
+    EndpointNotSet, // HasIntrospectionUrl
+    EndpointNotSet, // HasRevocationUrl
+    EndpointSet,    // HasTokenUrl
+>;
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserInfo {
-    userPrincipalName: String
+    userPrincipalName: String,
 }
 
 // AppDataTrait
 pub trait AppDataTrait {
-    fn get_oauth(&self) -> &BasicClient;
+    fn get_oauth(&self) -> &AzureBasicClient;
+    fn get_http_client(&self) -> &reqwest::Client;
 }
 
 #[derive(Clone, Debug)]
@@ -33,59 +38,59 @@ pub struct AzureAuth {
     auth_url: AuthUrl,
     token_url: TokenUrl,
     client_id: ClientId,
-    client_secret: ClientSecret
+    client_secret: ClientSecret,
 }
 
 impl AzureAuth {
     pub fn new(oauth2_server: &String, client_id: &String, client_secret: &String) -> Self {
-        let azure_auth = AzureAuth {
-            auth_url: AuthUrl::new(format!("https://{}/oauth2/v2.0/authorize", oauth2_server)).expect("Invalid authorization endpoint URL"),
-            token_url: TokenUrl::new(format!("https://{}/oauth2/v2.0/token", oauth2_server)).expect("Invalid token endpoint URL"),
+        AzureAuth {
+            auth_url: AuthUrl::new(format!("https://{}/oauth2/v2.0/authorize", oauth2_server))
+                .expect("Invalid authorization endpoint URL"),
+            token_url: TokenUrl::new(format!("https://{}/oauth2/v2.0/token", oauth2_server))
+                .expect("Invalid token endpoint URL"),
             client_id: ClientId::new(client_id.clone()),
-            client_secret:  ClientSecret::new(client_secret.clone())
-        };
-
-        azure_auth
+            client_secret: ClientSecret::new(client_secret.clone()),
+        }
     }
 
     pub fn get_api_base_url() -> &'static str {
         "https://graph.microsoft.com/v1.0"
     }
 
-    pub fn get_oauth_client(self) -> BasicClient {
-        BasicClient::new(
-            self.client_id,
-            Some(self.client_secret),
-            self.auth_url,
-            Some(self.token_url),
-        )
+    /// Build the fully configured `BasicClient` (auth + token URLs set).
+    pub fn get_oauth_client(self) -> AzureBasicClient {
+        BasicClient::new(self.client_id)
+            .set_client_secret(self.client_secret)
+            .set_auth_uri(self.auth_url)
+            .set_token_uri(self.token_url)
+    }
+
+    /// A reqwest client suitable for use with `oauth2::request_async`.
+    /// Redirects are disabled to prevent SSRF.
+    pub fn build_http_client() -> reqwest::Client {
+        reqwest::ClientBuilder::new()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .expect("failed to build reqwest client")
     }
 
     pub fn create_scope<T: AppDataTrait + 'static>(self) -> actix_web::Scope {
-        let scope = web::scope("/azure-auth")
+        web::scope("/azure-auth")
             .route("/login", web::get().to(login::<T>))
             .route("/logout", web::get().to(logout))
             .route("/auth", web::get().to(auth::<T>))
-        ;
-
-        scope
     }
 }
 
 pub async fn login<T: AppDataTrait>(data: web::Data<T>) -> HttpResponse {
-    // Create a PKCE code verifier and SHA-256 encode it as a code challenge.
-    // let (_pkce_code_challenge, _pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
     // Generate the authorization URL to which we'll redirect the user.
-    let (auth_url, _csrf_token) = &data
+    let (auth_url, _csrf_token) = data
         .get_oauth()
         .authorize_url(CsrfToken::new_random)
-        // Set the desired scopes.
         .add_scope(Scope::new("openid".to_string()))
         .add_scope(Scope::new("email".to_string()))
         .add_scope(Scope::new("profile".to_string()))
         .add_scope(Scope::new("offline_access".to_string()))
-        // Set the PKCE code challenge, need to pass verifier to /auth.
-        //.set_pkce_challenge(pkce_code_challenge)
         .url();
 
     HttpResponse::Found()
@@ -101,30 +106,20 @@ pub async fn logout(session: Session) -> HttpResponse {
 }
 
 async fn read_user(api_base_url: &str, access_token: &AccessToken) -> UserInfo {
-    let url = Url::parse(format!("{}/me", api_base_url).as_str()).unwrap();
+    // With oauth2 v5 the caller supplies their own HTTP client, so we use
+    // reqwest directly for arbitrary Graph API calls too.
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(format!("{}/me", api_base_url))
+        .bearer_auth(access_token.secret())
+        .send()
+        .await
+        .expect("Request failed")
+        .bytes()
+        .await
+        .expect("Failed to read response body");
 
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        "Authorization",
-        format!("Bearer {}", access_token.secret()).parse().unwrap(),
-    );
-
-    let resp = async_http_client(oauth2::HttpRequest {
-        url,
-        method: Method::GET,
-        headers: headers,
-        body: Vec::new(),
-    })
-    .await
-    .expect("Request failed");
-
-    // let s: &str = match str::from_utf8(&resp.body) {
-    //     Ok(v) => v,
-    //     Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-    // };
-    // println!("{:?}", s);
-
-    serde_json::from_slice(&resp.body).unwrap()
+    serde_json::from_slice(&resp).unwrap()
 }
 
 #[derive(Deserialize)]
@@ -132,6 +127,9 @@ pub struct AuthRequest {
     code: String,
     state: String,
 }
+
+/// The token response returned by `BasicClient::exchange_code` in oauth2 v5.
+type AzureTokenResponse = StandardTokenResponse<EmptyExtraTokenFields, BasicTokenType>;
 
 pub async fn auth<T: AppDataTrait>(
     session: Session,
@@ -143,11 +141,10 @@ pub async fn auth<T: AppDataTrait>(
     let api_base_url = AzureAuth::get_api_base_url();
 
     // Exchange the code with a token.
-    let token = &data
+    let token: AzureTokenResponse = data
         .get_oauth()
         .exchange_code(code)
-        //.set_pkce_verifier()
-        .request_async(async_http_client)
+        .request_async(data.get_http_client())
         .await
         .expect("exchange_code failed");
 
@@ -155,5 +152,7 @@ pub async fn auth<T: AppDataTrait>(
 
     session.insert("user_info", &user_info).unwrap();
 
-    HttpResponse::Found().append_header(("location", "/admin/")).finish()
+    HttpResponse::Found()
+        .append_header(("location", "/admin/"))
+        .finish()
 }

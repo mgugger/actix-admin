@@ -36,8 +36,9 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
     fields
         .iter()
         .filter_map(|field| {
-            let actix_admin_attr =
-                derive_attr::ActixAdmin::try_from_attributes(&field.attrs).unwrap_or_default();
+            let actix_admin_attr = derive_attr::ActixAdmin::try_from_attributes(&field.attrs)
+                .ok()
+                .flatten();
 
             if field.ident.is_some() {
                 //let field_vis = field.vis.clone();
@@ -285,6 +286,18 @@ pub fn get_primary_key_column_ident(fields: &Vec<ModelField>) -> Ident {
 
     let capitalized = capitalize_first_letter(&primary_key_model_field.ident.to_string());
     Ident::new(&capitalized, Span::call_site())
+}
+
+/// Return the primary key's Rust type (e.g. `i32`, `Uuid`, `String`) as it
+/// appears on the model struct. Used to emit `type Id = <pk_type>;` on the
+/// generated `ActixAdminViewModelTrait` impl.
+pub fn get_primary_key_type(fields: &Vec<ModelField>) -> Type {
+    let primary_key_model_field = fields
+        .iter()
+        .find(|model_field| model_field.primary_key)
+        .expect("model must have a single primary key");
+
+    primary_key_model_field.ty.clone()
 }
 
 pub fn get_primary_key_field_name(fields: &Vec<ModelField>) -> String {

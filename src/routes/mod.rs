@@ -17,7 +17,7 @@ mod delete;
 pub use delete::{ delete, delete_many };
 
 mod helpers;
-pub use helpers::{add_auth_context, render_unauthorized, user_can_access_page, validate_sort_by, view_model_or_500};
+pub use helpers::{add_auth_context, render_template, render_unauthorized, user_can_access_page, validate_sort_by, view_model_or_500};
 
 mod file;
 pub use file::{download, delete_file};
@@ -48,23 +48,19 @@ impl Params {
 
 /// Parse `filter_<name>=value` querystring fragments into filters, without
 /// panicking on malformed input.
+///
+/// Uses `form_urlencoded` so that `+` is decoded as a space (matching the
+/// way browsers submit HTML forms) and each key/value is decoded
+/// independently.
 pub(crate) fn parse_filters_from_query(qs: &str) -> Vec<crate::view_model::ActixAdminViewModelFilter> {
-    let decoded = match urlencoding::decode(qs) {
-        Ok(s) => s.into_owned(),
-        Err(_) => return Vec::new(),
-    };
-    decoded
-        .split('&')
-        .filter_map(|qf| {
-            if !qf.starts_with("filter_") {
-                return None;
-            }
-            let mut kv = qf.splitn(2, '=');
-            let name = kv.next()?.strip_prefix("filter_")?.to_string();
-            let value = kv
-                .next()
-                .map(|s| s.to_string())
-                .filter(|f| !f.is_empty());
+    form_urlencoded::parse(qs.as_bytes())
+        .filter_map(|(key, value)| {
+            let name = key.strip_prefix("filter_")?.to_string();
+            let value = if value.is_empty() {
+                None
+            } else {
+                Some(value.into_owned())
+            };
             Some(crate::view_model::ActixAdminViewModelFilter {
                 name,
                 value,
@@ -117,9 +113,31 @@ mod tests {
 
     #[test]
     fn filter_parser_handles_equals_in_value() {
-        // splitn(2, '=') means values may contain '='.
+        // Values may contain '='.
         let filters = parse_filters_from_query("filter_query=a=b");
         assert_eq!(filters.len(), 1);
         assert_eq!(filters[0].value.as_deref(), Some("a=b"));
+    }
+
+    #[test]
+    fn filter_parser_decodes_plus_as_space_in_key_and_value() {
+        // HTML forms submit spaces as `+`. Filter names with spaces (like
+        // `Post with Tom Select`) must be decoded correctly, otherwise
+        // they never match the registered filter.
+        let filters =
+            parse_filters_from_query("filter_Post+with+Tom+Select=hello+world");
+        assert_eq!(filters.len(), 1);
+        assert_eq!(filters[0].name, "Post with Tom Select");
+        assert_eq!(filters[0].value.as_deref(), Some("hello world"));
+    }
+
+    #[test]
+    fn filter_parser_decodes_percent_encoded_key_and_value() {
+        let filters = parse_filters_from_query(
+            "filter_Post%20with%20Tom%20Select=a%2Fb",
+        );
+        assert_eq!(filters.len(), 1);
+        assert_eq!(filters[0].name, "Post with Tom Select");
+        assert_eq!(filters[0].value.as_deref(), Some("a/b"));
     }
 }

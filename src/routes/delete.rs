@@ -43,7 +43,7 @@ pub async fn delete<E: ActixAdminViewModelTrait>(
     _req: HttpRequest,
     data: web::Data<ActixAdmin>,
     db: web::Data<DatabaseConnection>,
-    id: web::Path<i32>,
+    id: web::Path<E::Id>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = &data.into_inner();
     let entity_name = E::get_entity_name();
@@ -65,7 +65,7 @@ pub async fn delete<E: ActixAdminViewModelTrait>(
         .and_then(|f| f(&session));
 
     // Fetch first (to know upload paths) then delete.
-    let model_result = E::get_entity(db, id, tenant_ref).await;
+    let model_result = E::get_entity(db, id.clone(), tenant_ref).await;
     let delete_result = E::delete_entity(db, id, tenant_ref).await;
 
     match (model_result, delete_result) {
@@ -102,10 +102,10 @@ pub async fn delete_many<E: ActixAdminViewModelTrait>(
     let db = db.get_ref();
 
     // Silently skip un-parseable ids rather than panicking on client input.
-    let ids: Vec<i32> = form
+    let ids: Vec<E::Id> = form
         .iter()
         .filter(|el| el.0 == "ids")
-        .filter_map(|el| el.1.parse::<i32>().ok())
+        .filter_map(|el| el.1.parse::<E::Id>().ok())
         .collect();
 
     let tenant_ref = actix_admin
@@ -113,18 +113,24 @@ pub async fn delete_many<E: ActixAdminViewModelTrait>(
         .user_tenant_ref
         .and_then(|f| f(&session));
 
-    // TODO: for large id sets this should be a single DELETE ... WHERE id IN (...);
-    // requires a bulk-delete method on the view model trait.
-    for id in ids {
-        let model_result = E::get_entity(db, id, tenant_ref).await;
-        let delete_result = E::delete_entity(db, id, tenant_ref).await;
-        match (delete_result, model_result) {
-            (Err(e), _) => errors.push(e),
-            (Ok(_), Ok(model)) => {
-                delete_uploaded_files_for(actix_admin, &entity_name, view_model, &model);
-            }
-            (Ok(_), Err(e)) => errors.push(e),
+    // Pre-fetch models so we can delete their uploaded files after the DB
+    // rows go away. This is best-effort: if a fetch fails the id is skipped.
+    let mut fetched_models: Vec<ActixAdminModel> = Vec::with_capacity(ids.len());
+    for id in &ids {
+        match E::get_entity(db, id.clone(), tenant_ref).await {
+            Ok(m) => fetched_models.push(m),
+            Err(e) => errors.push(e),
         }
+    }
+
+    // Single batched DELETE ... WHERE pk IN (...).
+    match E::delete_entities(db, &ids, tenant_ref).await {
+        Ok(_) => {
+            for model in &fetched_models {
+                delete_uploaded_files_for(actix_admin, &entity_name, view_model, model);
+            }
+        }
+        Err(e) => errors.push(e),
     }
 
     let field = |key: &str, default: &str| -> String {

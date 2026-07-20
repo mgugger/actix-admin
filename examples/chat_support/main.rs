@@ -104,11 +104,10 @@ async fn main() {
     HttpServer::new(move || {
         let actix_admin_builder = create_actix_admin_builder();
 
-        // create new tera instance and extend with actix admin templates
-        let mut tera = Tera::parse(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/chat_support/templates/*.html")).unwrap();
-        tera.extend(&actix_admin_builder.get_actix_admin().tera)
-            .unwrap();
-        let _tera_res = tera.build_inheritance_chains();
+        // Start from actix-admin's tera (filters + templates) and layer
+        // the example's own templates on top.
+        let mut tera = actix_admin_builder.get_actix_admin().tera.clone();
+        tera.load_from_glob(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/chat_support/templates/*.html")).unwrap();
 
         App::new()
             .app_data(web::Data::new(tera))

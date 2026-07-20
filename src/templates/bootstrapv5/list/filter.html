@@ -14,22 +14,25 @@
                 {% elif value.filter_type == "Checkbox" %}
                 <select class="form-select" name="filter_{{key}}" id="filter_{{key}}">
                     <option value=""></option>
-                    <option value="1">&#10004;</option>
-                    <option value="0">&#10006;</option>
+                    <option value="1"{% if value.value == "1" %} selected{% endif %}>&#10004;</option>
+                    <option value="0"{% if value.value == "0" %} selected{% endif %}>&#10006;</option>
                 </select>
                 {% elif value.filter_type == "Date" %}
-                <input class="form-control" type="date" placeholder="" name="filter_{{key}}">
+                <input class="form-control" value="{{ value.value }}" type="date" placeholder="" name="filter_{{key}}">
                 {% elif value.filter_type == "SelectList" %}
                 <select class="form-select" name="filter_{{key}}" id="filter_{{key}}">
                     <option value=""></option>
                     {% for selectval in value.values %}
-                    <option value="{{ selectval[0] }}">{{ selectval[1] }}</option>
+                    <option value="{{ selectval[0] }}"{% if value.value and value.value == selectval[0] %} selected{% endif %}>{{ selectval[1] }}</option>
                     {% endfor %}
                 </select>
                 {% elif value.filter_type == "TomSelectSearch" %}
                     <div class="is-fullwidth">
                         <select class="form-select" name="filter_{{key}}" id="filter_{{key}}">
                             <option value=""></option>
+                            {% if value.value %}
+                            <option value="{{ value.value }}" selected>{{ value.value }}</option>
+                            {% endif %}
                         </select>
                         <script>
                             var settings = {

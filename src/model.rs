@@ -132,7 +132,7 @@ impl ActixAdminModel {
     }
 
     pub async fn create_from_payload(
-        id: Option<i32>,
+        id: Option<String>,
         mut payload: Multipart,
         file_upload_folder: &str,
     ) -> Result<ActixAdminModel, ActixAdminError> {
@@ -209,7 +209,7 @@ impl ActixAdminModel {
         }
 
         Ok(ActixAdminModel {
-            primary_key: id.map(|id| id.to_string()),
+            primary_key: id,
             values: hashmap,
             errors: HashMap::new(),
             custom_errors: HashMap::new(),

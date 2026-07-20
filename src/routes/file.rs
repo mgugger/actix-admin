@@ -25,7 +25,7 @@ pub async fn download<E: ActixAdminViewModelTrait>(
     session: Session,
     data: web::Data<ActixAdmin>,
     db: web::Data<DatabaseConnection>,
-    params: web::Path<(i32, String)>,
+    params: web::Path<(E::Id, String)>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = &data.into_inner();
     let db = &db.into_inner();
@@ -77,7 +77,7 @@ pub async fn delete_file<E: ActixAdminViewModelTrait>(
     session: Session,
     data: web::Data<ActixAdmin>,
     db: web::Data<DatabaseConnection>,
-    params: web::Path<(i32, String)>,
+    params: web::Path<(E::Id, String)>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = &data.into_inner();
 
@@ -96,7 +96,7 @@ pub async fn delete_file<E: ActixAdminViewModelTrait>(
         .user_tenant_ref
         .and_then(|f| f(&session));
 
-    let mut model = match E::get_entity(db.get_ref(), id, tenant_ref).await {
+    let mut model = match E::get_entity(db.get_ref(), id.clone(), tenant_ref).await {
         Ok(m) => m,
         Err(e) if e.ty == crate::ActixAdminErrorType::EntityDoesNotExistError => {
             return Ok(HttpResponse::NotFound().finish());
