@@ -148,7 +148,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
 
         fs::create_dir_all(format!(
             "{}/{}",
-            &self.actix_admin.configuration.file_upload_directory,
+            self.actix_admin.configuration.file_upload_directory,
             E::get_entity_name()
         ))
         .unwrap();

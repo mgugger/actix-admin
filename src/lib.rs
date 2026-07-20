@@ -136,7 +136,7 @@ pub struct ActixAdminError {
 
 impl FmtDisplay for ActixAdminError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "{}: {}", &self.ty, &self.msg)
+        write!(formatter, "{}: {}", self.ty, self.msg)
     }
 }
 

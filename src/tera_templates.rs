@@ -114,7 +114,7 @@ fn get_regex_val(value: &Value, kwargs: Kwargs, _: &State) -> TeraResult<Value> 
         (Some(val), None) => Ok(val.clone()),
         (None, _) => Err(tera::Error::message(format!(
             "key '{}' not found in model values",
-            &field.field_name
+            field.field_name
         ))),
     }
 }
