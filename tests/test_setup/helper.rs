@@ -31,17 +31,29 @@ pub async fn setup_db(create_entities: bool) -> DatabaseConnection {
                 //   * some rows are all-NULL (i % 5 == 0)
                 //   * other rows have populated values including a
                 //     characteristic marker so we can grep the response.
-                summary_html: Set(if i % 5 == 0 { None } else {
+                summary_html: Set(if i % 5 == 0 {
+                    None
+                } else {
                     Some(format!("<em>row-{}</em>", i))
                 }),
-                homepage: Set(if i % 5 == 0 { None } else {
+                homepage: Set(if i % 5 == 0 {
+                    None
+                } else {
                     Some(format!("https://example.com/{}", i))
                 }),
-                contact_email: Set(if i % 5 == 0 { None } else {
+                contact_email: Set(if i % 5 == 0 {
+                    None
+                } else {
                     Some(format!("row{}@example.com", i))
                 }),
-                cover_image: Set(if i % 3 == 0 { Some("placeholder.png".to_string()) } else { None }),
-                notes_md: Set(if i % 5 == 0 { None } else {
+                cover_image: Set(if i % 3 == 0 {
+                    Some("placeholder.png".to_string())
+                } else {
+                    None
+                }),
+                notes_md: Set(if i % 5 == 0 {
+                    None
+                } else {
                     Some(format!("# markdown-{}", i))
                 }),
                 external_id: Set(Some(format!("EXT-{:05}", i))),
@@ -186,7 +198,8 @@ pub fn create_actix_admin_builder(
     );
 
     let _support_route = admin_builder.add_support_handler("/support", web::get().to(support));
-    let _card_route = admin_builder.add_custom_handler("card", "/card/{id}", web::get().to(card), false);
+    let _card_route =
+        admin_builder.add_custom_handler("card", "/card/{id}", web::get().to(card), false);
 
     let card_grid: Vec<Vec<String>> = vec![
         vec!["card/1".to_string(), "card/2".to_string()],
@@ -240,6 +253,7 @@ async fn card(id: web::Path<i32>) -> Result<HttpResponse, Error> {
     Ok(HttpResponse::Ok().content_type("text/html").body(resp))
 }
 pub trait BodyTest {
+    #[allow(dead_code)]
     fn as_str(&self) -> &str;
 }
 

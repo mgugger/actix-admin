@@ -2,28 +2,31 @@ mod create_or_edit_get;
 pub use create_or_edit_get::{create_get, edit_get};
 
 mod create_or_edit_post;
-pub use create_or_edit_post::{ create_post, edit_post, create_or_edit_post };
+pub use create_or_edit_post::{create_or_edit_post, create_post, edit_post};
 
 mod index;
-pub use index::{ index, not_found, get_admin_ctx };
+pub use index::{get_admin_ctx, index, not_found};
 
 mod list;
-pub use list::{ list, SortOrder, export_csv };
+pub use list::{export_csv, list, SortOrder};
 
 mod show;
 pub use show::show;
 
 mod delete;
-pub use delete::{ delete, delete_many };
+pub use delete::{delete, delete_many};
 
 mod bulk_action;
-pub use bulk_action::{ bulk_action, ActixAdminBulkActionDispatch };
+pub use bulk_action::{bulk_action, ActixAdminBulkActionDispatch};
 
 mod helpers;
-pub use helpers::{add_auth_context, forbid_if_denied, render_template, render_unauthorized, user_can_access_page, user_can_perform, validate_sort_by, view_model_or_500, AdminAction};
+pub use helpers::{
+    add_auth_context, forbid_if_denied, render_template, render_unauthorized, user_can_access_page,
+    user_can_perform, validate_sort_by, view_model_or_500, AdminAction,
+};
 
 mod file;
-pub use file::{download, delete_file};
+pub use file::{delete_file, download};
 
 mod card_grid;
 pub use card_grid::display_card_grid;
@@ -60,7 +63,9 @@ impl Params {
 /// Uses `form_urlencoded` so that `+` is decoded as a space (matching the
 /// way browsers submit HTML forms) and each key/value is decoded
 /// independently.
-pub(crate) fn parse_filters_from_query(qs: &str) -> Vec<crate::view_model::ActixAdminViewModelFilter> {
+pub(crate) fn parse_filters_from_query(
+    qs: &str,
+) -> Vec<crate::view_model::ActixAdminViewModelFilter> {
     use crate::view_model::{ActixAdminFilterOperator, ActixAdminViewModelFilter};
     use std::collections::HashMap;
 
@@ -68,7 +73,9 @@ pub(crate) fn parse_filters_from_query(qs: &str) -> Vec<crate::view_model::Actix
     let mut operators: HashMap<String, ActixAdminFilterOperator> = HashMap::new();
 
     for (key, value) in form_urlencoded::parse(qs.as_bytes()) {
-        let Some(rest) = key.strip_prefix("filter_") else { continue };
+        let Some(rest) = key.strip_prefix("filter_") else {
+            continue;
+        };
         if let Some(name) = rest.strip_suffix("__op") {
             if let Some(op) = ActixAdminFilterOperator::from_str(&value) {
                 operators.insert(name.to_string(), op);
@@ -115,7 +122,9 @@ mod tests {
 
     #[test]
     fn params_from_query_parses_valid_input() {
-        let p = Params::from_query("page=3&entities_per_page=20&search=foo&sort_by=name&sort_order=Desc");
+        let p = Params::from_query(
+            "page=3&entities_per_page=20&search=foo&sort_by=name&sort_order=Desc",
+        );
         assert_eq!(p.page, Some(3));
         assert_eq!(p.entities_per_page, Some(20));
         assert_eq!(p.search.as_deref(), Some("foo"));
@@ -129,7 +138,10 @@ mod tests {
         let names: Vec<_> = filters.iter().map(|f| f.name.as_str()).collect();
         assert_eq!(names, vec!["status", "owner"]);
         assert_eq!(filters[0].value.as_deref(), Some("active"));
-        assert!(filters[1].value.is_none(), "empty value must be normalized to None");
+        assert!(
+            filters[1].value.is_none(),
+            "empty value must be normalized to None"
+        );
     }
 
     #[test]
@@ -152,8 +164,7 @@ mod tests {
         // HTML forms submit spaces as `+`. Filter names with spaces (like
         // `Post with Tom Select`) must be decoded correctly, otherwise
         // they never match the registered filter.
-        let filters =
-            parse_filters_from_query("filter_Post+with+Tom+Select=hello+world");
+        let filters = parse_filters_from_query("filter_Post+with+Tom+Select=hello+world");
         assert_eq!(filters.len(), 1);
         assert_eq!(filters[0].name, "Post with Tom Select");
         assert_eq!(filters[0].value.as_deref(), Some("hello world"));
@@ -161,9 +172,7 @@ mod tests {
 
     #[test]
     fn filter_parser_decodes_percent_encoded_key_and_value() {
-        let filters = parse_filters_from_query(
-            "filter_Post%20with%20Tom%20Select=a%2Fb",
-        );
+        let filters = parse_filters_from_query("filter_Post%20with%20Tom%20Select=a%2Fb");
         assert_eq!(filters.len(), 1);
         assert_eq!(filters[0].name, "Post with Tom Select");
         assert_eq!(filters[0].value.as_deref(), Some("a/b"));

@@ -1,11 +1,13 @@
+use super::list::replace_regex;
+use super::{
+    add_auth_context, render_unauthorized, user_can_perform, view_model_or_500, AdminAction,
+};
+use crate::prelude::*;
+use actix_session::Session;
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use sea_orm::DatabaseConnection;
+use serde_derive::{Deserialize, Serialize};
 use tera::Context;
-use actix_session::Session;
-use serde_derive::{Serialize, Deserialize};
-use crate::prelude::*;
-use super::list::replace_regex;
-use super::{add_auth_context, render_unauthorized, user_can_perform, view_model_or_500, AdminAction};
 
 #[derive(Serialize)]
 struct LabelValue {
@@ -53,7 +55,10 @@ pub async fn search<E: ActixAdminViewModelTrait>(
         search: search_query.q,
         sort_by: view_model.primary_key.clone(),
         sort_order: SortOrder::Asc,
-        tenant_ref: actix_admin.configuration.user_tenant_ref.and_then(|f| f(&session)),
+        tenant_ref: actix_admin
+            .configuration
+            .user_tenant_ref
+            .and_then(|f| f(&session)),
     };
 
     // TODO: Improve by not loading all values (add a limit clause)

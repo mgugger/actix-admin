@@ -23,7 +23,9 @@ fn file_upload_field<'a>(
                     ActixAdminViewModelFieldType::FileUpload | ActixAdminViewModelFieldType::Image
                 )
         })
-        .ok_or_else(|| error::ErrorBadRequest(format!("'{column_name}' is not a file upload field")))
+        .ok_or_else(|| {
+            error::ErrorBadRequest(format!("'{column_name}' is not a file upload field"))
+        })
 }
 
 pub async fn download<E: ActixAdminViewModelTrait>(

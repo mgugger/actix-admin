@@ -177,15 +177,17 @@ fn filter_attribute(value: &Value, kwargs: Kwargs, _: &State) -> TeraResult<Valu
     let attribute: String = kwargs.must_get("attribute")?;
     let target: Option<&Value> = kwargs.get("value")?;
 
-    let arr = value.as_array().ok_or_else(|| {
-        tera::Error::message("`filter` expects an array as input".to_string())
-    })?;
+    let arr = value
+        .as_array()
+        .ok_or_else(|| tera::Error::message("`filter` expects an array as input".to_string()))?;
 
     let key = tera::value::Key::Str(&attribute);
     let filtered: Vec<Value> = arr
         .iter()
         .filter(|item| {
-            let Some(map) = item.as_map() else { return false };
+            let Some(map) = item.as_map() else {
+                return false;
+            };
             match (map.get(&key), target) {
                 (Some(v), Some(t)) => v == t,
                 (Some(v), None) => !v.is_none() && !v.is_undefined(),
@@ -228,9 +230,7 @@ compile_error!(
 );
 
 #[cfg(not(any(feature = "bulma_css", feature = "bootstrapv5_css")))]
-compile_error!(
-    "At least one CSS theme feature must be enabled: `bulma_css` or `bootstrapv5_css`."
-);
+compile_error!("At least one CSS theme feature must be enabled: `bulma_css` or `bootstrapv5_css`.");
 
 // Cargo Features for CSS
 #[cfg(feature = "bulma_css")]
@@ -278,7 +278,9 @@ fn load_templates_into(tera: &mut Tera) {
         checkbox_html: include_str!("templates/bootstrapv5/create_or_edit/checkbox.html"),
         input_html: include_str!("templates/bootstrapv5/create_or_edit/input.html"),
         selectlist_html: include_str!("templates/bootstrapv5/create_or_edit/selectlist.html"),
-        create_or_edit_inline_html: include_str!("templates/bootstrapv5/create_or_edit/inline.html"),
+        create_or_edit_inline_html: include_str!(
+            "templates/bootstrapv5/create_or_edit/inline.html"
+        ),
         // list
         list_header_html: include_str!("templates/bootstrapv5/list/header.html"),
         list_row_html: include_str!("templates/bootstrapv5/list/row.html"),

@@ -1,6 +1,6 @@
 use super::helpers::{add_default_context_with_session, SearchParams};
-use super::{add_auth_context, render_template, render_unauthorized, user_can_access_page};
 use super::Params;
+use super::{add_auth_context, render_template, render_unauthorized, user_can_access_page};
 use crate::ActixAdminError;
 use crate::ActixAdminNotification;
 use crate::{prelude::*, ActixAdminErrorType};
@@ -96,7 +96,14 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
             msg: String::new(),
         }];
         return render_form::<E>(
-            session, req, actix_admin, view_model, db, entity_name, &model, errors,
+            session,
+            req,
+            actix_admin,
+            view_model,
+            db,
+            entity_name,
+            &model,
+            errors,
         )
         .await;
     }
@@ -120,7 +127,16 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
                 let mut ctx = Context::new();
                 ctx.insert("entity", &model);
                 add_auth_context(session, actix_admin, &mut ctx);
-                add_default_context_with_session(&mut ctx, req, view_model, entity_name, actix_admin, Vec::new(), &search_params, Some(session));
+                add_default_context_with_session(
+                    &mut ctx,
+                    req,
+                    view_model,
+                    entity_name,
+                    actix_admin,
+                    Vec::new(),
+                    &search_params,
+                    Some(session),
+                );
                 let body = actix_admin
                     .tera
                     .render("list/row.html", &ctx)
@@ -142,13 +158,21 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
         }
         Err(e) => {
             render_form::<E>(
-                session, req, actix_admin, view_model, db, entity_name, &model, vec![e],
+                session,
+                req,
+                actix_admin,
+                view_model,
+                db,
+                entity_name,
+                &model,
+                vec![e],
             )
             .await
         }
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn render_form<E: ActixAdminViewModelTrait>(
     session: &Session,
     req: HttpRequest,
@@ -179,7 +203,16 @@ async fn render_form<E: ActixAdminViewModelTrait>(
     add_auth_context(session, actix_admin, &mut ctx);
 
     let search_params = SearchParams::from_params(&params, view_model);
-    add_default_context_with_session(&mut ctx, req, view_model, entity_name, actix_admin, notifications, &search_params, Some(session));
+    add_default_context_with_session(
+        &mut ctx,
+        req,
+        view_model,
+        entity_name,
+        actix_admin,
+        notifications,
+        &search_params,
+        Some(session),
+    );
 
     let template_path = if view_model.inline_edit && model.primary_key.is_some() {
         "create_or_edit/inline.html"
@@ -196,7 +229,8 @@ impl From<String> for ActixAdminModel {
     fn from(string: String) -> Self {
         // Parse application/x-www-form-urlencoded using the standard crate
         // rather than a bespoke hand-parser (which used to only decode `%3A`).
-        let values: HashMap<String, String> = serde_urlencoded::from_str(&string).unwrap_or_default();
+        let values: HashMap<String, String> =
+            serde_urlencoded::from_str(&string).unwrap_or_default();
 
         ActixAdminModel {
             primary_key: None,

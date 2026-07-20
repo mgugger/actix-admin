@@ -10,7 +10,7 @@ mod webdriver_tests {
     use fantoccini::{key::Key, Locator};
 
     #[tokio_test]
-    async fn webdriver_edit() -> Result<(), fantoccini::error::CmdError> {    
+    async fn webdriver_edit() -> Result<(), fantoccini::error::CmdError> {
         let (server_task, geckodriver, c) = setup(true, false).await.unwrap();
 
         // Open the comment list page
@@ -20,9 +20,14 @@ mod webdriver_tests {
 
         // Click on edit first element
         let css_selector = "a[href='/admin/comment/edit/1']";
-        c.find(Locator::Css(css_selector.into())).await?.click().await?;
+        c.find(Locator::Css(css_selector.into()))
+            .await?
+            .click()
+            .await?;
         let url = c.current_url().await?;
-        assert!(url.as_ref().contains("http://localhost:5555/admin/comment/edit/1"));
+        assert!(url
+            .as_ref()
+            .contains("http://localhost:5555/admin/comment/edit/1"));
 
         // Fill the form
         let css_selector = "input[name='comment']";
@@ -38,10 +43,9 @@ mod webdriver_tests {
         let el = c.find(Locator::Css(css_selector.into())).await?;
         c.execute(
             "arguments[0].value = '2023-04-02 10:36:00';",
-            vec![
-                serde_json::to_value(&el).unwrap()
-            ]
-        ).await?;
+            vec![serde_json::to_value(&el).unwrap()],
+        )
+        .await?;
 
         let input_element = c.find(Locator::Css("select[name='post_id']")).await?;
         let parent_div = input_element.find(Locator::XPath("..")).await?;
@@ -53,17 +57,27 @@ mod webdriver_tests {
 
         // save
         let css_selector = "button[name='submitBtn']";
-        c.find(Locator::Css(css_selector.into())).await?.click().await?;
+        c.find(Locator::Css(css_selector.into()))
+            .await?
+            .click()
+            .await?;
         let url = c.current_url().await?;
         tokio::time::sleep(Duration::from_secs(1)).await;
-        assert!(url.as_ref().contains("http://localhost:5555/admin/comment/list"));
+        assert!(url
+            .as_ref()
+            .contains("http://localhost:5555/admin/comment/list"));
 
         // assert content of first row
         let table = c.find(Locator::Css("tbody")).await?;
         let table_rows = table.find_all(Locator::Css("tr")).await?;
         let row_text = table_rows[0].text().await?;
-    
-        let expected_texts = vec!["test comment", "test@test.com", "2023-04-02 10:36:00", "Test 10"];
+
+        let expected_texts = vec![
+            "test comment",
+            "test@test.com",
+            "2023-04-02 10:36:00",
+            "Test 10",
+        ];
         for text in expected_texts {
             assert!(row_text.contains(text));
         }

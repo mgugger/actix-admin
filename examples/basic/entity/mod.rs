@@ -1,7 +1,6 @@
 // setup
 use sea_orm::sea_query::{ColumnDef, ForeignKeyCreateStatement, TableCreateStatement};
-use sea_orm::{
-    error::*, sea_query, ConnectionTrait, DbConn, EntityTrait, ExecResult, Set};
+use sea_orm::{error::*, sea_query, ConnectionTrait, DbConn, EntityTrait, ExecResult, Set};
 pub mod comment;
 pub mod post;
 pub mod user;
@@ -13,7 +12,6 @@ pub use user::Entity as User;
 
 // setup
 async fn create_table(db: &DbConn, stmt: &TableCreateStatement) -> Result<ExecResult, DbErr> {
-    
     db.execute(stmt).await
 }
 
@@ -114,20 +112,35 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
             tea_mandatory: Set(post::Tea::EverydayTea),
             tea_optional: Set(None),
             insert_date: Set(Local::now().date_naive()),
-            summary_html: Set(if is_null_row { None } else {
+            summary_html: Set(if is_null_row {
+                None
+            } else {
                 Some(format!("<strong>#{}</strong> highlighted", i))
             }),
-            homepage: Set(if is_null_row { None } else {
+            homepage: Set(if is_null_row {
+                None
+            } else {
                 Some(format!("https://example.com/posts/{}", i))
             }),
-            contact_email: Set(if is_null_row { None } else {
+            contact_email: Set(if is_null_row {
+                None
+            } else {
                 Some(format!("author{}@example.com", i))
             }),
             // Only every third row references an existing uploaded file; the
             // rest stay NULL so the empty-thumbnail branch is exercised too.
-            cover_image: Set(if i % 3 == 0 { Some("placeholder.png".to_string()) } else { None }),
-            notes_md: Set(if is_null_row { None } else {
-                Some(format!("# Notes for post {}\n\n* markdown works\n* really", i))
+            cover_image: Set(if i % 3 == 0 {
+                Some("placeholder.png".to_string())
+            } else {
+                None
+            }),
+            notes_md: Set(if is_null_row {
+                None
+            } else {
+                Some(format!(
+                    "# Notes for post {}\n\n* markdown works\n* really",
+                    i
+                ))
             }),
             external_id: Set(Some(format!("EXT-{:05}", i))),
             ..Default::default()
@@ -140,9 +153,7 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
             comment: Set(format!("Test {}", i)),
             user: Set("me@home.com".to_string()),
             my_decimal: Set(Decimal::new(105, 0)),
-            insert_date: Set(Utc::now()
-                .duration_round(Duration::minutes(1))
-                .unwrap()),
+            insert_date: Set(Utc::now().duration_round(Duration::minutes(1)).unwrap()),
             is_visible: Set(i % 2 == 0),
             ..Default::default()
         };

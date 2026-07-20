@@ -1,5 +1,5 @@
-use actix_web::{error, web, Error, HttpResponse};
 use actix_session::Session;
+use actix_web::{error, web, Error, HttpResponse};
 use tera::Context;
 
 use crate::prelude::*;
@@ -22,20 +22,27 @@ pub async fn index(session: Session, data: web::Data<ActixAdmin>) -> Result<Http
 
     let mut ctx = Context::new();
     ctx.insert("entity_names", &actix_admin.entity_names);
-    ctx.insert("notifications", &Vec::<crate::ActixAdminNotification>::new());
+    ctx.insert(
+        "notifications",
+        &Vec::<crate::ActixAdminNotification>::new(),
+    );
 
     add_auth_context(&session, actix_admin, &mut ctx);
 
-    let body = actix_admin.tera
+    let body = actix_admin
+        .tera
         .render("index.html", &ctx)
         .map_err(|e| error::ErrorInternalServerError(format!("Template error: {e}")))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
 pub async fn not_found(data: web::Data<ActixAdmin>) -> Result<HttpResponse, Error> {
-    let body = data.get_ref().tera
+    let body = data
+        .get_ref()
+        .tera
         .render("not_found.html", &Context::new())
         .map_err(|e| error::ErrorInternalServerError(format!("Template error: {e}")))?;
-    Ok(HttpResponse::NotFound().content_type("text/html").body(body))
+    Ok(HttpResponse::NotFound()
+        .content_type("text/html")
+        .body(body))
 }
-

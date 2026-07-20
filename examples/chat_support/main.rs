@@ -2,11 +2,11 @@ extern crate serde_derive;
 
 use actix_admin::prelude::*;
 use actix_web::{http::Error, middleware, web, App, HttpResponse, HttpServer};
-use ollama_rs::generation::completion::{request::GenerationRequest, GenerationContext};
+use ollama_rs::generation::completion::request::GenerationRequest;
 use ollama_rs::Ollama;
 use sea_orm::ConnectOptions;
 use std::time::Duration;
-use tera::{Tera, Context};
+use tera::{Context, Tera};
 
 async fn support(
     session: Session,
@@ -22,7 +22,7 @@ async fn support(
 #[derive(serde::Deserialize)]
 struct SupportForm {
     question: String,
-    context: String
+    context: String,
 }
 
 async fn support_post(
@@ -38,7 +38,7 @@ async fn support_post(
     println!("{}", prompt);
     let request = GenerationRequest::new(model, prompt);
     let res = ollama.generate(request).await;
-    
+
     if let Ok(res) = res {
         let mut ctx = Context::new();
         ctx.extend(get_admin_ctx(session, &actix_admin));
@@ -53,10 +53,10 @@ async fn support_post(
 async fn custom_index(
     session: Session,
     tera: web::Data<Tera>,
-    actix_admin: web::Data<ActixAdmin>
-) -> Result<HttpResponse, Error> {    
+    actix_admin: web::Data<ActixAdmin>,
+) -> Result<HttpResponse, Error> {
     let ctx = get_admin_ctx(session, &actix_admin);
-    let body = tera.render("custom_index.html", &ctx).unwrap(); 
+    let body = tera.render("custom_index.html", &ctx).unwrap();
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
@@ -78,7 +78,8 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     let mut admin_builder = ActixAdminBuilder::new(configuration);
 
     let _support_route = admin_builder.add_support_handler("/support", web::get().to(support));
-    let _support_route_post = admin_builder.add_support_handler("/support", web::post().to(support_post));
+    let _support_route_post =
+        admin_builder.add_support_handler("/support", web::post().to(support_post));
     let _custom_index = admin_builder.add_custom_handler_for_index(web::get().to(custom_index));
 
     admin_builder
@@ -108,7 +109,11 @@ async fn main() {
         // Start from actix-admin's tera (filters + templates) and layer
         // the example's own templates on top.
         let mut tera = actix_admin_builder.get_actix_admin().tera.clone();
-        tera.load_from_glob(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/chat_support/templates/*.html")).unwrap();
+        tera.load_from_glob(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/examples/chat_support/templates/*.html"
+        ))
+        .unwrap();
 
         App::new()
             .app_data(web::Data::new(tera))

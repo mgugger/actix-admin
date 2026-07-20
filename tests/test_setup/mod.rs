@@ -4,22 +4,22 @@ use sea_orm::{error::*, sea_query, ConnectionTrait, DbConn, ExecResult};
 pub mod comment;
 pub mod helper;
 pub mod post;
-pub mod webdriver;
 pub mod sample_with_tenant_id;
+pub mod webdriver;
 pub use comment::Entity as Comment;
 pub use post::Entity as Post;
 pub use sample_with_tenant_id::Entity as SampleWithTenantId;
 
 #[allow(dead_code)]
+#[allow(unused_imports)]
 pub mod prelude {
     pub use super::*;
-    pub use crate::test_setup::webdriver:: { setup, teardown };
     pub use crate::test_setup::helper::{create_actix_admin_builder, setup_db, BodyTest};
+    pub use crate::test_setup::webdriver::{setup, teardown};
 }
 
 // setup
 async fn create_table(db: &DbConn, stmt: &TableCreateStatement) -> Result<ExecResult, DbErr> {
-    
     db.execute(stmt).await
 }
 

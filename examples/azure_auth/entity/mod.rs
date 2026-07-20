@@ -1,5 +1,5 @@
 // setup
-use sea_orm::sea_query::{ForeignKeyCreateStatement, ColumnDef, TableCreateStatement};
+use sea_orm::sea_query::{ColumnDef, ForeignKeyCreateStatement, TableCreateStatement};
 use sea_orm::{error::*, sea_query, ConnectionTrait, DbConn, ExecResult};
 pub mod comment;
 pub mod post;
@@ -8,7 +8,6 @@ pub use post::Entity as Post;
 
 // setup
 async fn create_table(db: &DbConn, stmt: &TableCreateStatement) -> Result<ExecResult, DbErr> {
-    
     db.execute(stmt).await
 }
 
@@ -25,7 +24,11 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
         )
         .col(ColumnDef::new(post::Column::Title).string().not_null())
         .col(ColumnDef::new(post::Column::Text).string().not_null())
-        .col(ColumnDef::new(post::Column::TeaMandatory).string().not_null())
+        .col(
+            ColumnDef::new(post::Column::TeaMandatory)
+                .string()
+                .not_null(),
+        )
         .col(ColumnDef::new(post::Column::TeaOptional).string())
         .col(ColumnDef::new(post::Column::InsertDate).date())
         .to_owned();
@@ -44,9 +47,21 @@ pub async fn create_post_table(db: &DbConn) -> Result<ExecResult, DbErr> {
         )
         .col(ColumnDef::new(comment::Column::Comment).string().not_null())
         .col(ColumnDef::new(comment::Column::User).string().not_null())
-        .col(ColumnDef::new(comment::Column::InsertDate).date_time().not_null())
-        .col(ColumnDef::new(comment::Column::IsVisible).boolean().not_null())
-        .col(ColumnDef::new(comment::Column::MyDecimal).decimal().not_null())
+        .col(
+            ColumnDef::new(comment::Column::InsertDate)
+                .date_time()
+                .not_null(),
+        )
+        .col(
+            ColumnDef::new(comment::Column::IsVisible)
+                .boolean()
+                .not_null(),
+        )
+        .col(
+            ColumnDef::new(comment::Column::MyDecimal)
+                .decimal()
+                .not_null(),
+        )
         .col(ColumnDef::new(comment::Column::PostId).integer())
         .foreign_key(
             ForeignKeyCreateStatement::new()

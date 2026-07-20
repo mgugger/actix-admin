@@ -1,10 +1,21 @@
+use actix_admin::prelude::*;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
-use actix_admin::prelude::*; 
 use std::fmt;
 use std::fmt::Display;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize, DeriveActixAdmin, DeriveActixAdminViewModel, DeriveActixAdminModel, DeriveActixAdminModelSelectList)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    DeriveEntityModel,
+    Deserialize,
+    Serialize,
+    DeriveActixAdmin,
+    DeriveActixAdminViewModel,
+    DeriveActixAdminModel,
+    DeriveActixAdminModelSelectList,
+)]
 #[sea_orm(table_name = "sample_with_tenant_id")]
 pub struct Model {
     #[sea_orm(primary_key)]
@@ -23,7 +34,7 @@ pub struct Model {
 impl Display for Model {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match &*self {
-           _ => write!(formatter, "{}", &self.title),
+            _ => write!(formatter, "{}", &self.title),
         }
     }
 }

@@ -2,7 +2,7 @@ use crate::attributes::derive_attr;
 use crate::model_fields::ModelField;
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
-use syn::{DeriveInput, Fields, LitStr, Ident, parse_str, Type, LitInt};
+use syn::{parse_str, DeriveInput, Fields, Ident, LitInt, LitStr, Type};
 
 pub fn get_fields_for_tokenstream(input: proc_macro::TokenStream) -> std::vec::Vec<ModelField> {
     let ast: DeriveInput = syn::parse(input).unwrap();
@@ -27,9 +27,10 @@ fn capitalize_first_letter(s: &str) -> String {
         .join("")
 }
 
-
 fn to_camelcase(s: &str) -> String {
-    s.split("_").fold(String::new(), |a, b| capitalize_first_letter(&a) + &capitalize_first_letter(b))
+    s.split("_").fold(String::new(), |a, b| {
+        capitalize_first_letter(&a) + &capitalize_first_letter(b)
+    })
 }
 
 pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
@@ -48,19 +49,23 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let is_primary_key = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.primary_key.is_some());
-                let foreign_key = actix_admin_attr.clone()
+                let foreign_key = actix_admin_attr
+                    .clone()
                     .and_then(|attr| attr.foreign_key)
                     .and_then(|attr_field| LitStr::from(attr_field).value().parse().ok());
                 let is_searchable = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.searchable.is_some());
-                let ceil = actix_admin_attr.clone()
+                let ceil = actix_admin_attr
+                    .clone()
                     .and_then(|attr| attr.ceil)
                     .and_then(|attr_field| LitInt::from(attr_field).base10_parse().ok());
-                let floor = actix_admin_attr.clone()
+                let floor = actix_admin_attr
+                    .clone()
                     .and_then(|attr| attr.floor)
                     .and_then(|attr_field| LitInt::from(attr_field).base10_parse().ok());
-                let shorten = actix_admin_attr.clone()
+                let shorten = actix_admin_attr
+                    .clone()
                     .and_then(|attr| attr.shorten)
                     .and_then(|attr_field| attr_field.base10_parse().ok());
                 let is_textarea = actix_admin_attr
@@ -87,9 +92,9 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                 let is_readonly = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.readonly.is_some());
-                let is_list_hide_column = actix_admin_attr
-                    .clone()
-                    .map_or(false, |attr| attr.list_hide_column.is_some() || attr.tenant_ref.is_some());
+                let is_list_hide_column = actix_admin_attr.clone().map_or(false, |attr| {
+                    attr.list_hide_column.is_some() || attr.tenant_ref.is_some()
+                });
                 let is_tenant_ref = actix_admin_attr
                     .clone()
                     .map_or(false, |attr| attr.tenant_ref.is_some());
@@ -100,23 +105,21 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     .clone()
                     .map_or(false, |attr| attr.use_tom_select_callback.is_some());
                 let list_regex_mask = actix_admin_attr.clone().map_or("".to_string(), |attr| {
-                    attr.list_regex_mask
-                        .map_or("".to_string(), |attr_field| {
-                            (LitStr::from(attr_field)).value()
-                        })
+                    attr.list_regex_mask.map_or("".to_string(), |attr_field| {
+                        (LitStr::from(attr_field)).value()
+                    })
                 });
                 let dateformat = actix_admin_attr.clone().map_or("".to_string(), |attr| {
-                    attr.dateformat
-                        .map_or("".to_string(), |attr_field| {
-                            (LitStr::from(attr_field)).value()
-                        })
+                    attr.dateformat.map_or("".to_string(), |attr_field| {
+                        (LitStr::from(attr_field)).value()
+                    })
                 });
                 let list_sort_position: usize = actix_admin_attr.clone().map_or(99, |attr| {
-                    attr.list_sort_position.map_or( 99, |attr_field| {
+                    attr.list_sort_position.map_or(99, |attr_field| {
                         let sort_pos = LitStr::from(attr_field).value().parse::<usize>();
                         match sort_pos {
                             Ok(pos) => pos,
-                            _ => 99
+                            _ => 99,
                         }
                     })
                 });
@@ -126,10 +129,9 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     })
                 });
                 let html_input_type = actix_admin_attr.map_or("".to_string(), |attr| {
-                    attr.html_input_type
-                        .map_or("".to_string(), |attr_field| {
-                            (LitStr::from(attr_field)).value()
-                        })
+                    attr.html_input_type.map_or("".to_string(), |attr_field| {
+                        (LitStr::from(attr_field)).value()
+                    })
                 });
 
                 let model_field = ModelField {
@@ -158,7 +160,7 @@ pub fn filter_fields(fields: &Fields) -> Vec<ModelField> {
                     floor: floor,
                     dateformat: dateformat,
                     shorten: shorten,
-                    use_tom_select_callback: use_tom_select_callback
+                    use_tom_select_callback: use_tom_select_callback,
                 };
                 Some(model_field)
             } else {
@@ -212,33 +214,36 @@ fn extract_type_from_option(ty: &syn::Type) -> Option<syn::Type> {
         })
 }
 
-pub fn get_fields_as_tokenstream<T: ToTokens>(fields: &Vec<ModelField>, accessor: fn(&ModelField) -> T) -> Vec<TokenStream> {
+pub fn get_fields_as_tokenstream<T: ToTokens>(
+    fields: &Vec<ModelField>,
+    accessor: fn(&ModelField) -> T,
+) -> Vec<TokenStream> {
     fields
-    .iter()
-    .filter(|model_field| !model_field.primary_key)
-    .filter(|model_field| !model_field.tenant_ref)
-    .map(|model_field| {
-        let ident_name = accessor(model_field);
+        .iter()
+        .filter(|model_field| !model_field.primary_key)
+        .filter(|model_field| !model_field.tenant_ref)
+        .map(|model_field| {
+            let ident_name = accessor(model_field);
 
-        quote! {
-            #ident_name
-        }
-    })
-    .collect::<Vec<_>>()
+            quote! {
+                #ident_name
+            }
+        })
+        .collect::<Vec<_>>()
 }
 
 pub fn get_match_name_to_column(fields: &Vec<ModelField>) -> Vec<TokenStream> {
     fields
-    .iter()
-    .map(|model_field| {
-        let column_name = model_field.ident.to_string();
-        let column_name_capitalized = to_camelcase(&column_name);
-        let column_ident = Ident::new(&column_name_capitalized, Span::call_site());
-        quote! {
-            #column_name => Column::#column_ident,
-        }
-    })
-    .collect::<Vec<_>>()
+        .iter()
+        .map(|model_field| {
+            let column_name = model_field.ident.to_string();
+            let column_name_capitalized = to_camelcase(&column_name);
+            let column_ident = Ident::new(&column_name_capitalized, Span::call_site());
+            quote! {
+                #column_name => Column::#column_ident,
+            }
+        })
+        .collect::<Vec<_>>()
 }
 
 pub fn get_actix_admin_fields_searchable(fields: &Vec<ModelField>) -> Vec<TokenStream> {
@@ -256,7 +261,10 @@ pub fn get_actix_admin_fields_searchable(fields: &Vec<ModelField>) -> Vec<TokenS
 }
 
 pub fn get_set_tenant_ref_field(fields: &Vec<ModelField>) -> TokenStream {
-    let tenant_ref_fields: Vec<&ModelField> = fields.iter().filter(|model_field| model_field.tenant_ref).collect();
+    let tenant_ref_fields: Vec<&ModelField> = fields
+        .iter()
+        .filter(|model_field| model_field.tenant_ref)
+        .collect();
 
     match tenant_ref_fields.len() {
         0 => quote! {},
@@ -270,14 +278,24 @@ pub fn get_set_tenant_ref_field(fields: &Vec<ModelField>) -> TokenStream {
 }
 
 pub fn get_tenant_ref_field(fields: &Vec<ModelField>, wrap_in_params: bool) -> TokenStream {
-    let tenant_ref_fields: Vec<&ModelField> = fields.iter().filter(|model_field| model_field.tenant_ref).collect();
+    let tenant_ref_fields: Vec<&ModelField> = fields
+        .iter()
+        .filter(|model_field| model_field.tenant_ref)
+        .collect();
 
     match tenant_ref_fields.len() {
         0 => quote! {},
         1 => {
             let tenant_ref_field = tenant_ref_fields[0];
-            let column_ident = Ident::new(&capitalize_first_letter(&tenant_ref_field.ident.to_string()), Span::call_site());
-            let tenant_ref = if wrap_in_params { quote! { params.tenant_ref } } else { quote! { tenant_ref } };
+            let column_ident = Ident::new(
+                &capitalize_first_letter(&tenant_ref_field.ident.to_string()),
+                Span::call_site(),
+            );
+            let tenant_ref = if wrap_in_params {
+                quote! { params.tenant_ref }
+            } else {
+                quote! { tenant_ref }
+            };
             quote! {
                 if #tenant_ref.is_some() {
                     query = query.filter(Column::#column_ident.eq(#tenant_ref.unwrap()));
@@ -357,7 +375,11 @@ fn combine_uppercase_with_underscore(strings: Vec<&str>) -> String {
 
     for (i, s) in strings.iter().enumerate() {
         if s.chars().next().map(char::is_uppercase) == Some(true) && i > 0 {
-            if !result.last().map(|s: &String| s.ends_with("::")).unwrap_or(false) {
+            if !result
+                .last()
+                .map(|s: &String| s.ends_with("::"))
+                .unwrap_or(false)
+            {
                 let combined = format!("{}_{}", result.pop().unwrap(), s);
                 result.push(combined);
                 continue;
@@ -524,7 +546,7 @@ pub fn get_fields_for_edit_model(fields: &Vec<ModelField>) -> Vec<TokenStream> {
 
             let is_option_or_string = model_field.is_option() || model_field.is_string();
             let is_allowed_to_be_empty = !model_field.not_empty;
-            
+
             let res = match (model_field.is_option(), model_field.is_string(), type_path.as_str()) {
                 (_, _, "bool") => {
                     quote! {

@@ -47,9 +47,11 @@ mod verify_tenant_ref {
                 i
             );
             if i % 2 == 1 {
-                test_response_contains(url.as_str(), &db, vec!["TestTenant1".to_string()], true).await;
+                test_response_contains(url.as_str(), &db, vec!["TestTenant1".to_string()], true)
+                    .await;
             } else {
-                test_response_contains(url.as_str(), &db, vec!["TestTenant".to_string()], false).await;
+                test_response_contains(url.as_str(), &db, vec!["TestTenant".to_string()], false)
+                    .await;
             }
             // ensure that no entities from tenant with id 0 are returned
             test_response_contains(url.as_str(), &db, vec!["TestTenant0".to_string()], false).await;
@@ -100,7 +102,11 @@ mod verify_tenant_ref {
             .unwrap();
         assert!(entity.is_some() && entity.unwrap().tenant_id == 1);
 
-        let uri = format!("/admin/{}/delete/{}", super::SampleWithTenantId::get_entity_name(), id);
+        let uri = format!(
+            "/admin/{}/delete/{}",
+            super::SampleWithTenantId::get_entity_name(),
+            id
+        );
         let req = test::TestRequest::delete().uri(&uri).to_request();
         let resp = test::call_service(&app, req).await;
 
@@ -125,7 +131,11 @@ mod verify_tenant_ref {
             .unwrap();
         assert!(entity.is_some() && entity.unwrap().tenant_id == 0);
 
-        let uri = format!("/admin/{}/delete/{}", super::SampleWithTenantId::get_entity_name(), id);
+        let uri = format!(
+            "/admin/{}/delete/{}",
+            super::SampleWithTenantId::get_entity_name(),
+            id
+        );
         let req = test::TestRequest::delete().uri(&uri).to_request();
         let resp = test::call_service(&app, req).await;
 
@@ -143,7 +153,7 @@ mod verify_tenant_ref {
     pub struct SampleWithTenantIdModel {
         id: &'static str,
         title: &'static str,
-        text: &'static str
+        text: &'static str,
     }
 
     #[actix_web::test]
@@ -154,12 +164,18 @@ mod verify_tenant_ref {
         let model = SampleWithTenantIdModel {
             id: "0",
             title: "test",
-            text: "test"
+            text: "test",
         };
 
         let req = test::TestRequest::post()
             .insert_header(ContentType::form_url_encoded())
-            .uri(format!("/admin/{}/create_post_from_plaintext", super::SampleWithTenantId::get_entity_name()).as_ref())
+            .uri(
+                format!(
+                    "/admin/{}/create_post_from_plaintext",
+                    super::SampleWithTenantId::get_entity_name()
+                )
+                .as_ref(),
+            )
             .set_form(model.clone())
             .to_request();
         let resp = test::call_service(&app, req).await;
@@ -172,8 +188,15 @@ mod verify_tenant_ref {
             .await
             .expect("could not retrieve entities");
 
-        assert_eq!(entities.len(), 1, "After create, db does not contain 1 model");
+        assert_eq!(
+            entities.len(),
+            1,
+            "After create, db does not contain 1 model"
+        );
         let entity = entities.first().unwrap();
-        assert_eq!(entity.tenant_id, 1, "After create, entity does not have the correct tenant id assigned");
+        assert_eq!(
+            entity.tenant_id, 1,
+            "After create, entity does not have the correct tenant id assigned"
+        );
     }
 }

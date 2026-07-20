@@ -4,7 +4,7 @@ use actix_admin::prelude::*;
 use actix_web::{http::Error, middleware, web, App, HttpResponse, HttpServer};
 use sea_orm::ConnectOptions;
 use std::time::Duration;
-use tera::{Tera, Context};
+use tera::{Context, Tera};
 mod entity;
 use entity::{Comment, Post, User};
 
@@ -34,7 +34,7 @@ async fn card(
     session: Session,
     tera: web::Data<Tera>,
     actix_admin: web::Data<ActixAdmin>,
-    id: web::Path<i32>
+    id: web::Path<i32>,
 ) -> Result<HttpResponse, Error> {
     let mut ctx = Context::new();
     ctx.extend(get_admin_ctx(session, &actix_admin));
@@ -64,12 +64,10 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     post_view_model.inline_edit = true;
     // Per-view access control demo: everyone can list/view posts, but only
     // a user with the `edit_posts` claim in the session may edit or delete.
-    post_view_model.user_can_edit = Some(|s: &Session| {
-        s.get::<bool>("edit_posts").ok().flatten().unwrap_or(true)
-    });
-    post_view_model.user_can_delete = Some(|s: &Session| {
-        s.get::<bool>("delete_posts").ok().flatten().unwrap_or(true)
-    });
+    post_view_model.user_can_edit =
+        Some(|s: &Session| s.get::<bool>("edit_posts").ok().flatten().unwrap_or(true));
+    post_view_model.user_can_delete =
+        Some(|s: &Session| s.get::<bool>("delete_posts").ok().flatten().unwrap_or(true));
     admin_builder.add_entity::<Post>(&post_view_model);
 
     // Register a custom bulk action on Post. The dispatcher is implemented
@@ -97,7 +95,8 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     );
 
     let _support_route = admin_builder.add_support_handler("/support", web::get().to(support));
-    let _card_route = admin_builder.add_custom_handler("card", "/card/{id}", web::get().to(card), false);
+    let _card_route =
+        admin_builder.add_custom_handler("card", "/card/{id}", web::get().to(card), false);
 
     let card_grid: Vec<Vec<String>> = vec![
         vec!["card/1".to_string(), "card/2".to_string()],
@@ -133,7 +132,11 @@ async fn main() {
         // Start from actix-admin's tera (filters + templates) and layer
         // the example's own templates on top.
         let mut tera = actix_admin_builder.get_actix_admin().tera.clone();
-        tera.load_from_glob(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/basic/templates/*.html")).unwrap();
+        tera.load_from_glob(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/examples/basic/templates/*.html"
+        ))
+        .unwrap();
 
         App::new()
             .app_data(web::Data::new(tera))

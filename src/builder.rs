@@ -1,10 +1,18 @@
-use crate::{prelude::*, routes::{delete_file, display_card_grid, export_csv, search, bulk_action, ActixAdminBulkActionDispatch}, ActixAdminMenuElement};
-use actix_web::{web, Route };
+use crate::routes::{
+    create_get, create_post, delete, delete_many, download, edit_get, edit_post, index, list,
+    not_found, show,
+};
+use crate::{
+    prelude::*,
+    routes::{
+        bulk_action, delete_file, display_card_grid, export_csv, search,
+        ActixAdminBulkActionDispatch,
+    },
+    ActixAdminMenuElement,
+};
+use actix_web::{web, Route};
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
-use crate::routes::{
-    create_get, create_post, delete, delete_many, edit_get, edit_post, index, list, not_found, show, download
-};
 
 /// Represents a builder entity which helps generating the ActixAdmin configuration
 pub struct ActixAdminBuilder {
@@ -21,9 +29,7 @@ pub trait ActixAdminBuilderTrait {
         &mut self,
         view_model: &ActixAdminViewModel,
     );
-    fn add_entity_to_category<
-        E: ActixAdminViewModelTrait + 'static,
-    >(
+    fn add_entity_to_category<E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         view_model: &ActixAdminViewModel,
         category_name: &str,
@@ -41,7 +47,7 @@ pub trait ActixAdminBuilderTrait {
         path: &str,
         route: Route,
         add_to_menu: bool,
-        category: &str
+        category: &str,
     );
     fn add_card_grid(
         &mut self,
@@ -56,20 +62,16 @@ pub trait ActixAdminBuilderTrait {
         path: &str,
         elements: Vec<Vec<String>>,
         add_to_menu: bool,
-        category: &str
+        category: &str,
     );
-    fn add_custom_handler_for_entity<
-        E: ActixAdminViewModelTrait + 'static,
-    >(
+    fn add_custom_handler_for_entity<E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         menu_element_name: &str,
         path: &str,
         route: Route,
-        add_to_menu: bool
+        add_to_menu: bool,
     );
-    fn add_custom_handler_for_entity_in_category<
-        E: ActixAdminViewModelTrait + 'static,
-    >(
+    fn add_custom_handler_for_entity_in_category<E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         menu_element_name: &str,
         path: &str,
@@ -83,7 +85,9 @@ pub trait ActixAdminBuilderTrait {
     /// provide a `run_bulk_action` implementation (via
     /// `impl ActixAdminBulkActionDispatch for Entity`) that matches on
     /// `action.name` and executes the requested work.
-    fn add_bulk_action_for_entity<E: ActixAdminViewModelTrait + ActixAdminBulkActionDispatch + 'static>(
+    fn add_bulk_action_for_entity<
+        E: ActixAdminViewModelTrait + ActixAdminBulkActionDispatch + 'static,
+    >(
         &mut self,
         action: ActixAdminBulkAction,
     );
@@ -101,7 +105,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 card_grids: HashMap::new(),
                 configuration,
                 tera: crate::tera_templates::get_tera(),
-                support_path: None
+                support_path: None,
             },
             custom_routes: Vec::new(),
             scopes: HashMap::new(),
@@ -116,9 +120,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         self.add_entity_to_category::<E>(view_model, "");
     }
 
-    fn add_entity_to_category<
-        E: ActixAdminViewModelTrait + 'static,
-    >(
+    fn add_entity_to_category<E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         view_model: &ActixAdminViewModel,
         category_name: &str,
@@ -137,11 +139,19 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 .route("/delete/{id}", web::delete().to(delete::<E>))
                 .route("/show/{id}", web::get().to(show::<E>))
                 .route("/file/{id}/{column_name}", web::get().to(download::<E>))
-                .route("/file/{id}/{column_name}", web::delete().to(delete_file::<E>))
-                .default_service(web::to(not_found))
-            );
+                .route(
+                    "/file/{id}/{column_name}",
+                    web::delete().to(delete_file::<E>),
+                )
+                .default_service(web::to(not_found)),
+        );
 
-        fs::create_dir_all(format!("{}/{}", &self.actix_admin.configuration.file_upload_directory, E::get_entity_name())).unwrap();
+        fs::create_dir_all(format!(
+            "{}/{}",
+            &self.actix_admin.configuration.file_upload_directory,
+            E::get_entity_name()
+        ))
+        .unwrap();
 
         let menu_element = ActixAdminMenuElement {
             name: E::get_entity_name(),
@@ -150,14 +160,18 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         };
         self.push_menu_element(category_name, menu_element, false);
 
-        self.actix_admin.view_models.insert(E::get_entity_name(), view_model.clone());
+        self.actix_admin
+            .view_models
+            .insert(E::get_entity_name(), view_model.clone());
     }
 
     fn add_custom_handler_for_index(&mut self, route: Route) {
         self.custom_index = Some(route);
     }
 
-    fn add_bulk_action_for_entity<E: ActixAdminViewModelTrait + ActixAdminBulkActionDispatch + 'static>(
+    fn add_bulk_action_for_entity<
+        E: ActixAdminViewModelTrait + ActixAdminBulkActionDispatch + 'static,
+    >(
         &mut self,
         action: ActixAdminBulkAction,
     ) {
@@ -191,7 +205,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         path: &str,
         route: Route,
         add_to_menu: bool,
-        category_name: &str
+        category_name: &str,
     ) {
         self.custom_routes.push((path.to_string(), route));
 
@@ -221,10 +235,13 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         path: &str,
         elements: Vec<Vec<String>>,
         add_to_menu: bool,
-        category_name: &str
+        category_name: &str,
     ) {
-        self.custom_routes.push((path.to_string(), web::get().to(display_card_grid)));
-        self.actix_admin.card_grids.insert(path.replace("/", ""), elements);
+        self.custom_routes
+            .push((path.to_string(), web::get().to(display_card_grid)));
+        self.actix_admin
+            .card_grids
+            .insert(path.replace("/", ""), elements);
 
         if add_to_menu {
             let menu_element = ActixAdminMenuElement {
@@ -241,7 +258,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         menu_element_name: &str,
         path: &str,
         route: Route,
-        add_to_menu: bool
+        add_to_menu: bool,
     ) {
         self.add_custom_handler_to_category(menu_element_name, path, route, add_to_menu, "");
     }
@@ -251,9 +268,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         self.actix_admin.support_path = Some(arg.replace("/", ""));
     }
 
-    fn add_custom_handler_for_entity<
-        E: ActixAdminViewModelTrait + 'static,
-    >(
+    fn add_custom_handler_for_entity<E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         menu_element_name: &str,
         path: &str,
@@ -269,9 +284,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         );
     }
 
-    fn add_custom_handler_for_entity_in_category<
-        E: ActixAdminViewModelTrait + 'static,
-    >(
+    fn add_custom_handler_for_entity_in_category<E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         menu_element_name: &str,
         path: &str,
@@ -324,7 +337,12 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
 impl ActixAdminBuilder {
     /// Insert `element` under `category_name` in the menu, creating the category
     /// entry if it doesn't exist. If `dedupe` is true, skip elements already present.
-    fn push_menu_element(&mut self, category_name: &str, element: ActixAdminMenuElement, dedupe: bool) {
+    fn push_menu_element(
+        &mut self,
+        category_name: &str,
+        element: ActixAdminMenuElement,
+        dedupe: bool,
+    ) {
         let list = self
             .actix_admin
             .entity_names

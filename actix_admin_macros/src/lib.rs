@@ -280,8 +280,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
         get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.image });
     let fields_html_render =
         get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.html_render });
-    let fields_url =
-        get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.url });
+    let fields_url = get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.url });
     let fields_email =
         get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.email });
     let fields_wysiwyg =
@@ -295,9 +294,10 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let fields_list_hide_column = get_fields_as_tokenstream(&fields, |model_field| -> bool {
         model_field.list_hide_column
     });
-    let fields_use_tom_select_callback = get_fields_as_tokenstream(&fields, |model_field| -> bool {
-        model_field.use_tom_select_callback
-    });
+    let fields_use_tom_select_callback =
+        get_fields_as_tokenstream(&fields, |model_field| -> bool {
+            model_field.use_tom_select_callback
+        });
     let fields_tenant_ref =
         get_fields_as_tokenstream(&fields, |model_field| -> bool { model_field.tenant_ref });
     let fields_searchable = get_actix_admin_fields_searchable(&fields);

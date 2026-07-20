@@ -45,9 +45,17 @@ pub fn add_auth_context(session: &Session, actix_admin: &ActixAdmin, ctx: &mut C
     }
 }
 
-pub fn user_can_access_page(session: &Session, actix_admin: &ActixAdmin, view_model: &ActixAdminViewModel) -> bool {
+pub fn user_can_access_page(
+    session: &Session,
+    actix_admin: &ActixAdmin,
+    view_model: &ActixAdminViewModel,
+) -> bool {
     let cfg = &actix_admin.configuration;
-    match (cfg.enable_auth, cfg.user_is_logged_in, view_model.user_can_access) {
+    match (
+        cfg.enable_auth,
+        cfg.user_is_logged_in,
+        view_model.user_can_access,
+    ) {
         (true, Some(auth), Some(vm_access)) => auth(session) && vm_access(session),
         (true, Some(auth), None) => auth(session),
         _ => !cfg.enable_auth,
@@ -105,7 +113,9 @@ pub fn render_unauthorized(ctx: &Context, actix_admin: &ActixAdmin) -> Result<Ht
         .tera
         .render("unauthorized.html", ctx)
         .unwrap_or_else(|_| String::from("Forbidden"));
-    Ok(HttpResponse::Forbidden().content_type("text/html").body(body))
+    Ok(HttpResponse::Forbidden()
+        .content_type("text/html")
+        .body(body))
 }
 
 /// Render `template_name` with `ctx`, falling back to rendering only the
@@ -135,20 +145,16 @@ pub fn view_model_or_500<'a>(
     actix_admin: &'a ActixAdmin,
     entity_name: &str,
 ) -> Result<&'a ActixAdminViewModel, Error> {
-    actix_admin
-        .view_models
-        .get(entity_name)
-        .ok_or_else(|| error::ErrorInternalServerError(
-            format!("View model for entity '{entity_name}' is not registered")
+    actix_admin.view_models.get(entity_name).ok_or_else(|| {
+        error::ErrorInternalServerError(format!(
+            "View model for entity '{entity_name}' is not registered"
         ))
+    })
 }
 
 /// Validate that `sort_by` refers to a real, non-hidden field on the view model.
 /// Returns Ok(sort_by) or a 400 error.
-pub fn validate_sort_by(
-    view_model: &ActixAdminViewModel,
-    sort_by: &str,
-) -> Result<(), Error> {
+pub fn validate_sort_by(view_model: &ActixAdminViewModel, sort_by: &str) -> Result<(), Error> {
     if sort_by == view_model.primary_key {
         return Ok(());
     }
@@ -186,7 +192,9 @@ impl SearchParams {
     pub fn from_params(params: &Params, view_model: &ActixAdminViewModel) -> Self {
         SearchParams {
             page: params.page.unwrap_or(1),
-            entities_per_page: params.entities_per_page.unwrap_or(DEFAULT_ENTITIES_PER_PAGE),
+            entities_per_page: params
+                .entities_per_page
+                .unwrap_or(DEFAULT_ENTITIES_PER_PAGE),
             search: params.search.clone().unwrap_or_default(),
             sort_by: params
                 .sort_by
@@ -208,12 +216,20 @@ pub fn add_default_context(
     search_params: &SearchParams,
 ) {
     add_default_context_with_session(
-        ctx, req, view_model, entity_name, actix_admin, notifications, search_params, None,
+        ctx,
+        req,
+        view_model,
+        entity_name,
+        actix_admin,
+        notifications,
+        search_params,
+        None,
     )
 }
 
 /// Variant that also resolves per-view permission hooks against `session`
 /// and pushes them into the template context as `view_model.can_*` booleans.
+#[allow(clippy::too_many_arguments)]
 pub fn add_default_context_with_session(
     ctx: &mut Context,
     req: HttpRequest,
@@ -228,9 +244,12 @@ pub fn add_default_context_with_session(
 
     let mut serializable = ActixAdminViewModelSerializable::from(view_model.clone());
     if let Some(session) = session {
-        serializable.can_create = user_can_perform(session, actix_admin, view_model, AdminAction::Create);
-        serializable.can_edit = user_can_perform(session, actix_admin, view_model, AdminAction::Edit);
-        serializable.can_delete = user_can_perform(session, actix_admin, view_model, AdminAction::Delete);
+        serializable.can_create =
+            user_can_perform(session, actix_admin, view_model, AdminAction::Create);
+        serializable.can_edit =
+            user_can_perform(session, actix_admin, view_model, AdminAction::Edit);
+        serializable.can_delete =
+            user_can_perform(session, actix_admin, view_model, AdminAction::Delete);
         serializable.can_view_details =
             user_can_perform(session, actix_admin, view_model, AdminAction::View);
         serializable.can_export =

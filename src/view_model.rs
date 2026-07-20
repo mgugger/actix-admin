@@ -1,13 +1,13 @@
 use async_trait::async_trait;
 use regex::Regex;
 use sea_orm::DatabaseConnection;
-use serde_derive::{Serialize, Deserialize};
+use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::{ActixAdminModel, SortOrder, model::ActixAdminModelFilterType};
+use crate::ActixAdminError;
+use crate::{model::ActixAdminModelFilterType, ActixAdminModel, SortOrder};
 use actix_session::Session;
 use std::convert::From;
-use crate::ActixAdminError;
 pub struct ActixAdminViewModelParams {
     pub page: Option<u64>,
     pub entities_per_page: Option<u64>,
@@ -15,7 +15,7 @@ pub struct ActixAdminViewModelParams {
     pub search: String,
     pub sort_by: String,
     pub sort_order: SortOrder,
-    pub tenant_ref: Option<i32>
+    pub tenant_ref: Option<i32>,
 }
 
 /// Blanket bound for anything usable as an entity primary key in the admin.
@@ -46,12 +46,20 @@ pub trait ActixAdminViewModelTrait {
 
     async fn list(
         db: &DatabaseConnection,
-        params: &ActixAdminViewModelParams
+        params: &ActixAdminViewModelParams,
     ) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError>;
-    
+
     // TODO: Replace return value with proper Result Type containing Ok or Err
-    async fn create_entity(db: &DatabaseConnection, model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError>;
-    async fn delete_entity(db: &DatabaseConnection, id: Self::Id, tenant_ref: Option<i32>) -> Result<bool, ActixAdminError>;
+    async fn create_entity(
+        db: &DatabaseConnection,
+        model: ActixAdminModel,
+        tenant_ref: Option<i32>,
+    ) -> Result<ActixAdminModel, ActixAdminError>;
+    async fn delete_entity(
+        db: &DatabaseConnection,
+        id: Self::Id,
+        tenant_ref: Option<i32>,
+    ) -> Result<bool, ActixAdminError>;
 
     /// Bulk-delete many entities in a single query. Default implementation
     /// falls back to a per-id loop over `delete_entity`, so existing
@@ -71,10 +79,24 @@ pub trait ActixAdminViewModelTrait {
         Ok(deleted)
     }
 
-    async fn get_entity(db: &DatabaseConnection, id: Self::Id, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError>;
-    async fn edit_entity(db: &DatabaseConnection, id: Self::Id, model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError>;
-    async fn get_select_lists(db: &DatabaseConnection, tenant_ref: Option<i32>) -> Result<HashMap<String, Vec<(String, String)>>, ActixAdminError>;
-    async fn get_viewmodel_filter(db: &DatabaseConnection) -> HashMap<String, ActixAdminViewModelFilter>;
+    async fn get_entity(
+        db: &DatabaseConnection,
+        id: Self::Id,
+        tenant_ref: Option<i32>,
+    ) -> Result<ActixAdminModel, ActixAdminError>;
+    async fn edit_entity(
+        db: &DatabaseConnection,
+        id: Self::Id,
+        model: ActixAdminModel,
+        tenant_ref: Option<i32>,
+    ) -> Result<ActixAdminModel, ActixAdminError>;
+    async fn get_select_lists(
+        db: &DatabaseConnection,
+        tenant_ref: Option<i32>,
+    ) -> Result<HashMap<String, Vec<(String, String)>>, ActixAdminError>;
+    async fn get_viewmodel_filter(
+        db: &DatabaseConnection,
+    ) -> HashMap<String, ActixAdminViewModelFilter>;
     async fn validate_entity(model: &mut ActixAdminModel, db: &DatabaseConnection);
 
     fn get_entity_name() -> String;
@@ -99,7 +121,7 @@ pub struct ActixAdminBulkAction {
 pub struct ActixAdminViewModel {
     pub entity_name: String,
     pub primary_key: String,
-    pub fields: &'static[ActixAdminViewModelField],
+    pub fields: &'static [ActixAdminViewModelField],
     pub show_search: bool,
     /// Top-level page access. If set and returns `false`, the entity is
     /// invisible and every route 401s. Auth-independent (i.e. also honored
@@ -194,6 +216,7 @@ impl ActixAdminFilterOperator {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "equals" | "eq" | "=" => Some(Self::Equals),
@@ -300,6 +323,7 @@ pub struct ActixAdminViewModelField {
 }
 
 impl ActixAdminViewModelFieldType {
+    #[allow(clippy::too_many_arguments)]
     pub fn get_field_type(
         type_path: &str,
         select_list: String,
@@ -340,12 +364,12 @@ impl ActixAdminViewModelFieldType {
             "i32" => ActixAdminViewModelFieldType::Number,
             "i64" => ActixAdminViewModelFieldType::Number,
             "usize" => ActixAdminViewModelFieldType::Number,
-            "String"  => ActixAdminViewModelFieldType::Text,
-            "bool"  => ActixAdminViewModelFieldType::Checkbox,
+            "String" => ActixAdminViewModelFieldType::Text,
+            "bool" => ActixAdminViewModelFieldType::Checkbox,
             "DateTimeWithTimeZone" => ActixAdminViewModelFieldType::DateTime,
             "DateTime" => ActixAdminViewModelFieldType::DateTime,
             "Date" => ActixAdminViewModelFieldType::Date,
-            _      => ActixAdminViewModelFieldType::Text
+            _ => ActixAdminViewModelFieldType::Text,
         }
     }
 }

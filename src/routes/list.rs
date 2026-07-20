@@ -10,8 +10,9 @@ use tera::Context;
 
 use super::helpers::{add_default_context_with_session, SearchParams};
 use super::{
-    add_auth_context, parse_filters_from_query, render_template, render_unauthorized, user_can_access_page,
-    user_can_perform, validate_sort_by, view_model_or_500, AdminAction, Params,
+    add_auth_context, parse_filters_from_query, render_template, render_unauthorized,
+    user_can_access_page, user_can_perform, validate_sort_by, view_model_or_500, AdminAction,
+    Params,
 };
 use crate::ActixAdminModel;
 use crate::ActixAdminNotification;
@@ -35,7 +36,11 @@ impl fmt::Display for SortOrder {
 }
 
 pub fn replace_regex(view_model: &ActixAdminViewModel, models: &mut [ActixAdminModel]) {
-    for field in view_model.fields.iter().filter(|f| f.list_regex_mask.is_some()) {
+    for field in view_model
+        .fields
+        .iter()
+        .filter(|f| f.list_regex_mask.is_some())
+    {
         let regex = field.list_regex_mask.as_ref().unwrap();
         for model in models.iter_mut() {
             if let Some(value) = model.values.get_mut(&field.field_name) {
@@ -177,10 +182,12 @@ pub async fn list<E: ActixAdminViewModelTrait>(
             ctx.insert("max_show_page", &1);
             ctx.insert("page", &1);
             ctx.insert("notifications", &[ActixAdminNotification::from(e)]);
-            return Ok(HttpResponse::InternalServerError().content_type("text/html").body(
-                render_template(&actix_admin.tera, "list.html", &ctx)
-                    .map_err(error::ErrorInternalServerError)?,
-            ));
+            return Ok(HttpResponse::InternalServerError()
+                .content_type("text/html")
+                .body(
+                    render_template(&actix_admin.tera, "list.html", &ctx)
+                        .map_err(error::ErrorInternalServerError)?,
+                ));
         }
     };
 
@@ -189,13 +196,29 @@ pub async fn list<E: ActixAdminViewModelTrait>(
     // the current page (the primary query still orders on the FK id) but
     // gives visually correct alphabetical order in the common case of
     // browsing without paging past `entities_per_page`.
-    if let Some(field) = view_model.fields.iter().find(|f| f.field_name == search_params.sort_by) {
+    if let Some(field) = view_model
+        .fields
+        .iter()
+        .find(|f| f.field_name == search_params.sort_by)
+    {
         if !field.foreign_key.is_empty() {
             let asc = matches!(search_params.sort_order, SortOrder::Asc);
             entities.sort_by(|a, b| {
-                let av = a.fk_values.get(&field.field_name).cloned().unwrap_or_default();
-                let bv = b.fk_values.get(&field.field_name).cloned().unwrap_or_default();
-                if asc { av.cmp(&bv) } else { bv.cmp(&av) }
+                let av = a
+                    .fk_values
+                    .get(&field.field_name)
+                    .cloned()
+                    .unwrap_or_default();
+                let bv = b
+                    .fk_values
+                    .get(&field.field_name)
+                    .cloned()
+                    .unwrap_or_default();
+                if asc {
+                    av.cmp(&bv)
+                } else {
+                    bv.cmp(&av)
+                }
             });
         }
     }

@@ -1,14 +1,17 @@
+use super::helpers::{add_default_context_with_session, SearchParams};
+use crate::prelude::*;
+use crate::ActixAdminNotification;
 use actix_session::Session;
 use actix_web::HttpRequest;
 use actix_web::{error, web, Error, HttpResponse};
 use sea_orm::DatabaseConnection;
 use tera::Context;
-use super::helpers::{add_default_context_with_session, SearchParams};
-use crate::prelude::*;
-use crate::ActixAdminNotification;
 
-use super::{add_auth_context, render_template, render_unauthorized, user_can_perform, view_model_or_500, AdminAction};
 use super::Params;
+use super::{
+    add_auth_context, render_template, render_unauthorized, user_can_perform, view_model_or_500,
+    AdminAction,
+};
 
 pub async fn show<E: ActixAdminViewModelTrait>(
     session: Session,
@@ -40,7 +43,9 @@ pub async fn show<E: ActixAdminViewModelTrait>(
                 .tera
                 .render("not_found.html", &tera::Context::new())
                 .unwrap_or_else(|_| String::from("Not Found"));
-            return Ok(HttpResponse::NotFound().content_type("text/html").body(body));
+            return Ok(HttpResponse::NotFound()
+                .content_type("text/html")
+                .body(body));
         }
         Err(e) => {
             errors.push(e);

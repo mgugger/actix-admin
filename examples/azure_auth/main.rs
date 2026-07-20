@@ -1,18 +1,18 @@
 extern crate serde_derive;
 
 use actix_admin::prelude::*;
-use actix_session::{Session, SessionMiddleware, storage::CookieSessionStore};
-use actix_web::{cookie::Key, web, App, HttpResponse, HttpServer, middleware};
+use actix_session::{storage::CookieSessionStore, Session, SessionMiddleware};
+use actix_web::Error;
+use actix_web::{cookie::Key, middleware, web, App, HttpResponse, HttpServer};
 use azure_auth::{AppDataTrait as AzureAuthAppDataTrait, AzureAuth, AzureBasicClient, UserInfo};
 use oauth2::RedirectUrl;
 use sea_orm::ConnectOptions;
 use std::env;
 use std::time::Duration;
 use tera::{Context, Tera};
-use actix_web::Error;
 
 mod entity;
-use entity::{Post, Comment};
+use entity::{Comment, Post};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -34,14 +34,13 @@ async fn custom_handler(
     session: Session,
     data: web::Data<AppState>,
     actix_admin: web::Data<ActixAdmin>,
-    _text: String
+    _text: String,
 ) -> Result<HttpResponse, Error> {
-    
     let mut ctx = Context::new();
     ctx.extend(get_admin_ctx(session, &actix_admin));
 
     let body = data.tmpl.render("custom_handler.html", &ctx).unwrap();
-    
+
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
@@ -49,14 +48,13 @@ async fn custom_index(
     session: Session,
     data: web::Data<AppState>,
     actix_admin: web::Data<ActixAdmin>,
-    _text: String
+    _text: String,
 ) -> Result<HttpResponse, Error> {
-    
     let mut ctx = Context::new();
     ctx.extend(get_admin_ctx(session, &actix_admin));
 
     let body = data.tmpl.render("custom_index.html", &ctx).unwrap();
-    
+
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
@@ -80,9 +78,9 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
 
     let configuration = ActixAdminConfiguration {
         enable_auth: true,
-        user_is_logged_in: Some(|session: &Session| -> bool { 
-             let user_info = session.get::<UserInfo>("user_info").unwrap();
-             user_info.is_some()
+        user_is_logged_in: Some(|session: &Session| -> bool {
+            let user_info = session.get::<UserInfo>("user_info").unwrap();
+            user_info.is_some()
         }),
         login_link: Some("/azure-auth/login".to_string()),
         logout_link: Some("/azure-auth/logout".to_string()),
@@ -96,21 +94,29 @@ fn create_actix_admin_builder() -> ActixAdminBuilder {
     };
 
     let mut admin_builder = ActixAdminBuilder::new(configuration);
-    admin_builder.add_custom_handler_for_index(
-         web::get().to(custom_index)
-    );
+    admin_builder.add_custom_handler_for_index(web::get().to(custom_index));
     admin_builder.add_entity::<Post>(&post_view_model);
-    admin_builder.add_custom_handler("Custom Route in Menu", "/custom_route_in_menu", web::get().to(custom_index), true);
-    admin_builder.add_custom_handler("Custom Route not in Menu", "/custom_route_not_in_menu", web::get().to(custom_index), false);
+    admin_builder.add_custom_handler(
+        "Custom Route in Menu",
+        "/custom_route_in_menu",
+        web::get().to(custom_index),
+        true,
+    );
+    admin_builder.add_custom_handler(
+        "Custom Route not in Menu",
+        "/custom_route_not_in_menu",
+        web::get().to(custom_index),
+        false,
+    );
 
     let some_category = "Some Category";
     admin_builder.add_entity_to_category::<Comment>(&comment_view_model, some_category);
     admin_builder.add_custom_handler_for_entity_in_category::<Comment>(
         "My custom handler",
-        "/custom_handler", 
+        "/custom_handler",
         web::get().to(custom_handler),
         some_category,
-        true
+        true,
     );
 
     admin_builder
@@ -121,10 +127,13 @@ async fn main() {
     dotenv::from_filename("./examples/azure_auth/.env.example").ok();
     dotenv::from_filename("./examples/azure_auth/.env").ok();
 
-    let oauth2_client_id = env::var("OAUTH2_CLIENT_ID").expect("Missing the OAUTH2_CLIENT_ID environment variable.");
-    let oauth2_client_secret = env::var("OAUTH2_CLIENT_SECRET").expect("Missing the OAUTH2_CLIENT_SECRET environment variable.");
-    let oauth2_server= env::var("OAUTH2_SERVER").expect("Missing the OAUTH2_SERVER environment variable.");
-        
+    let oauth2_client_id =
+        env::var("OAUTH2_CLIENT_ID").expect("Missing the OAUTH2_CLIENT_ID environment variable.");
+    let oauth2_client_secret = env::var("OAUTH2_CLIENT_SECRET")
+        .expect("Missing the OAUTH2_CLIENT_SECRET environment variable.");
+    let oauth2_server =
+        env::var("OAUTH2_SERVER").expect("Missing the OAUTH2_SERVER environment variable.");
+
     let azure_auth = AzureAuth::new(&oauth2_server, &oauth2_client_id, &oauth2_client_secret);
 
     // Set up the config for the OAuth2 process.
@@ -136,7 +145,6 @@ async fn main() {
             RedirectUrl::new("http://localhost:5000/azure-auth/auth".to_string())
                 .expect("Invalid redirect URL"),
         );
-
 
     let db_url = "sqlite::memory:".to_string();
     let mut opt = ConnectOptions::new(db_url);
@@ -157,24 +165,26 @@ async fn main() {
         // Start from actix-admin's tera (filters + templates) and layer
         // the example's own templates on top.
         let mut tera = actix_admin.tera.clone();
-        tera.load_from_glob(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
-        
+        tera.load_from_glob(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*"))
+            .unwrap();
+
         let app_state = AppState {
             oauth: client.clone(),
             http_client: AzureAuth::build_http_client(),
-            tmpl: tera.clone()
+            tmpl: tera.clone(),
         };
 
         App::new()
             .app_data(web::Data::new(app_state.clone()))
             .app_data(web::Data::new(conn.clone()))
             .app_data(web::Data::new(actix_admin.clone()))
-            .wrap(SessionMiddleware::new(CookieSessionStore::default(), cookie_secret_key.clone()))
+            .wrap(SessionMiddleware::new(
+                CookieSessionStore::default(),
+                cookie_secret_key.clone(),
+            ))
             .route("/", web::get().to(index))
             .service(azure_auth.clone().create_scope::<AppState>())
-            .service(
-                actix_admin_builder.get_scope()
-            )
+            .service(actix_admin_builder.get_scope())
             .wrap(middleware::Logger::default())
     })
     .bind("127.0.0.1:5000")

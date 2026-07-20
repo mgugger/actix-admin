@@ -1,5 +1,5 @@
-use syn::Type;
 use quote::ToTokens;
+use syn::Type;
 
 pub struct ModelField {
     pub ident: proc_macro2::Ident,
@@ -31,7 +31,7 @@ pub struct ModelField {
 }
 
 impl ModelField {
-    pub fn is_option(&self) -> bool { 
+    pub fn is_option(&self) -> bool {
         self.inner_type.is_some()
     }
 

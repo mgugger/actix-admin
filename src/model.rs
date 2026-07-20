@@ -1,4 +1,6 @@
-use crate::view_model::{ActixAdminFilterOperator, ActixAdminViewModelFilter, ActixAdminViewModelParams};
+use crate::view_model::{
+    ActixAdminFilterOperator, ActixAdminViewModelFilter, ActixAdminViewModelParams,
+};
 use crate::{ActixAdminError, ActixAdminErrorType, ActixAdminViewModelField};
 use actix_multipart::Multipart;
 use async_trait::async_trait;
@@ -54,7 +56,7 @@ pub trait ActixAdminModelTrait {
     async fn list_model(
         db: &DatabaseConnection,
         params: &ActixAdminViewModelParams,
-        filter_values: HashMap<String, Option<String>>
+        filter_values: HashMap<String, Option<String>>,
     ) -> Result<(Option<u64>, Vec<ActixAdminModel>), ActixAdminError>;
     fn get_fields() -> &'static [ActixAdminViewModelField];
     fn validate_model(model: &mut ActixAdminModel);
@@ -86,8 +88,13 @@ pub struct ActixAdminModelFilter<E: EntityTrait> {
     pub operators: Vec<ActixAdminFilterOperator>,
     /// Operator-aware alternative to `filter`. When set, it is called instead
     /// of `filter`.
+    #[allow(clippy::type_complexity)]
     pub filter_with_op: Option<
-        fn(sea_orm::Select<E>, Option<String>, Option<ActixAdminFilterOperator>) -> sea_orm::Select<E>,
+        fn(
+            sea_orm::Select<E>,
+            Option<String>,
+            Option<ActixAdminFilterOperator>,
+        ) -> sea_orm::Select<E>,
     >,
 }
 
@@ -98,7 +105,7 @@ pub enum ActixAdminModelFilterType {
     Date,
     DateTime,
     Checkbox,
-    TomSelectSearch
+    TomSelectSearch,
 }
 
 impl<E: EntityTrait> ActixAdminModelFilter<E> {
@@ -153,7 +160,10 @@ pub trait ActixAdminModelFilterTrait<E: EntityTrait> {
     fn get_filter() -> Vec<ActixAdminModelFilter<E>> {
         Vec::new()
     }
-    async fn get_filter_values(_filter: &ActixAdminModelFilter<E>, _db: &DatabaseConnection)-> Option<Vec<(String, String)>> {
+    async fn get_filter_values(
+        _filter: &ActixAdminModelFilter<E>,
+        _db: &DatabaseConnection,
+    ) -> Option<Vec<(String, String)>> {
         None
     }
 }
@@ -279,16 +289,18 @@ impl ActixAdminModel {
         &self,
         key: &str,
         is_option_or_string: bool,
-        is_allowed_to_be_empty: bool
+        is_allowed_to_be_empty: bool,
     ) -> Result<Option<T>, String> {
-        self.get_value_by_closure(key, is_option_or_string, is_allowed_to_be_empty, |val| val.parse::<T>())
+        self.get_value_by_closure(key, is_option_or_string, is_allowed_to_be_empty, |val| {
+            val.parse::<T>()
+        })
     }
 
     pub fn get_datetime(
         &self,
         key: &str,
         is_option_or_string: bool,
-        is_allowed_to_be_empty: bool
+        is_allowed_to_be_empty: bool,
     ) -> Result<Option<NaiveDateTime>, String> {
         self.get_value_by_closure(key, is_option_or_string, is_allowed_to_be_empty, |val| {
             NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M")
@@ -299,18 +311,24 @@ impl ActixAdminModel {
         &self,
         key: &str,
         is_option_or_string: bool,
-        is_allowed_to_be_empty: bool
+        is_allowed_to_be_empty: bool,
     ) -> Result<Option<NaiveDate>, String> {
         self.get_value_by_closure(key, is_option_or_string, is_allowed_to_be_empty, |val| {
             NaiveDate::parse_from_str(val, "%Y-%m-%d")
         })
     }
 
-    pub fn get_bool(&self, key: &str, is_option_or_string: bool, is_allowed_to_be_empty: bool) -> Result<Option<bool>, String> {
+    pub fn get_bool(
+        &self,
+        key: &str,
+        is_option_or_string: bool,
+        is_allowed_to_be_empty: bool,
+    ) -> Result<Option<bool>, String> {
         // A missing/invalid bool from a checkbox means "unchecked".
-        let val = self.get_value_by_closure(key, is_option_or_string, is_allowed_to_be_empty, |val| {
-            Ok::<bool, std::str::ParseBoolError>(matches!(val.as_str(), "true" | "yes"))
-        });
+        let val =
+            self.get_value_by_closure(key, is_option_or_string, is_allowed_to_be_empty, |val| {
+                Ok::<bool, std::str::ParseBoolError>(matches!(val.as_str(), "true" | "yes"))
+            });
         Ok(val.unwrap_or(Some(false)))
     }
 

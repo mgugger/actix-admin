@@ -70,8 +70,7 @@ pub async fn bulk_action<E: ActixAdminBulkActionDispatch + 'static>(
     let entity_name = E::get_entity_name();
     let view_model = view_model_or_500(actix_admin, &entity_name)?;
 
-    if let Some(resp) =
-        forbid_if_denied(&session, actix_admin, view_model, AdminAction::BulkAction)
+    if let Some(resp) = forbid_if_denied(&session, actix_admin, view_model, AdminAction::BulkAction)
     {
         return Ok(resp);
     }

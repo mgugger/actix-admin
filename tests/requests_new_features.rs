@@ -126,7 +126,9 @@ async fn list_renders_new_field_types() {
     let db: DatabaseConnection = setup_db(true).await;
     let app = init_app!(&db, false, false);
 
-    let req = test::TestRequest::get().uri("/admin/post/list").to_request();
+    let req = test::TestRequest::get()
+        .uri("/admin/post/list")
+        .to_request();
     let resp = test::call_service(&app, req).await;
     assert!(resp.status().is_success(), "status: {}", resp.status());
     let body = body_utf8(resp).await;
@@ -162,7 +164,9 @@ async fn show_renders_new_field_types_and_readonly() {
     let db = setup_db(true).await;
     let app = init_app!(&db, false, false);
 
-    let req = test::TestRequest::get().uri("/admin/post/show/3").to_request();
+    let req = test::TestRequest::get()
+        .uri("/admin/post/show/3")
+        .to_request();
     let resp = test::call_service(&app, req).await;
     assert!(resp.status().is_success());
     let body = body_utf8(resp).await;
@@ -174,11 +178,16 @@ async fn show_renders_new_field_types_and_readonly() {
         "Show page did not render the image preview"
     );
     // The `readonly` external_id is emitted verbatim.
-    assert!(body.contains("EXT-00003"), "readonly value missing from show");
+    assert!(
+        body.contains("EXT-00003"),
+        "readonly value missing from show"
+    );
 
     // Edit page: the readonly attribute must be present on the input
     // and EasyMDE textarea id must appear for the notes_md wysiwyg column.
-    let req = test::TestRequest::get().uri("/admin/post/edit/1").to_request();
+    let req = test::TestRequest::get()
+        .uri("/admin/post/edit/1")
+        .to_request();
     let resp = test::call_service(&app, req).await;
     assert!(resp.status().is_success());
     let body = body_utf8(resp).await;
@@ -202,7 +211,9 @@ async fn permissions_hide_buttons_and_reject_direct_hits() {
     let app = init_app!(&db, false, /* restrict_perms */ true);
 
     // Buttons in the list HTML must be gone.
-    let req = test::TestRequest::get().uri("/admin/post/list").to_request();
+    let req = test::TestRequest::get()
+        .uri("/admin/post/list")
+        .to_request();
     let resp = test::call_service(&app, req).await;
     assert!(resp.status().is_success());
     let body = body_utf8(resp).await;
@@ -216,21 +227,35 @@ async fn permissions_hide_buttons_and_reject_direct_hits() {
     );
 
     // Direct hits are 403.
-    let req = test::TestRequest::get().uri("/admin/post/create").to_request();
+    let req = test::TestRequest::get()
+        .uri("/admin/post/create")
+        .to_request();
     let resp = test::call_service(&app, req).await;
-    assert_eq!(resp.status(), 403, "GET /create should be 403 when can_create=false");
+    assert_eq!(
+        resp.status(),
+        403,
+        "GET /create should be 403 when can_create=false"
+    );
 
     let req = test::TestRequest::get()
         .uri("/admin/post/export_csv")
         .to_request();
     let resp = test::call_service(&app, req).await;
-    assert_eq!(resp.status(), 403, "GET /export_csv should be 403 when can_export=false");
+    assert_eq!(
+        resp.status(),
+        403,
+        "GET /export_csv should be 403 when can_export=false"
+    );
 
     let req = test::TestRequest::delete()
         .uri("/admin/post/delete/1")
         .to_request();
     let resp = test::call_service(&app, req).await;
-    assert_eq!(resp.status(), 403, "DELETE /delete/{{id}} should be 403 when can_delete=false");
+    assert_eq!(
+        resp.status(),
+        403,
+        "DELETE /delete/{{id}} should be 403 when can_delete=false"
+    );
 }
 
 // ------------------------------------------------------------------
@@ -243,7 +268,9 @@ async fn bulk_action_dropdown_and_dispatch() {
     let app = init_app!(&db, false, false);
 
     // The list page must expose the action entry (label + POST url).
-    let req = test::TestRequest::get().uri("/admin/post/list").to_request();
+    let req = test::TestRequest::get()
+        .uri("/admin/post/list")
+        .to_request();
     let resp = test::call_service(&app, req).await;
     let body = body_utf8(resp).await;
     assert!(
@@ -258,7 +285,7 @@ async fn bulk_action_dropdown_and_dispatch() {
     // Dispatching a known action returns 303 (see-other back to /list).
     let req = test::TestRequest::post()
         .uri("/admin/post/action/mark_reviewed")
-        .set_form(&[("ids", "1"), ("ids", "2"), ("ids", "3")])
+        .set_form([("ids", "1"), ("ids", "2"), ("ids", "3")])
         .to_request();
     let resp = test::call_service(&app, req).await;
     assert!(
@@ -271,7 +298,7 @@ async fn bulk_action_dropdown_and_dispatch() {
     // route only knows about names that were registered on the builder).
     let req = test::TestRequest::post()
         .uri("/admin/post/action/does_not_exist")
-        .set_form(&[("ids", "1")])
+        .set_form([("ids", "1")])
         .to_request();
     let resp = test::call_service(&app, req).await;
     assert_eq!(
@@ -350,7 +377,9 @@ async fn csrf_rejects_state_changes_without_token() {
 
     // GET list is safe and must render + set a session cookie carrying
     // the freshly minted CSRF token.
-    let req = test::TestRequest::get().uri("/admin/post/list").to_request();
+    let req = test::TestRequest::get()
+        .uri("/admin/post/list")
+        .to_request();
     let resp = test::call_service(&app, req).await;
     assert!(resp.status().is_success());
 
@@ -369,7 +398,7 @@ async fn csrf_rejects_state_changes_without_token() {
     // POST bulk action without token → 403.
     let req = test::TestRequest::post()
         .uri("/admin/post/action/mark_reviewed")
-        .set_form(&[("ids", "1")])
+        .set_form([("ids", "1")])
         .to_request();
     let resp = test::call_service(&app, req).await;
     assert_eq!(
@@ -404,7 +433,9 @@ async fn csrf_token_is_exposed_in_rendered_page() {
     let db = setup_db(true).await;
     let app = init_app!(&db, true, false);
 
-    let req = test::TestRequest::get().uri("/admin/post/list").to_request();
+    let req = test::TestRequest::get()
+        .uri("/admin/post/list")
+        .to_request();
     let resp = test::call_service(&app, req).await;
     let body = body_utf8(resp).await;
     assert!(

@@ -1,14 +1,17 @@
-use std::process::Child;
 use crate::create_server;
+use std::process::Child;
 
 use super::prelude::*;
+use fantoccini::{Client, ClientBuilder};
+use serde_json::{Map, Value};
 use std::process::{Command, Stdio};
 use std::time::Duration;
 use tokio;
-use serde_json::{Map, Value};
-use fantoccini::{ ClientBuilder, Client };
 
-pub async fn setup(create_entities: bool, enable_inline_editing: bool) -> Result<(tokio::task::JoinHandle<()>, Child, Client), Box<dyn std::error::Error>> {
+pub async fn setup(
+    create_entities: bool,
+    enable_inline_editing: bool,
+) -> Result<(tokio::task::JoinHandle<()>, Child, Client), Box<dyn std::error::Error>> {
     // Create and start the Actix-web server
     let server_task = tokio::spawn(async move {
         let db = setup_db(create_entities).await;
@@ -29,9 +32,9 @@ pub async fn setup(create_entities: bool, enable_inline_editing: bool) -> Result
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let geckodriver = Command::new("geckodriver")
-            .stdout(Stdio::null()) // Redirect stdout to /dev/null
-            .stderr(Stdio::null()) // Redirect stderr to /dev/null
-            .spawn()?;
+        .stdout(Stdio::null()) // Redirect stdout to /dev/null
+        .stderr(Stdio::null()) // Redirect stderr to /dev/null
+        .spawn()?;
 
     // Wait until geckodriver is accepting connections on :4444.
     for _ in 0..50 {
@@ -60,7 +63,11 @@ pub async fn setup(create_entities: bool, enable_inline_editing: bool) -> Result
     Ok((server_task, geckodriver, c))
 }
 
-pub async fn teardown(server_task: tokio::task::JoinHandle<()>, mut geckodriver: Child, c: Client) ->  Result<(), fantoccini::error::CmdError> {
+pub async fn teardown(
+    server_task: tokio::task::JoinHandle<()>,
+    mut geckodriver: Child,
+    c: Client,
+) -> Result<(), fantoccini::error::CmdError> {
     let res = c.close().await;
     let _ = geckodriver.kill().expect("Failed to stop geckodriver");
     let _server = server_task.abort();

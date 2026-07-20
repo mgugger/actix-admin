@@ -14,8 +14,8 @@ use async_trait::async_trait;
 use derive_more::{Display, Error};
 use sea_orm::DatabaseConnection;
 use serde_derive::Serialize;
-use std::fmt::{self, Display as FmtDisplay};
 use std::collections::{BTreeMap, HashMap};
+use std::fmt::{self, Display as FmtDisplay};
 use tera::Tera;
 
 pub mod builder;
@@ -27,7 +27,9 @@ pub mod view_model;
 
 pub mod prelude {
     pub use crate::builder::{ActixAdminBuilder, ActixAdminBuilderTrait};
-    pub use crate::csrf::{csrf_token_for, verify_csrf, CsrfError, CSRF_HEADER, CSRF_QUERY_PARAM, CSRF_SESSION_KEY};
+    pub use crate::csrf::{
+        csrf_token_for, verify_csrf, CsrfError, CSRF_HEADER, CSRF_QUERY_PARAM, CSRF_SESSION_KEY,
+    };
     pub use crate::model::{
         ActixAdminModel, ActixAdminModelFilter, ActixAdminModelFilterTrait,
         ActixAdminModelFilterType, ActixAdminModelTrait, ActixAdminModelValidationTrait,
@@ -64,7 +66,7 @@ macro_rules! hashmap {
 pub trait ActixAdminSelectListTrait {
     async fn get_key_value(
         db: &DatabaseConnection,
-        tenant_ref: Option<i32>
+        tenant_ref: Option<i32>,
     ) -> core::result::Result<Vec<(String, String)>, ActixAdminError>;
 }
 
@@ -116,7 +118,7 @@ pub struct ActixAdmin {
     pub card_grids: HashMap<String, Vec<Vec<String>>>,
     pub configuration: ActixAdminConfiguration,
     pub tera: Tera,
-    pub support_path: Option<String>
+    pub support_path: Option<String>,
 }
 
 #[derive(PartialEq, Eq, Clone, Serialize)]
@@ -189,7 +191,10 @@ pub enum ActixAdminErrorType {
 
 impl ActixAdminError {
     pub fn new(ty: ActixAdminErrorType, msg: impl Into<String>) -> Self {
-        Self { ty, msg: msg.into() }
+        Self {
+            ty,
+            msg: msg.into(),
+        }
     }
 
     pub fn bad_request(msg: impl Into<String>) -> Self {
@@ -219,8 +224,8 @@ impl error::ResponseError for ActixAdminError {
             Unauthorized => StatusCode::UNAUTHORIZED,
             Forbidden | CsrfError => StatusCode::FORBIDDEN,
             EntityDoesNotExistError | UnknownBulkAction => StatusCode::NOT_FOUND,
-            InternalError | ListError | CreateError | DeleteError | EditError
-            | DatabaseError | UploadError | IoError => StatusCode::INTERNAL_SERVER_ERROR,
+            InternalError | ListError | CreateError | DeleteError | EditError | DatabaseError
+            | UploadError | IoError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

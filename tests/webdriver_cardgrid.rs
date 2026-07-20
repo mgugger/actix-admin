@@ -10,19 +10,25 @@ mod webdriver_tests {
     use fantoccini::Locator;
 
     #[tokio_test]
-    async fn webdriver_support() -> Result<(), fantoccini::error::CmdError> {    
+    async fn webdriver_support() -> Result<(), fantoccini::error::CmdError> {
         let (server_task, geckodriver, c) = setup(true, false).await.unwrap();
 
         // Open the index page
         c.goto("http://localhost:5555/admin/").await?;
         let url = c.current_url().await?;
         assert_eq!(url.as_ref(), "http://localhost:5555/admin/");
-        
+
         let html_source = c.source().await?;
-        assert_eq!(html_source.contains("Card1"), false, "Expected no Card1 on the page");
+        assert!(
+            !html_source.contains("Card1"),
+            "Expected no Card1 on the page"
+        );
 
         // Click on support question mark
-        c.find(Locator::LinkText("Card Grid")).await?.click().await?;
+        c.find(Locator::LinkText("Card Grid"))
+            .await?
+            .click()
+            .await?;
         tokio::time::sleep(Duration::from_secs(1)).await;
         let url = c.current_url().await?;
         assert_eq!(url.as_ref(), "http://localhost:5555/admin/my_card_grid");

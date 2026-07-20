@@ -92,7 +92,7 @@ mod error_paths {
 
         let req = test::TestRequest::delete()
             .uri("/admin/post/delete")
-            .set_form(&[("ids", "not-a-number"), ("ids", "also-not")])
+            .set_form([("ids", "not-a-number"), ("ids", "also-not")])
             .to_request();
         let resp = test::call_service(&app, req).await;
         // With zero valid ids and no errors, we get a redirect back to /list.
@@ -117,5 +117,4 @@ mod error_paths {
         // Params::from_query is infallible now, so this should render.
         assert!(resp.status().is_success());
     }
-
 }

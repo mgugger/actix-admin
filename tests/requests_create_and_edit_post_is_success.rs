@@ -4,15 +4,11 @@ use test_setup::prelude::*;
 #[cfg(test)]
 mod post_create_and_edit_is_success {
     use actix_admin::prelude::*;
-    use actix_web::{
-        test, 
-        App, 
-        http::header::ContentType
-    };
-    use chrono::{ NaiveDateTime, NaiveDate };
+    use actix_web::{http::header::ContentType, test, App};
+    use chrono::{NaiveDate, NaiveDateTime};
+    use sea_orm::{prelude::Decimal, EntityTrait, PaginatorTrait};
     use serde::Serialize;
-    use sea_orm::{ PaginatorTrait, EntityTrait, prelude::Decimal};
-    
+
     use crate::create_app;
 
     #[derive(Serialize, Clone)]
@@ -23,7 +19,7 @@ mod post_create_and_edit_is_success {
         user: &'static str,
         is_visible: &'static str,
         post_id: Option<&'static str>,
-        my_decimal: &'static str
+        my_decimal: &'static str,
     }
 
     #[derive(Serialize, Clone)]
@@ -48,9 +44,9 @@ mod post_create_and_edit_is_success {
             user: "test",
             is_visible: "true",
             post_id: None,
-            my_decimal: "113.141" // must be larger than 100
+            my_decimal: "113.141", // must be larger than 100
         };
-        
+
         let req = test::TestRequest::post()
             .insert_header(ContentType::form_url_encoded())
             .uri("/admin/comment/create_post_from_plaintext")
@@ -69,12 +65,15 @@ mod post_create_and_edit_is_success {
         assert_eq!(entities.len(), 1, "After post, db does not contain 1 model");
         let entity = entities.first().unwrap();
         assert_eq!(entity.id, 1);
-        assert_eq!(entity.comment,"test");
+        assert_eq!(entity.comment, "test");
         assert_eq!(entity.user, "test");
         assert!(entity.is_visible);
         assert!(entity.post_id.is_none());
         assert_eq!(entity.my_decimal, Decimal::new(113141, 3));
-        assert_eq!(entity.insert_date, NaiveDateTime::parse_from_str("1977-04-01T14:00", "%Y-%m-%dT%H:%M").unwrap());
+        assert_eq!(
+            entity.insert_date,
+            NaiveDateTime::parse_from_str("1977-04-01T14:00", "%Y-%m-%dT%H:%M").unwrap()
+        );
 
         // update entity
         model.my_decimal = "213.141";
@@ -98,7 +97,11 @@ mod post_create_and_edit_is_success {
             .await
             .expect("could not retrieve entities");
 
-        assert_eq!(entities.len(), 1, "After edit post, db does not contain 1 model");
+        assert_eq!(
+            entities.len(),
+            1,
+            "After edit post, db does not contain 1 model"
+        );
         let entity = entities.first().unwrap();
         assert_eq!(entity.id, 1);
         assert_eq!(entity.comment, "updated");
@@ -106,9 +109,12 @@ mod post_create_and_edit_is_success {
         assert!(!entity.is_visible);
         assert!(entity.post_id.is_none());
         assert_eq!(entity.my_decimal, Decimal::new(213141, 3));
-        assert_eq!(entity.insert_date, NaiveDateTime::parse_from_str("1987-04-01T14:00", "%Y-%m-%dT%H:%M").unwrap());
+        assert_eq!(
+            entity.insert_date,
+            NaiveDateTime::parse_from_str("1987-04-01T14:00", "%Y-%m-%dT%H:%M").unwrap()
+        );
     }
-    
+
     #[actix_web::test]
     async fn post_create_and_edit() {
         let db = super::setup_db(false).await;
@@ -119,7 +125,7 @@ mod post_create_and_edit_is_success {
             insert_date: "1977-04-01",
             title: "test",
             text: "test",
-            tea_mandatory: "EverydayTea"
+            tea_mandatory: "EverydayTea",
         };
 
         let req = test::TestRequest::post()
@@ -140,10 +146,16 @@ mod post_create_and_edit_is_success {
         assert_eq!(entities.len(), 1, "After post, db does not contain 1 model");
         let entity = entities.first().unwrap();
         assert_eq!(entity.id, 1);
-        assert_eq!(entity.tea_mandatory, super::test_setup::post::Tea::EverydayTea);
+        assert_eq!(
+            entity.tea_mandatory,
+            super::test_setup::post::Tea::EverydayTea
+        );
         assert_eq!(entity.title, model.title);
         assert_eq!(entity.text, model.text);
-        assert_eq!(entity.insert_date, NaiveDate::parse_from_str("1977-04-01", "%Y-%m-%d").unwrap());
+        assert_eq!(
+            entity.insert_date,
+            NaiveDate::parse_from_str("1977-04-01", "%Y-%m-%d").unwrap()
+        );
 
         // update entity
         model.tea_mandatory = "BreakfastTea";
@@ -166,11 +178,18 @@ mod post_create_and_edit_is_success {
             .await
             .expect("could not retrieve entities");
 
-            assert_eq!(entities.len(), 1, "After edit post, db does not contain 1 model");
+        assert_eq!(
+            entities.len(),
+            1,
+            "After edit post, db does not contain 1 model"
+        );
         let entity = entities.first().unwrap();
         assert_eq!(entity.id, 1);
         assert_eq!(entity.text, "updated");
         assert_eq!(entity.title, "updated");
-        assert_eq!(entity.insert_date, NaiveDate::parse_from_str("1987-04-01", "%Y-%m-%d").unwrap());
+        assert_eq!(
+            entity.insert_date,
+            NaiveDate::parse_from_str("1987-04-01", "%Y-%m-%d").unwrap()
+        );
     }
 }

@@ -59,3 +59,21 @@ dotenv = "0.15"
 actix-session = { version = "0.11", features = ["cookie-session"] }
 itertools = "^0.15"
 ollama-rs = "0.3"
+
+# Silence a handful of stylistic clippy lints that mostly fire in tests and
+# generated code; the CI runs `cargo clippy -- -D warnings` so these have
+# to be either fixed or explicitly allowed.
+[lints.clippy]
+result_large_err = "allow"
+useless_conversion = "allow"
+single_component_path_imports = "allow"
+unnecessary_cast = "allow"
+match_single_binding = "allow"
+let_unit_value = "allow"
+borrow_deref_ref = "allow"
+write_literal = "allow"
+redundant_field_names = "allow"
+if_same_then_else = "allow"
+too_many_arguments = "allow"
+type_complexity = "allow"
+should_implement_trait = "allow"
