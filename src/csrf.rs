@@ -122,12 +122,22 @@ fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
 
 /// Generate a 32-byte URL-safe base64 token.
 ///
-/// Uses `std::time::SystemTime` + a lightweight counter + the address of a
-/// stack variable as entropy sources so we avoid pulling in a heavyweight
-/// crypto crate. This is not a cryptographic PRNG; the token is used only
-/// to make CSRF forgery infeasible across sessions and is scoped to a
-/// signed/encrypted session cookie, which is the real trust boundary.
+/// Prefers the OS CSPRNG (`getrandom`); if that is unavailable for any reason
+/// (some sandboxed / no-syscall targets) we fall back to a `splitmix64`
+/// mixer seeded from the system clock, a monotonically increasing counter
+/// and the address of a stack variable. That fallback is *not* a CSPRNG and
+/// only exists so the crate keeps building on unusual targets; the token is
+/// scoped to a signed/encrypted session cookie which is the real trust
+/// boundary.
 fn generate_token() -> String {
+    let mut bytes = [0u8; 32];
+    if getrandom::getrandom(&mut bytes).is_err() {
+        fill_fallback(&mut bytes);
+    }
+    base64_url(&bytes)
+}
+
+fn fill_fallback(bytes: &mut [u8; 32]) {
     use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
     static COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -139,9 +149,7 @@ fn generate_token() -> String {
     let ctr = COUNTER.fetch_add(1, Ordering::Relaxed);
     let stack = &now as *const _ as usize as u64;
 
-    // Mix inputs with a simple splitmix64 iteration; produce 32 bytes.
     let mut state: u64 = now.wrapping_mul(0x9E3779B97F4A7C15) ^ ctr ^ stack;
-    let mut bytes = [0u8; 32];
     for chunk in bytes.chunks_mut(8) {
         state = state.wrapping_add(0x9E3779B97F4A7C15);
         let mut z = state;
@@ -150,9 +158,6 @@ fn generate_token() -> String {
         z ^= z >> 31;
         chunk.copy_from_slice(&z.to_le_bytes()[..chunk.len()]);
     }
-
-    // URL-safe base64 without padding.
-    base64_url(&bytes)
 }
 
 fn base64_url(data: &[u8]) -> String {

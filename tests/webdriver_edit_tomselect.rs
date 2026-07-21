@@ -80,7 +80,7 @@ mod webdriver_tests {
             "Test 10",
         ];
         for text in expected_texts {
-            assert!(row_text.contains(text));
+            assert!(row_text.contains(text), "row missing {text:?}; row was: {row_text:?}");
         }
 
         teardown(server_task, geckodriver, c).await

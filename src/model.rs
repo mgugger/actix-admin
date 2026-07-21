@@ -71,31 +71,50 @@ pub trait ActixAdminModelValidationTrait<T> {
 
 /// A single filter registered on an entity via `ActixAdminModelFilterTrait`.
 ///
-/// The `filter` closure receives the current query and the user-provided
-/// value (a plain `Option<String>`). If you also want to react to the user's
-/// choice of operator ("contains", ">", "<", ...), populate `operators` with
-/// the operators you support and read `operator` off the request via the
-/// `filter_with_op` closure alternative.
+/// The `filter` closure receives the current query, the user-provided
+/// value (a plain `Option<String>`) and — when the filter opted into
+/// operator selection — the operator picked in the UI.
 pub struct ActixAdminModelFilter<E: EntityTrait> {
     pub name: String,
     pub filter_type: ActixAdminModelFilterType,
-    /// Legacy value-only filter. Called when `filter_with_op` is `None`.
-    pub filter: fn(sea_orm::Select<E>, Option<String>) -> sea_orm::Select<E>,
+    /// Underlying filter callback (value-only or operator-aware).
+    pub filter: FilterFn<E>,
     pub values: Option<Vec<(String, String)>>,
     pub foreign_key: Option<String>,
     /// Operators the user may pick from. When empty, no operator selector is
-    /// rendered.
+    /// rendered and operator-aware filters receive `None`.
     pub operators: Vec<ActixAdminFilterOperator>,
-    /// Operator-aware alternative to `filter`. When set, it is called instead
-    /// of `filter`.
-    #[allow(clippy::type_complexity)]
-    pub filter_with_op: Option<
+}
+
+/// Storage for the filter callback. Two shapes are supported so that simple
+/// value-only filters remain a one-liner, while operator-aware filters can
+/// react to the user's chosen comparator.
+#[allow(clippy::type_complexity)]
+pub enum FilterFn<E: EntityTrait> {
+    ValueOnly(fn(sea_orm::Select<E>, Option<String>) -> sea_orm::Select<E>),
+    WithOp(
         fn(
             sea_orm::Select<E>,
             Option<String>,
             Option<ActixAdminFilterOperator>,
         ) -> sea_orm::Select<E>,
-    >,
+    ),
+}
+
+impl<E: EntityTrait> FilterFn<E> {
+    /// Apply the underlying callback to `query`. Operator-only closures
+    /// receive `operator`; value-only closures ignore it.
+    pub fn apply(
+        &self,
+        query: sea_orm::Select<E>,
+        value: Option<String>,
+        operator: Option<ActixAdminFilterOperator>,
+    ) -> sea_orm::Select<E> {
+        match self {
+            FilterFn::ValueOnly(f) => f(query, value),
+            FilterFn::WithOp(f) => f(query, value, operator),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -109,8 +128,8 @@ pub enum ActixAdminModelFilterType {
 }
 
 impl<E: EntityTrait> ActixAdminModelFilter<E> {
-    /// Build a minimal legacy value-only filter. Equivalent to setting
-    /// `operators = vec![]` and `filter_with_op = None`.
+    /// Build a value-only filter. The closure receives the current query
+    /// plus the user-typed value; operator information is not surfaced.
     pub fn new(
         name: impl Into<String>,
         filter_type: ActixAdminModelFilterType,
@@ -119,11 +138,31 @@ impl<E: EntityTrait> ActixAdminModelFilter<E> {
         Self {
             name: name.into(),
             filter_type,
-            filter,
+            filter: FilterFn::ValueOnly(filter),
             values: None,
             foreign_key: None,
             operators: Vec::new(),
-            filter_with_op: None,
+        }
+    }
+
+    /// Build an operator-aware filter. The closure additionally receives
+    /// the operator the user picked in the UI (if any).
+    pub fn with_op(
+        name: impl Into<String>,
+        filter_type: ActixAdminModelFilterType,
+        filter: fn(
+            sea_orm::Select<E>,
+            Option<String>,
+            Option<ActixAdminFilterOperator>,
+        ) -> sea_orm::Select<E>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            filter_type,
+            filter: FilterFn::WithOp(filter),
+            values: None,
+            foreign_key: None,
+            operators: Vec::new(),
         }
     }
 
@@ -132,6 +171,10 @@ impl<E: EntityTrait> ActixAdminModelFilter<E> {
         self
     }
 
+    /// Replace the filter callback with an operator-aware one.
+    ///
+    /// Kept for backwards compatibility — new code should use
+    /// [`Self::with_op`] directly.
     pub fn with_operator_filter(
         mut self,
         f: fn(
@@ -140,7 +183,7 @@ impl<E: EntityTrait> ActixAdminModelFilter<E> {
             Option<ActixAdminFilterOperator>,
         ) -> sea_orm::Select<E>,
     ) -> Self {
-        self.filter_with_op = Some(f);
+        self.filter = FilterFn::WithOp(f);
         self
     }
 

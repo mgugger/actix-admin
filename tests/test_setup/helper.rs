@@ -115,7 +115,6 @@ macro_rules! create_app (
 macro_rules! create_server (
     ($db: expr, $enable_auth: expr, $tenant_ref: expr, $enable_inline_editing: expr) => ({
         use actix_web::{App, HttpServer};
-        use actix_admin::builder::ActixAdminBuilderTrait;
 
         // Create and start the Actix-web server
         let _server = HttpServer::new(move || {

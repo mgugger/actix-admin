@@ -20,9 +20,10 @@ use actix_session::Session;
 use actix_web::{http::header, web, Error, HttpRequest, HttpResponse};
 use sea_orm::DatabaseConnection;
 
+use crate::admin_prelude;
 use crate::prelude::*;
 
-use super::{forbid_if_denied, render_unauthorized, view_model_or_500, AdminAction};
+use super::RoutePrelude;
 
 /// Dispatch trait implemented per entity to route named bulk actions to
 /// their concrete handlers. Add a manual `impl` to your entity:
@@ -67,22 +68,11 @@ pub async fn bulk_action<E: ActixAdminBulkActionDispatch + 'static>(
     path: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = data.get_ref();
-    let entity_name = E::get_entity_name();
-    let view_model = view_model_or_500(actix_admin, &entity_name)?;
-
-    if let Some(resp) = forbid_if_denied(&session, actix_admin, view_model, AdminAction::BulkAction)
-    {
-        return Ok(resp);
-    }
-    if !crate::routes::helpers::user_can_access_page(&session, actix_admin, view_model) {
-        return render_unauthorized(&tera::Context::new(), actix_admin);
-    }
-    if let Err(e) = crate::csrf::verify_csrf(actix_admin, &session, &req) {
-        return Err(e.into());
-    }
+    let ctx = admin_prelude!(&session, &req, actix_admin, RoutePrelude::bulk(), E);
 
     let action_name = path.into_inner();
-    if !view_model
+    if !ctx
+        .view_model
         .bulk_actions
         .iter()
         .any(|a| a.name == action_name)
@@ -95,26 +85,21 @@ pub async fn bulk_action<E: ActixAdminBulkActionDispatch + 'static>(
         .filter_map(|(k, v)| (k == "ids").then(|| v.parse::<E::Id>().ok()).flatten())
         .collect();
 
-    let tenant_ref = actix_admin
-        .configuration
-        .user_tenant_ref
-        .and_then(|f| f(&session));
-
     let db = db.get_ref();
-    let result = E::run_bulk_action(&action_name, db, ids, tenant_ref).await;
+    let result = E::run_bulk_action(&action_name, db, ids, ctx.tenant_ref).await;
 
     match result {
         Ok(Some(_msg)) => {
             // On success, bounce back to the entity's list page. We don't
             // yet have a flash-message channel; the message returned by the
             // handler is logged for observability.
-            log::info!(target: "actix_admin::bulk_action", "{entity_name}/{action_name}: {_msg}");
+            log::info!(target: "actix_admin::bulk_action", "{}/{action_name}: {_msg}", ctx.entity_name);
             Ok(HttpResponse::SeeOther()
                 .append_header((
                     header::LOCATION,
                     format!(
                         "{}/{}/list",
-                        actix_admin.configuration.base_path, entity_name
+                        actix_admin.configuration.base_path, ctx.entity_name
                     ),
                 ))
                 .finish())

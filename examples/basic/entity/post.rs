@@ -73,7 +73,7 @@ impl Display for Model {
             _ => write!(
                 formatter,
                 "{} {}",
-                &self.title, "" /* &self.insert_date*/
+                self.title, "" /* &self.insert_date*/
             ),
         }
     }

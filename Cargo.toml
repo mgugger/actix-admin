@@ -46,6 +46,7 @@ serde_urlencoded = "0.7"
 form_urlencoded = "1.2"
 sanitize-filename = "0.6"
 log = "0.4"
+getrandom = "0.2"
 
 [dev-dependencies]
 sea-orm = { version = "^2.0", features = [ "sqlx-sqlite", "runtime-tokio-native-tls", "macros" ], default-features = true }

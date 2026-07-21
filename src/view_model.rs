@@ -216,21 +216,30 @@ impl ActixAdminFilterOperator {
         }
     }
 
-    #[allow(clippy::should_implement_trait)]
+    /// Legacy convenience wrapper around the `FromStr` impl. Kept as an
+    /// inherent method for backwards compatibility — new code should use
+    /// `"...".parse::<ActixAdminFilterOperator>().ok()` directly.
     pub fn from_str(s: &str) -> Option<Self> {
+        <Self as std::str::FromStr>::from_str(s).ok()
+    }
+}
+
+impl std::str::FromStr for ActixAdminFilterOperator {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "equals" | "eq" | "=" => Some(Self::Equals),
-            "not_equals" | "ne" | "!=" => Some(Self::NotEquals),
-            "contains" | "like" => Some(Self::Contains),
-            "not_contains" | "not_like" => Some(Self::NotContains),
-            "gt" | ">" => Some(Self::GreaterThan),
-            "lt" | "<" => Some(Self::LessThan),
-            "gte" | ">=" => Some(Self::GreaterEquals),
-            "lte" | "<=" => Some(Self::LessEquals),
-            "is_null" | "empty" => Some(Self::IsNull),
-            "is_not_null" | "not_empty" => Some(Self::IsNotNull),
-            "in" | "in_list" => Some(Self::InList),
-            _ => None,
+            "equals" | "eq" | "=" => Ok(Self::Equals),
+            "not_equals" | "ne" | "!=" => Ok(Self::NotEquals),
+            "contains" | "like" => Ok(Self::Contains),
+            "not_contains" | "not_like" => Ok(Self::NotContains),
+            "gt" | ">" => Ok(Self::GreaterThan),
+            "lt" | "<" => Ok(Self::LessThan),
+            "gte" | ">=" => Ok(Self::GreaterEquals),
+            "lte" | "<=" => Ok(Self::LessEquals),
+            "is_null" | "empty" => Ok(Self::IsNull),
+            "is_not_null" | "not_empty" => Ok(Self::IsNotNull),
+            "in" | "in_list" => Ok(Self::InList),
+            _ => Err(()),
         }
     }
 }
@@ -252,23 +261,39 @@ pub struct ActixAdminViewModelFilter {
     pub operator: Option<ActixAdminFilterOperator>,
 }
 
-// TODO: better alternative to serialize only specific fields for ActixAdminViewModel
-impl From<ActixAdminViewModel> for ActixAdminViewModelSerializable {
-    fn from(entity: ActixAdminViewModel) -> Self {
+impl ActixAdminViewModelSerializable {
+    /// Build a serializable snapshot of `entity` with **all `can_*` flags set
+    /// to `false`**. Call sites that know the current session must set the
+    /// flags explicitly via [`Self::set_permissions_for`] (or the higher-level
+    /// helper `add_default_context_with_session`).
+    ///
+    /// The least-privilege default matters: any code path that forgets to
+    /// resolve permissions must render as if the user has no rights, not as
+    /// if they were an admin.
+    pub fn from_view_model(entity: &ActixAdminViewModel) -> Self {
         ActixAdminViewModelSerializable {
-            entity_name: entity.entity_name,
-            primary_key: entity.primary_key,
+            entity_name: entity.entity_name.clone(),
+            primary_key: entity.primary_key.clone(),
             fields: entity.fields,
             show_search: entity.show_search,
             default_show_aside: entity.default_show_aside,
             inline_edit: entity.inline_edit,
-            can_create: true,
-            can_edit: true,
-            can_delete: true,
-            can_view_details: true,
-            can_export: true,
-            bulk_actions: entity.bulk_actions,
+            can_create: false,
+            can_edit: false,
+            can_delete: false,
+            can_view_details: false,
+            can_export: false,
+            bulk_actions: entity.bulk_actions.clone(),
         }
+    }
+}
+
+// Kept for backwards compatibility. Prefer
+// [`ActixAdminViewModelSerializable::from_view_model`] which defaults to
+// least-privilege.
+impl From<ActixAdminViewModel> for ActixAdminViewModelSerializable {
+    fn from(entity: ActixAdminViewModel) -> Self {
+        Self::from_view_model(&entity)
     }
 }
 

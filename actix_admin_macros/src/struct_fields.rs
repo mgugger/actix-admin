@@ -214,6 +214,54 @@ fn extract_type_from_option(ty: &syn::Type) -> Option<syn::Type> {
         })
 }
 
+/// Emit tokens for `Option<String>` accessors as either `Some("literal")`
+/// or `None`, so the generated `FIELDS` init doesn't have to reparse a
+/// stringified token stream at runtime. Filters primary_key and tenant_ref
+/// fields to match [`get_fields_as_tokenstream`].
+pub fn get_fields_as_opt_string_tokens(
+    fields: &Vec<ModelField>,
+    accessor: fn(&ModelField) -> Option<String>,
+) -> Vec<TokenStream> {
+    fields
+        .iter()
+        .filter(|f| !f.primary_key && !f.tenant_ref)
+        .map(|f| match accessor(f) {
+            Some(s) => quote! { Some(#s) },
+            None => quote! { None },
+        })
+        .collect()
+}
+
+/// Same as [`get_fields_as_opt_string_tokens`] but for `Option<u8>`.
+pub fn get_fields_as_opt_u8_tokens(
+    fields: &Vec<ModelField>,
+    accessor: fn(&ModelField) -> Option<u8>,
+) -> Vec<TokenStream> {
+    fields
+        .iter()
+        .filter(|f| !f.primary_key && !f.tenant_ref)
+        .map(|f| match accessor(f) {
+            Some(n) => quote! { Some(#n) },
+            None => quote! { None },
+        })
+        .collect()
+}
+
+/// Same as [`get_fields_as_opt_string_tokens`] but for `Option<u16>`.
+pub fn get_fields_as_opt_u16_tokens(
+    fields: &Vec<ModelField>,
+    accessor: fn(&ModelField) -> Option<u16>,
+) -> Vec<TokenStream> {
+    fields
+        .iter()
+        .filter(|f| !f.primary_key && !f.tenant_ref)
+        .map(|f| match accessor(f) {
+            Some(n) => quote! { Some(#n) },
+            None => quote! { None },
+        })
+        .collect()
+}
+
 pub fn get_fields_as_tokenstream<T: ToTokens>(
     fields: &Vec<ModelField>,
     accessor: fn(&ModelField) -> T,

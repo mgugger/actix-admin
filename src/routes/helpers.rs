@@ -21,6 +21,145 @@ pub enum AdminAction {
     BulkAction,
 }
 
+/// Bundle of state every entity-scoped admin route needs: the parent
+/// [`ActixAdmin`] registry, the resolved [`ActixAdminViewModel`], the
+/// entity name (owned to avoid borrow gymnastics) and the tenant reference
+/// resolved from the current session.
+pub struct RouteCtx<'a> {
+    pub actix_admin: &'a ActixAdmin,
+    pub view_model: &'a ActixAdminViewModel,
+    pub entity_name: String,
+    pub tenant_ref: Option<i32>,
+}
+
+/// Options controlling the standard route prologue behavior.
+#[derive(Clone, Copy)]
+pub struct RoutePrelude {
+    pub action: AdminAction,
+    /// Verify the CSRF token before proceeding. Enable on
+    /// state-changing routes (POST/DELETE/PUT).
+    pub verify_csrf: bool,
+    /// When rendering the unauthorized template, set `render_partial = true`
+    /// so HTMX call sites swap only the content block.
+    pub partial_unauth: bool,
+    /// Populate auth context on the unauthorized-template render.
+    pub with_auth_context: bool,
+}
+
+impl RoutePrelude {
+    pub const fn view() -> Self {
+        Self {
+            action: AdminAction::View,
+            verify_csrf: false,
+            partial_unauth: false,
+            with_auth_context: true,
+        }
+    }
+    pub const fn export() -> Self {
+        Self {
+            action: AdminAction::Export,
+            verify_csrf: false,
+            partial_unauth: false,
+            with_auth_context: false,
+        }
+    }
+    pub const fn create() -> Self {
+        Self {
+            action: AdminAction::Create,
+            verify_csrf: false,
+            partial_unauth: false,
+            with_auth_context: true,
+        }
+    }
+    pub const fn edit() -> Self {
+        Self {
+            action: AdminAction::Edit,
+            verify_csrf: false,
+            partial_unauth: false,
+            with_auth_context: true,
+        }
+    }
+    pub const fn write(action: AdminAction) -> Self {
+        Self {
+            action,
+            verify_csrf: true,
+            partial_unauth: true,
+            with_auth_context: false,
+        }
+    }
+    pub const fn bulk() -> Self {
+        Self {
+            action: AdminAction::BulkAction,
+            verify_csrf: true,
+            partial_unauth: false,
+            with_auth_context: false,
+        }
+    }
+}
+
+/// Run the standard prologue for a route handler generic over an
+/// [`ActixAdminViewModelTrait`] entity `E`. Resolves the view model,
+/// checks permissions, verifies CSRF (if requested), computes the tenant
+/// reference, and returns a [`RouteCtx`] ready to be used by the handler.
+///
+/// Returns:
+/// * `Ok(Ok(ctx))`   — proceed with `ctx`
+/// * `Ok(Err(resp))` — return `resp` directly (unauthorized rendered
+///   template)
+/// * `Err(err)`      — propagate `err` (CSRF violation, missing view model)
+pub fn begin_route<'a, E: ActixAdminViewModelTrait>(
+    session: &Session,
+    req: &HttpRequest,
+    actix_admin: &'a ActixAdmin,
+    opts: RoutePrelude,
+) -> Result<Result<RouteCtx<'a>, HttpResponse>, Error> {
+    let entity_name = E::get_entity_name();
+    let view_model = view_model_or_500(actix_admin, &entity_name)?;
+
+    if !user_can_perform(session, actix_admin, view_model, opts.action) {
+        let mut ctx = Context::new();
+        if opts.with_auth_context {
+            add_auth_context(session, actix_admin, &mut ctx);
+        }
+        if opts.partial_unauth {
+            ctx.insert("render_partial", &true);
+        }
+        // render_unauthorized only fails when the response builder itself
+        // fails, which cannot happen with this small body.
+        let resp = render_unauthorized(&ctx, actix_admin)?;
+        return Ok(Err(resp));
+    }
+
+    if opts.verify_csrf {
+        crate::csrf::verify_csrf(actix_admin, session, req)?;
+    }
+
+    let tenant_ref = actix_admin
+        .configuration
+        .user_tenant_ref
+        .and_then(|f| f(session));
+
+    Ok(Ok(RouteCtx {
+        actix_admin,
+        view_model,
+        entity_name,
+        tenant_ref,
+    }))
+}
+
+/// Convenience macro: unwrap the double-Result returned by [`begin_route`],
+/// returning early on either the propagated error or the pre-built response.
+#[macro_export]
+macro_rules! admin_prelude {
+    ($session:expr, $req:expr, $actix_admin:expr, $opts:expr, $entity:ty) => {{
+        match $crate::routes::begin_route::<$entity>($session, $req, $actix_admin, $opts)? {
+            Ok(ctx) => ctx,
+            Err(resp) => return Ok(resp),
+        }
+    }};
+}
+
+
 pub fn add_auth_context(session: &Session, actix_admin: &ActixAdmin, ctx: &mut Context) {
     let cfg = &actix_admin.configuration;
     ctx.insert("enable_auth", &cfg.enable_auth);
@@ -152,6 +291,61 @@ pub fn view_model_or_500<'a>(
     })
 }
 
+/// Shared renderer for the create-and-edit form pages. Called from three
+/// places: create_get, edit_get, and create_or_edit_post (on validation
+/// error or DB failure). Picks the inline template when `is_inline` is set
+/// and the model has a primary key (i.e. we're editing an existing row).
+#[allow(clippy::too_many_arguments)]
+pub async fn render_create_or_edit_form<E: ActixAdminViewModelTrait>(
+    session: &Session,
+    req: HttpRequest,
+    actix_admin: &ActixAdmin,
+    view_model: &ActixAdminViewModel,
+    db: &sea_orm::DatabaseConnection,
+    entity_name: String,
+    model: &ActixAdminModel,
+    tenant_ref: Option<i32>,
+    notifications: Vec<ActixAdminNotification>,
+    is_inline: bool,
+    status: actix_web::http::StatusCode,
+) -> Result<HttpResponse, Error> {
+    let mut ctx = Context::new();
+    add_auth_context(session, actix_admin, &mut ctx);
+
+    let params = Params::from_query(req.query_string());
+    let search_params = SearchParams::from_params(&params, view_model);
+
+    ctx.insert(
+        "select_lists",
+        &E::get_select_lists(db, tenant_ref)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?,
+    );
+    ctx.insert("model", model);
+
+    add_default_context_with_session(
+        &mut ctx,
+        req,
+        view_model,
+        entity_name,
+        actix_admin,
+        notifications,
+        &search_params,
+        Some(session),
+    );
+
+    let template_path = if is_inline && model.primary_key.is_some() {
+        "create_or_edit/inline.html"
+    } else {
+        "create_or_edit.html"
+    };
+    let body = render_template(&actix_admin.tera, template_path, &ctx)
+        .map_err(actix_web::error::ErrorInternalServerError)?;
+    Ok(actix_web::HttpResponse::build(status)
+        .content_type("text/html")
+        .body(body))
+}
+
 /// Validate that `sort_by` refers to a real, non-hidden field on the view model.
 /// Returns Ok(sort_by) or a 400 error.
 pub fn validate_sort_by(view_model: &ActixAdminViewModel, sort_by: &str) -> Result<(), Error> {
@@ -201,6 +395,19 @@ impl SearchParams {
                 .clone()
                 .unwrap_or_else(|| view_model.primary_key.clone()),
             sort_order: params.sort_order.clone().unwrap_or(SortOrder::Asc),
+        }
+    }
+
+    /// Adapter: `SearchParams` was the pre-`ListQuery` shape, kept so that
+    /// external callers keep compiling. New code should use
+    /// [`crate::routes::ListQuery`] directly.
+    pub fn from_list_query(q: &crate::routes::query::ListQuery) -> Self {
+        SearchParams {
+            page: q.page,
+            entities_per_page: q.entities_per_page,
+            search: q.search.clone(),
+            sort_by: q.sort_by.clone(),
+            sort_order: q.sort_order.clone(),
         }
     }
 }

@@ -241,23 +241,27 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let field_html_input_type = get_fields_as_tokenstream(&fields, |model_field| -> String {
         model_field.html_input_type.to_string()
     });
-    let field_ceil = get_fields_as_tokenstream(&fields, |model_field| -> String {
-        model_field.ceil.clone().unwrap_or("".to_string())
+    let field_ceil =
+        get_fields_as_opt_u8_tokens(&fields, |mf| mf.ceil.as_deref().and_then(|s| s.parse().ok()));
+    let field_floor = get_fields_as_opt_u8_tokens(&fields, |mf| {
+        mf.floor.as_deref().and_then(|s| s.parse().ok())
     });
-    let field_floor = get_fields_as_tokenstream(&fields, |model_field| -> String {
-        model_field.floor.clone().unwrap_or("".to_string())
+    let field_dateformat = get_fields_as_opt_string_tokens(&fields, |mf| {
+        let s = mf.dateformat.trim().to_string();
+        if s.is_empty() { None } else { Some(s) }
     });
-    let field_dateformat = get_fields_as_tokenstream(&fields, |model_field| -> String {
-        model_field.dateformat.to_string()
-    });
-    let field_shorten = get_fields_as_tokenstream(&fields, |model_field| -> String {
-        model_field.shorten.clone().unwrap_or("".to_string())
+    let field_shorten = get_fields_as_opt_u16_tokens(&fields, |mf| {
+        mf.shorten.as_deref().and_then(|s| s.parse().ok())
     });
     let field_foreign_key = get_fields_as_tokenstream(&fields, |model_field| -> String {
         model_field.foreign_key.clone().unwrap_or("".to_string())
     });
-    let field_list_regex_mask = get_fields_as_tokenstream(&fields, |model_field| -> String {
-        model_field.list_regex_mask.to_string()
+    let field_list_regex_mask = get_fields_as_opt_string_tokens(&fields, |mf| {
+        if mf.list_regex_mask.is_empty() {
+            None
+        } else {
+            Some(mf.list_regex_mask.clone())
+        }
     });
     let field_select_list = get_fields_as_tokenstream(&fields, |model_field| -> String {
         model_field.select_list.to_string()
@@ -269,6 +273,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let fields_for_load_foreign_key = get_fields_for_load_foreign_key(&fields);
     let field_for_primary_key = get_field_for_primary_key(&fields);
     let fields_for_validate_model = get_fields_for_validate_model(&fields);
+    let primary_key_column = get_primary_key_column_ident(&fields);
     let fields_type_path = get_fields_as_tokenstream(&fields, |model_field| -> String {
         model_field.get_type_path_string()
     });
@@ -315,39 +320,25 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                 let mut vec = Vec::new();
 
             #(
-                let field_name = stringify!(#field_names).replace("\"", "").replace(' ', "").replace('\n', "");
-                let html_input_type = stringify!(#field_html_input_type).replace("\"", "").replace(' ', "");
-                let select_list = stringify!(#field_select_list).replace("\"", "").replace(' ', "");
-                let list_regex_mask_regex = match &stringify!(#field_list_regex_mask) {
-                    s if !s.is_empty() => Some(Regex::new(s).unwrap()),
-                    _ => None,
-                };
-                let dateformat = match &stringify!(#field_dateformat).replace("\"", "").trim_start().trim_end().replace('\n', "") {
-                    s if !s.is_empty() => Some(s.to_string()),
-                    _ => None,
-                };
-                let ceil = match &stringify!(#field_ceil).replace("\"", "").replace(' ', "").replace('\n', "") {
-                    s if !s.is_empty() => s.parse::<u8>().ok(),
-                    _ => None,
-                };
-                let floor = match &stringify!(#field_floor).replace("\"", "").replace(' ', "").replace('\n', "") {
-                    s if !s.is_empty() => s.parse::<u8>().ok(),
-                    _ => None,
-                };
-                let shorten = match &stringify!(#field_shorten).replace("\"", "").replace(' ', "").replace('\n', "") {
-                    s if !s.is_empty() => s.parse::<u16>().ok(),
-                    _ => None,
-                };
+                let field_name: &str = #field_names;
+                let html_input_type: &str = #field_html_input_type;
+                let select_list: &str = #field_select_list;
+                let list_regex_mask_regex: Option<Regex> =
+                    #field_list_regex_mask.map(|s: &str| Regex::new(s).unwrap());
+                let dateformat: Option<String> = #field_dateformat.map(|s: &str| s.to_string());
+                let ceil: Option<u8> = #field_ceil;
+                let floor: Option<u8> = #field_floor;
+                let shorten: Option<u16> = #field_shorten;
 
                 vec.push(ActixAdminViewModelField {
-                    field_name: field_name.clone(),
-                    html_input_type: html_input_type.clone(),
-                    select_list: select_list.clone(),
+                    field_name: field_name.to_string(),
+                    html_input_type: html_input_type.to_string(),
+                    select_list: select_list.to_string(),
                     is_option: #is_option_list,
                     list_sort_position: #fields_list_sort_positions,
                     field_type: ActixAdminViewModelFieldType::get_field_type(
                         #fields_type_path,
-                        select_list.clone(),
+                        select_list.to_string(),
                         #fields_textarea,
                         #fields_file_upload,
                         #fields_image,
@@ -358,7 +349,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                     ),
                     list_hide_column: #fields_list_hide_column,
                     list_regex_mask: list_regex_mask_regex,
-                    foreign_key: stringify!(#field_foreign_key).to_string(),
+                    foreign_key: #field_foreign_key.to_string(),
                     is_tenant_ref: #fields_tenant_ref,
                     ceil: ceil,
                     floor: floor,
@@ -411,7 +402,11 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
 
                 let sort_column = match params.sort_by.as_ref() {
                     #(#fields_match_name_to_columns)*
-                    _ => panic!("Unknown column")
+                    // Fallback: the route layer validates `sort_by` before
+                    // reaching us via `validate_sort_by`, so this arm is only
+                    // reachable if a custom caller bypassed validation. Sort
+                    // by the primary key instead of panicking.
+                    _ => Column::#primary_key_column,
                 };
 
                 let mut query = match params.sort_order {
@@ -433,10 +428,7 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                 for filter in filters {
                     let value = filter_values.get(&filter.name).unwrap_or_else(|| &None).clone();
                     let operator = filter_operators.get(&filter.name).cloned().flatten();
-                    query = match filter.filter_with_op {
-                        Some(f) => f(query, value, operator),
-                        None => (filter.filter)(query, value),
-                    };
+                    query = filter.filter.apply(query, value, operator);
                 }
 
                 let mut entities;

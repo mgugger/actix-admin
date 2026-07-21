@@ -32,9 +32,11 @@ pub mod prelude {
     };
     pub use crate::model::{
         ActixAdminModel, ActixAdminModelFilter, ActixAdminModelFilterTrait,
-        ActixAdminModelFilterType, ActixAdminModelTrait, ActixAdminModelValidationTrait,
+        ActixAdminModelFilterType, ActixAdminModelTrait, ActixAdminModelValidationTrait, FilterFn,
     };
-    pub use crate::routes::{bulk_action, create_or_edit_post, get_admin_ctx, SortOrder};
+    pub use crate::routes::{
+        bulk_action, create_or_edit_post, get_admin_ctx, ActixAdminBulkActionDispatch, SortOrder,
+    };
     pub use crate::view_model::{
         ActixAdminBulkAction, ActixAdminFilterOperator, ActixAdminPrimaryKey, ActixAdminViewModel,
         ActixAdminViewModelField, ActixAdminViewModelFieldType, ActixAdminViewModelFilter,
@@ -52,6 +54,7 @@ pub mod prelude {
 
 use crate::prelude::*;
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! hashmap {
     ($( $key: expr => $val: expr ),*) => {{

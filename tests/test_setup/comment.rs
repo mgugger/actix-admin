@@ -105,7 +105,7 @@ impl ActixAdminModelFilterTrait<Entity> for Entity {
 impl Display for Model {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match &*self {
-            _ => write!(formatter, "{} {}", &self.insert_date, &self.user),
+            _ => write!(formatter, "{} {}", self.insert_date, self.user),
         }
     }
 }

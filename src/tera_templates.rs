@@ -13,31 +13,6 @@ fn from_value<'de, T: Deserialize<'de>>(filter_name: &str, value: &'de Value) ->
     })
 }
 
-struct TeraTemplate {
-    // Pages
-    list_html: &'static str,
-    create_or_edit_html: &'static str,
-    base_html: &'static str,
-    head_html: &'static str,
-    index_html: &'static str,
-    loader_html: &'static str,
-    navbar_html: &'static str,
-    not_found_html: &'static str,
-    show_html: &'static str,
-    unauthorized_html: &'static str,
-    // create or edit
-    checkbox_html: &'static str,
-    input_html: &'static str,
-    selectlist_html: &'static str,
-    create_or_edit_inline_html: &'static str,
-    // list
-    list_header_html: &'static str,
-    list_row_html: &'static str,
-    list_filter_html: &'static str,
-    // misc
-    card_grid_html: &'static str,
-}
-
 pub fn get_tera() -> Tera {
     // Register filters BEFORE adding templates: tera 2 validates filter
     // references when templates are added.
@@ -199,28 +174,9 @@ fn filter_attribute(value: &Value, kwargs: Kwargs, _: &State) -> TeraResult<Valu
     Ok(Value::from(filtered))
 }
 
-fn add_templates_to_tera(tera: &mut Tera, t: TeraTemplate) {
-    tera.add_raw_templates([
-        ("base.html", t.base_html),
-        ("list.html", t.list_html),
-        ("create_or_edit.html", t.create_or_edit_html),
-        ("head.html", t.head_html),
-        ("index.html", t.index_html),
-        ("loader.html", t.loader_html),
-        ("navbar.html", t.navbar_html),
-        ("not_found.html", t.not_found_html),
-        ("show.html", t.show_html),
-        ("unauthorized.html", t.unauthorized_html),
-        ("create_or_edit/checkbox.html", t.checkbox_html),
-        ("create_or_edit/input.html", t.input_html),
-        ("create_or_edit/selectlist.html", t.selectlist_html),
-        ("create_or_edit/inline.html", t.create_or_edit_inline_html),
-        ("list/header.html", t.list_header_html),
-        ("list/row.html", t.list_row_html),
-        ("list/filter.html", t.list_filter_html),
-        ("card_grid.html", t.card_grid_html),
-    ])
-    .expect("failed to register built-in actix-admin templates");
+fn add_templates_to_tera(tera: &mut Tera, templates: &[(&'static str, &'static str)]) {
+    tera.add_raw_templates(templates.iter().copied())
+        .expect("failed to register built-in actix-admin templates");
 }
 
 #[cfg(all(feature = "bootstrapv5_css", feature = "bulma_css"))]
@@ -235,58 +191,50 @@ compile_error!("At least one CSS theme feature must be enabled: `bulma_css` or `
 // Cargo Features for CSS
 #[cfg(feature = "bulma_css")]
 fn load_templates_into(tera: &mut Tera) {
-    let tera_template = TeraTemplate {
-        list_html: include_str!("templates/bulma/list.html"),
-        create_or_edit_html: include_str!("templates/bulma/create_or_edit.html"),
-        base_html: include_str!("templates/bulma/base.html"),
-        head_html: include_str!("templates/bulma/head.html"),
-        index_html: include_str!("templates/bulma/index.html"),
-        loader_html: include_str!("templates/bulma/loader.html"),
-        navbar_html: include_str!("templates/bulma/navbar.html"),
-        not_found_html: include_str!("templates/bulma/not_found.html"),
-        show_html: include_str!("templates/bulma/show.html"),
-        unauthorized_html: include_str!("templates/bulma/unauthorized.html"),
-        // create or edit
-        checkbox_html: include_str!("templates/bulma/create_or_edit/checkbox.html"),
-        input_html: include_str!("templates/bulma/create_or_edit/input.html"),
-        selectlist_html: include_str!("templates/bulma/create_or_edit/selectlist.html"),
-        create_or_edit_inline_html: include_str!("templates/bulma/create_or_edit/inline.html"),
-        // list
-        list_header_html: include_str!("templates/bulma/list/header.html"),
-        list_row_html: include_str!("templates/bulma/list/row.html"),
-        list_filter_html: include_str!("templates/bulma/list/filter.html"),
-        card_grid_html: include_str!("templates/bulma/card_grid.html"),
-    };
-
-    add_templates_to_tera(tera, tera_template);
+    const TEMPLATES: &[(&str, &str)] = &[
+        ("base.html", include_str!("templates/bulma/base.html")),
+        ("list.html", include_str!("templates/bulma/list.html")),
+        ("create_or_edit.html", include_str!("templates/bulma/create_or_edit.html")),
+        ("head.html", include_str!("templates/bulma/head.html")),
+        ("index.html", include_str!("templates/bulma/index.html")),
+        ("loader.html", include_str!("templates/bulma/loader.html")),
+        ("navbar.html", include_str!("templates/bulma/navbar.html")),
+        ("not_found.html", include_str!("templates/bulma/not_found.html")),
+        ("show.html", include_str!("templates/bulma/show.html")),
+        ("unauthorized.html", include_str!("templates/bulma/unauthorized.html")),
+        ("create_or_edit/checkbox.html", include_str!("templates/bulma/create_or_edit/checkbox.html")),
+        ("create_or_edit/input.html", include_str!("templates/bulma/create_or_edit/input.html")),
+        ("create_or_edit/selectlist.html", include_str!("templates/bulma/create_or_edit/selectlist.html")),
+        ("create_or_edit/inline.html", include_str!("templates/bulma/create_or_edit/inline.html")),
+        ("list/header.html", include_str!("templates/bulma/list/header.html")),
+        ("list/row.html", include_str!("templates/bulma/list/row.html")),
+        ("list/filter.html", include_str!("templates/bulma/list/filter.html")),
+        ("card_grid.html", include_str!("templates/bulma/card_grid.html")),
+    ];
+    add_templates_to_tera(tera, TEMPLATES);
 }
 
 #[cfg(feature = "bootstrapv5_css")]
 fn load_templates_into(tera: &mut Tera) {
-    let tera_template = TeraTemplate {
-        list_html: include_str!("templates/bootstrapv5/list.html"),
-        create_or_edit_html: include_str!("templates/bootstrapv5/create_or_edit.html"),
-        base_html: include_str!("templates/bootstrapv5/base.html"),
-        head_html: include_str!("templates/bootstrapv5/head.html"),
-        index_html: include_str!("templates/bootstrapv5/index.html"),
-        loader_html: include_str!("templates/bootstrapv5/loader.html"),
-        navbar_html: include_str!("templates/bootstrapv5/navbar.html"),
-        not_found_html: include_str!("templates/bootstrapv5/not_found.html"),
-        show_html: include_str!("templates/bootstrapv5/show.html"),
-        unauthorized_html: include_str!("templates/bootstrapv5/unauthorized.html"),
-        // create or edit
-        checkbox_html: include_str!("templates/bootstrapv5/create_or_edit/checkbox.html"),
-        input_html: include_str!("templates/bootstrapv5/create_or_edit/input.html"),
-        selectlist_html: include_str!("templates/bootstrapv5/create_or_edit/selectlist.html"),
-        create_or_edit_inline_html: include_str!(
-            "templates/bootstrapv5/create_or_edit/inline.html"
-        ),
-        // list
-        list_header_html: include_str!("templates/bootstrapv5/list/header.html"),
-        list_row_html: include_str!("templates/bootstrapv5/list/row.html"),
-        list_filter_html: include_str!("templates/bootstrapv5/list/filter.html"),
-        card_grid_html: include_str!("templates/bootstrapv5/card_grid.html"),
-    };
-
-    add_templates_to_tera(tera, tera_template);
+    const TEMPLATES: &[(&str, &str)] = &[
+        ("base.html", include_str!("templates/bootstrapv5/base.html")),
+        ("list.html", include_str!("templates/bootstrapv5/list.html")),
+        ("create_or_edit.html", include_str!("templates/bootstrapv5/create_or_edit.html")),
+        ("head.html", include_str!("templates/bootstrapv5/head.html")),
+        ("index.html", include_str!("templates/bootstrapv5/index.html")),
+        ("loader.html", include_str!("templates/bootstrapv5/loader.html")),
+        ("navbar.html", include_str!("templates/bootstrapv5/navbar.html")),
+        ("not_found.html", include_str!("templates/bootstrapv5/not_found.html")),
+        ("show.html", include_str!("templates/bootstrapv5/show.html")),
+        ("unauthorized.html", include_str!("templates/bootstrapv5/unauthorized.html")),
+        ("create_or_edit/checkbox.html", include_str!("templates/bootstrapv5/create_or_edit/checkbox.html")),
+        ("create_or_edit/input.html", include_str!("templates/bootstrapv5/create_or_edit/input.html")),
+        ("create_or_edit/selectlist.html", include_str!("templates/bootstrapv5/create_or_edit/selectlist.html")),
+        ("create_or_edit/inline.html", include_str!("templates/bootstrapv5/create_or_edit/inline.html")),
+        ("list/header.html", include_str!("templates/bootstrapv5/list/header.html")),
+        ("list/row.html", include_str!("templates/bootstrapv5/list/row.html")),
+        ("list/filter.html", include_str!("templates/bootstrapv5/list/filter.html")),
+        ("card_grid.html", include_str!("templates/bootstrapv5/card_grid.html")),
+    ];
+    add_templates_to_tera(tera, TEMPLATES);
 }

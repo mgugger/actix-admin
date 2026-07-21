@@ -1,12 +1,12 @@
 use super::helpers::{add_default_context_with_session, SearchParams};
-use super::Params;
-use super::{add_auth_context, render_template, render_unauthorized, user_can_access_page};
+use super::{render_create_or_edit_form, AdminAction, Params, RoutePrelude};
+use crate::admin_prelude;
 use crate::ActixAdminError;
 use crate::ActixAdminNotification;
 use crate::{prelude::*, ActixAdminErrorType};
 use actix_multipart::Multipart;
 use actix_session::Session;
-use actix_web::http::header;
+use actix_web::http::{header, StatusCode};
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
@@ -64,15 +64,26 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
     id: Option<E::Id>,
     actix_admin: &ActixAdmin,
 ) -> Result<HttpResponse, Error> {
-    let entity_name = E::get_entity_name();
-
-    let view_model = actix_admin.view_models.get(&entity_name).unwrap();
-
-    if !user_can_access_page(session, actix_admin, view_model) {
-        let mut ctx = Context::new();
-        ctx.insert("render_partial", &true);
-        return render_unauthorized(&ctx, actix_admin);
-    }
+    let action = if id.is_some() {
+        AdminAction::Edit
+    } else {
+        AdminAction::Create
+    };
+    // Note: multipart POSTs cannot re-verify CSRF from body here because
+    // the payload was already consumed by `create_from_payload`; CSRF for
+    // create/edit is asserted via the `_csrf` query param (see csrf.rs docs).
+    let ctx = admin_prelude!(
+        session,
+        &req,
+        actix_admin,
+        RoutePrelude {
+            action,
+            verify_csrf: true,
+            partial_unauth: true,
+            with_auth_context: false,
+        },
+        E
+    );
     let db = db.get_ref();
 
     let mut model = match model_res {
@@ -91,47 +102,45 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
     let _ = E::validate_entity(&mut model, db).await;
 
     if model.has_errors() {
-        let errors = vec![ActixAdminError {
+        let notif = vec![ActixAdminNotification::from(ActixAdminError {
             ty: ActixAdminErrorType::ValidationErrors,
             msg: String::new(),
-        }];
-        return render_form::<E>(
+        })];
+        return render_create_or_edit_form::<E>(
             session,
             req,
             actix_admin,
-            view_model,
+            ctx.view_model,
             db,
-            entity_name,
+            ctx.entity_name,
             &model,
-            errors,
+            ctx.tenant_ref,
+            notif,
+            ctx.view_model.inline_edit,
+            StatusCode::OK,
         )
         .await;
     }
 
-    let tenant_ref = actix_admin
-        .configuration
-        .user_tenant_ref
-        .and_then(|f| f(session));
-
     let res = match id {
-        Some(id) => E::edit_entity(db, id, model.clone(), tenant_ref).await,
-        None => E::create_entity(db, model.clone(), tenant_ref).await,
+        Some(id) => E::edit_entity(db, id, model.clone(), ctx.tenant_ref).await,
+        None => E::create_entity(db, model.clone(), ctx.tenant_ref).await,
     };
 
     match res {
         Ok(model) => {
             let params = Params::from_query(req.query_string());
-            let search_params = SearchParams::from_params(&params, view_model);
+            let search_params = SearchParams::from_params(&params, ctx.view_model);
 
-            if view_model.inline_edit {
-                let mut ctx = Context::new();
-                ctx.insert("entity", &model);
-                add_auth_context(session, actix_admin, &mut ctx);
+            if ctx.view_model.inline_edit {
+                let mut tctx = Context::new();
+                tctx.insert("entity", &model);
+                super::helpers::add_auth_context(session, actix_admin, &mut tctx);
                 add_default_context_with_session(
-                    &mut ctx,
+                    &mut tctx,
                     req,
-                    view_model,
-                    entity_name,
+                    ctx.view_model,
+                    ctx.entity_name,
                     actix_admin,
                     Vec::new(),
                     &search_params,
@@ -139,7 +148,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
                 );
                 let body = actix_admin
                     .tera
-                    .render("list/row.html", &ctx)
+                    .render("list/row.html", &tctx)
                     .map_err(error::ErrorInternalServerError)?;
                 Ok(HttpResponse::Ok().content_type("text/html").body(body))
             } else {
@@ -149,7 +158,7 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
                         format!(
                             "{0}/{1}/list?{2}",
                             actix_admin.configuration.base_path,
-                            entity_name,
+                            ctx.entity_name,
                             search_params.to_query_string()
                         ),
                     ))
@@ -157,71 +166,22 @@ pub async fn create_or_edit_post<E: ActixAdminViewModelTrait>(
             }
         }
         Err(e) => {
-            render_form::<E>(
+            render_create_or_edit_form::<E>(
                 session,
                 req,
                 actix_admin,
-                view_model,
+                ctx.view_model,
                 db,
-                entity_name,
+                ctx.entity_name,
                 &model,
-                vec![e],
+                ctx.tenant_ref,
+                vec![ActixAdminNotification::from(e)],
+                ctx.view_model.inline_edit,
+                StatusCode::OK,
             )
             .await
         }
     }
-}
-
-#[allow(clippy::too_many_arguments)]
-async fn render_form<E: ActixAdminViewModelTrait>(
-    session: &Session,
-    req: HttpRequest,
-    actix_admin: &ActixAdmin,
-    view_model: &ActixAdminViewModel,
-    db: &sea_orm::DatabaseConnection,
-    entity_name: String,
-    model: &ActixAdminModel,
-    errors: Vec<ActixAdminError>,
-) -> Result<HttpResponse, Error> {
-    let mut ctx = Context::new();
-
-    let params = Params::from_query(req.query_string());
-
-    let tenant_ref = actix_admin
-        .configuration
-        .user_tenant_ref
-        .and_then(|f| f(session));
-
-    ctx.insert("select_lists", &E::get_select_lists(db, tenant_ref).await?);
-    ctx.insert("model", model);
-
-    let notifications: Vec<ActixAdminNotification> = errors
-        .into_iter()
-        .map(ActixAdminNotification::from)
-        .collect();
-
-    add_auth_context(session, actix_admin, &mut ctx);
-
-    let search_params = SearchParams::from_params(&params, view_model);
-    add_default_context_with_session(
-        &mut ctx,
-        req,
-        view_model,
-        entity_name,
-        actix_admin,
-        notifications,
-        &search_params,
-        Some(session),
-    );
-
-    let template_path = if view_model.inline_edit && model.primary_key.is_some() {
-        "create_or_edit/inline.html"
-    } else {
-        "create_or_edit.html"
-    };
-    let body = render_template(&actix_admin.tera, template_path, &ctx)
-        .map_err(error::ErrorInternalServerError)?;
-    Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
 #[doc(hidden)]

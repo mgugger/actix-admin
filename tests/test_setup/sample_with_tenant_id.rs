@@ -34,7 +34,7 @@ pub struct Model {
 impl Display for Model {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match &*self {
-            _ => write!(formatter, "{}", &self.title),
+            _ => write!(formatter, "{}", self.title),
         }
     }
 }

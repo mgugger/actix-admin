@@ -1,4 +1,5 @@
 use super::helpers::{add_default_context_with_session, SearchParams};
+use crate::admin_prelude;
 use crate::prelude::*;
 use crate::ActixAdminNotification;
 use actix_session::Session;
@@ -8,10 +9,7 @@ use sea_orm::DatabaseConnection;
 use tera::Context;
 
 use super::Params;
-use super::{
-    add_auth_context, render_template, render_unauthorized, user_can_perform, view_model_or_500,
-    AdminAction,
-};
+use super::{add_auth_context, render_template, RoutePrelude};
 
 pub async fn show<E: ActixAdminViewModelTrait>(
     session: Session,
@@ -21,21 +19,10 @@ pub async fn show<E: ActixAdminViewModelTrait>(
     db: web::Data<DatabaseConnection>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = &data.into_inner();
-
-    let mut ctx = Context::new();
-    let entity_name = E::get_entity_name();
-    let view_model: &ActixAdminViewModel = view_model_or_500(actix_admin, &entity_name)?;
-    if !user_can_perform(&session, actix_admin, view_model, AdminAction::View) {
-        return render_unauthorized(&ctx, actix_admin);
-    }
-
-    let tenant_ref = actix_admin
-        .configuration
-        .user_tenant_ref
-        .and_then(|f| f(&session));
+    let ctx_data = admin_prelude!(&session, &req, actix_admin, RoutePrelude::view(), E);
 
     let mut errors: Vec<crate::ActixAdminError> = Vec::new();
-    let model = match E::get_entity(&db, id.into_inner(), tenant_ref).await {
+    let model = match E::get_entity(&db, id.into_inner(), ctx_data.tenant_ref).await {
         Ok(res) => res,
         Err(e) if e.ty == crate::ActixAdminErrorType::EntityDoesNotExistError => {
             // Short-circuit: don't try to render show.html with an empty model.
@@ -66,15 +53,16 @@ pub async fn show<E: ActixAdminViewModelTrait>(
         .collect();
 
     let params = Params::from_query(req.query_string());
-    let search_params = SearchParams::from_params(&params, view_model);
+    let search_params = SearchParams::from_params(&params, ctx_data.view_model);
 
+    let mut ctx = Context::new();
     add_auth_context(&session, actix_admin, &mut ctx);
 
     add_default_context_with_session(
         &mut ctx,
         req,
-        view_model,
-        entity_name,
+        ctx_data.view_model,
+        ctx_data.entity_name,
         actix_admin,
         notifications,
         &search_params,

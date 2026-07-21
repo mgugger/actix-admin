@@ -14,7 +14,12 @@ use actix_web::{web, Route};
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
 
-/// Represents a builder entity which helps generating the ActixAdmin configuration
+/// Represents a builder entity which helps generating the ActixAdmin configuration.
+///
+/// Prefer calling the inherent methods on `ActixAdminBuilder` directly; the
+/// old `ActixAdminBuilderTrait` still exists as a compatibility shim but is
+/// now just a re-export of the inherent methods and does not need to be
+/// brought into scope.
 pub struct ActixAdminBuilder {
     pub scopes: HashMap<String, actix_web::Scope>,
     pub custom_routes: Vec<(String, Route)>,
@@ -22,82 +27,31 @@ pub struct ActixAdminBuilder {
     pub custom_index: Option<Route>,
 }
 
-/// The trait to work with ActixAdminBuilder
+/// Compatibility trait for pre-0.8 code that did
+/// `use actix_admin::builder::ActixAdminBuilderTrait;` before calling any
+/// builder method. All the real behavior now lives as inherent methods on
+/// [`ActixAdminBuilder`]; this trait simply re-exports them so existing
+/// user code keeps compiling. New code should not implement it.
 pub trait ActixAdminBuilderTrait {
     fn new(configuration: ActixAdminConfiguration) -> Self;
-    fn add_entity<E: ActixAdminViewModelTrait + 'static>(
-        &mut self,
-        view_model: &ActixAdminViewModel,
-    );
-    fn add_entity_to_category<E: ActixAdminViewModelTrait + 'static>(
-        &mut self,
-        view_model: &ActixAdminViewModel,
-        category_name: &str,
-    );
-    fn add_custom_handler(
-        &mut self,
-        menu_element_name: &str,
-        path: &str,
-        route: Route,
-        add_to_menu: bool,
-    );
-    fn add_custom_handler_to_category(
-        &mut self,
-        menu_element_name: &str,
-        path: &str,
-        route: Route,
-        add_to_menu: bool,
-        category: &str,
-    );
-    fn add_card_grid(
-        &mut self,
-        menu_element_name: &str,
-        path: &str,
-        elements: Vec<Vec<String>>,
-        add_to_menu: bool,
-    );
-    fn add_card_grid_to_category(
-        &mut self,
-        menu_element_name: &str,
-        path: &str,
-        elements: Vec<Vec<String>>,
-        add_to_menu: bool,
-        category: &str,
-    );
-    fn add_custom_handler_for_entity<E: ActixAdminViewModelTrait + 'static>(
-        &mut self,
-        menu_element_name: &str,
-        path: &str,
-        route: Route,
-        add_to_menu: bool,
-    );
-    fn add_custom_handler_for_entity_in_category<E: ActixAdminViewModelTrait + 'static>(
-        &mut self,
-        menu_element_name: &str,
-        path: &str,
-        route: Route,
-        category_name: &str,
-        add_to_menu: bool,
-    );
-    fn add_custom_handler_for_index(&mut self, route: Route);
-    /// Register a custom bulk action on an entity. `action` is the metadata
-    /// rendered in the list-page actions dropdown; the entity type `E` must
-    /// provide a `run_bulk_action` implementation (via
-    /// `impl ActixAdminBulkActionDispatch for Entity`) that matches on
-    /// `action.name` and executes the requested work.
-    fn add_bulk_action_for_entity<
-        E: ActixAdminViewModelTrait + ActixAdminBulkActionDispatch + 'static,
-    >(
-        &mut self,
-        action: ActixAdminBulkAction,
-    );
     fn get_scope(self) -> actix_web::Scope;
     fn get_actix_admin(&self) -> ActixAdmin;
-    fn add_support_handler(&mut self, arg: &str, support: Route);
 }
 
 impl ActixAdminBuilderTrait for ActixAdminBuilder {
     fn new(configuration: ActixAdminConfiguration) -> Self {
+        Self::new(configuration)
+    }
+    fn get_scope(self) -> actix_web::Scope {
+        Self::get_scope(self)
+    }
+    fn get_actix_admin(&self) -> ActixAdmin {
+        Self::get_actix_admin(self)
+    }
+}
+
+impl ActixAdminBuilder {
+    pub fn new(configuration: ActixAdminConfiguration) -> Self {
         ActixAdminBuilder {
             actix_admin: ActixAdmin {
                 entity_names: BTreeMap::new(),
@@ -113,14 +67,14 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         }
     }
 
-    fn add_entity<E: ActixAdminViewModelTrait + 'static>(
+    pub fn add_entity<E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         view_model: &ActixAdminViewModel,
     ) {
         self.add_entity_to_category::<E>(view_model, "");
     }
 
-    fn add_entity_to_category<E: ActixAdminViewModelTrait + 'static>(
+    pub fn add_entity_to_category<E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         view_model: &ActixAdminViewModel,
         category_name: &str,
@@ -146,12 +100,20 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
                 .default_service(web::to(not_found)),
         );
 
-        fs::create_dir_all(format!(
+        if let Err(e) = fs::create_dir_all(format!(
             "{}/{}",
             self.actix_admin.configuration.file_upload_directory,
             E::get_entity_name()
-        ))
-        .unwrap();
+        )) {
+            // Don't panic at startup if the process lacks write permission or
+            // the upload directory isn't reachable yet. Entities without file
+            // fields never touch this path; entities with file fields will
+            // surface the error to the user at upload time via a 500.
+            log::warn!(
+                "actix_admin: could not create upload directory for entity `{}`: {e}",
+                E::get_entity_name()
+            );
+        }
 
         let menu_element = ActixAdminMenuElement {
             name: E::get_entity_name(),
@@ -165,11 +127,16 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
             .insert(E::get_entity_name(), view_model.clone());
     }
 
-    fn add_custom_handler_for_index(&mut self, route: Route) {
+    pub fn add_custom_handler_for_index(&mut self, route: Route) {
         self.custom_index = Some(route);
     }
 
-    fn add_bulk_action_for_entity<
+    /// Register a custom bulk action on an entity. `action` is the metadata
+    /// rendered in the list-page actions dropdown; the entity type `E` must
+    /// provide a `run_bulk_action` implementation (via
+    /// `impl ActixAdminBulkActionDispatch for Entity`) that matches on
+    /// `action.name` and executes the requested work.
+    pub fn add_bulk_action_for_entity<
         E: ActixAdminViewModelTrait + ActixAdminBulkActionDispatch + 'static,
     >(
         &mut self,
@@ -199,7 +166,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         }
     }
 
-    fn add_custom_handler_to_category(
+    pub fn add_custom_handler_to_category(
         &mut self,
         menu_element_name: &str,
         path: &str,
@@ -219,7 +186,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         }
     }
 
-    fn add_card_grid(
+    pub fn add_card_grid(
         &mut self,
         menu_element_name: &str,
         path: &str,
@@ -229,7 +196,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         self.add_card_grid_to_category(menu_element_name, path, elements, add_to_menu, "");
     }
 
-    fn add_card_grid_to_category(
+    pub fn add_card_grid_to_category(
         &mut self,
         menu_element_name: &str,
         path: &str,
@@ -253,7 +220,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         }
     }
 
-    fn add_custom_handler(
+    pub fn add_custom_handler(
         &mut self,
         menu_element_name: &str,
         path: &str,
@@ -263,12 +230,12 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         self.add_custom_handler_to_category(menu_element_name, path, route, add_to_menu, "");
     }
 
-    fn add_support_handler(&mut self, arg: &str, support: Route) {
+    pub fn add_support_handler(&mut self, arg: &str, support: Route) {
         self.custom_routes.push((arg.to_string(), support));
         self.actix_admin.support_path = Some(arg.replace("/", ""));
     }
 
-    fn add_custom_handler_for_entity<E: ActixAdminViewModelTrait + 'static>(
+    pub fn add_custom_handler_for_entity<E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         menu_element_name: &str,
         path: &str,
@@ -284,7 +251,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         );
     }
 
-    fn add_custom_handler_for_entity_in_category<E: ActixAdminViewModelTrait + 'static>(
+    pub fn add_custom_handler_for_entity_in_category<E: ActixAdminViewModelTrait + 'static>(
         &mut self,
         menu_element_name: &str,
         path: &str,
@@ -314,7 +281,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         }
     }
 
-    fn get_scope(self) -> actix_web::Scope {
+    pub fn get_scope(self) -> actix_web::Scope {
         let index_handler = self.custom_index.unwrap_or_else(|| web::get().to(index));
         let mut admin_scope = web::scope(self.actix_admin.configuration.base_path)
             .route("/", index_handler)
@@ -329,7 +296,7 @@ impl ActixAdminBuilderTrait for ActixAdminBuilder {
         admin_scope
     }
 
-    fn get_actix_admin(&self) -> ActixAdmin {
+    pub fn get_actix_admin(&self) -> ActixAdmin {
         self.actix_admin.clone()
     }
 }

@@ -1,10 +1,12 @@
-use super::{render_unauthorized, user_can_perform, view_model_or_500, AdminAction};
+use super::RoutePrelude;
+use crate::admin_prelude;
 use crate::prelude::*;
 use actix_session::Session;
 use actix_web::http::header;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use sea_orm::DatabaseConnection;
-use tera::Context;
+
+use super::query::ListQuery;
 
 /// Delete file(s) attached to file-upload fields on the given model, best-effort.
 fn delete_uploaded_files_for(
@@ -40,40 +42,30 @@ fn delete_uploaded_files_for(
 
 pub async fn delete<E: ActixAdminViewModelTrait>(
     session: Session,
-    _req: HttpRequest,
+    req: HttpRequest,
     data: web::Data<ActixAdmin>,
     db: web::Data<DatabaseConnection>,
     id: web::Path<E::Id>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = &data.into_inner();
-    let entity_name = E::get_entity_name();
-
-    let view_model = view_model_or_500(actix_admin, &entity_name)?;
-
-    if !user_can_perform(&session, actix_admin, view_model, AdminAction::Delete) {
-        let mut ctx = Context::new();
-        ctx.insert("render_partial", &true);
-        return render_unauthorized(&ctx, actix_admin);
-    }
-    if let Err(e) = crate::csrf::verify_csrf(actix_admin, &session, &_req) {
-        return Err(e.into());
-    }
+    let ctx = admin_prelude!(
+        &session,
+        &req,
+        actix_admin,
+        RoutePrelude::write(super::AdminAction::Delete),
+        E
+    );
 
     let db = db.get_ref();
     let id = id.into_inner();
 
-    let tenant_ref = actix_admin
-        .configuration
-        .user_tenant_ref
-        .and_then(|f| f(&session));
-
     // Fetch first (to know upload paths) then delete.
-    let model_result = E::get_entity(db, id.clone(), tenant_ref).await;
-    let delete_result = E::delete_entity(db, id, tenant_ref).await;
+    let model_result = E::get_entity(db, id.clone(), ctx.tenant_ref).await;
+    let delete_result = E::delete_entity(db, id, ctx.tenant_ref).await;
 
     match (model_result, delete_result) {
         (Ok(model), Ok(_)) => {
-            delete_uploaded_files_for(actix_admin, &entity_name, view_model, &model);
+            delete_uploaded_files_for(actix_admin, &ctx.entity_name, ctx.view_model, &model);
             Ok(HttpResponse::Ok().finish())
         }
         (_, Err(e)) if e.ty == crate::ActixAdminErrorType::EntityDoesNotExistError => {
@@ -85,27 +77,22 @@ pub async fn delete<E: ActixAdminViewModelTrait>(
 
 pub async fn delete_many<E: ActixAdminViewModelTrait>(
     session: Session,
-    _req: HttpRequest,
+    req: HttpRequest,
     data: web::Data<ActixAdmin>,
     db: web::Data<DatabaseConnection>,
     form: web::Form<Vec<(String, String)>>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = data.get_ref();
-    let entity_name = E::get_entity_name();
-
-    let view_model = view_model_or_500(actix_admin, &entity_name)?;
-    let mut errors: Vec<crate::ActixAdminError> = Vec::new();
-
-    if !user_can_perform(&session, actix_admin, view_model, AdminAction::Delete) {
-        let mut ctx = Context::new();
-        ctx.insert("render_partial", &true);
-        return render_unauthorized(&ctx, actix_admin);
-    }
-    if let Err(e) = crate::csrf::verify_csrf(actix_admin, &session, &_req) {
-        return Err(e.into());
-    }
+    let ctx = admin_prelude!(
+        &session,
+        &req,
+        actix_admin,
+        RoutePrelude::write(super::AdminAction::Delete),
+        E
+    );
 
     let db = db.get_ref();
+    let mut errors: Vec<crate::ActixAdminError> = Vec::new();
 
     // Silently skip un-parseable ids rather than panicking on client input.
     let ids: Vec<E::Id> = form
@@ -113,51 +100,35 @@ pub async fn delete_many<E: ActixAdminViewModelTrait>(
         .filter_map(|(k, v)| (k == "ids").then(|| v.parse::<E::Id>().ok()).flatten())
         .collect();
 
-    let tenant_ref = actix_admin
-        .configuration
-        .user_tenant_ref
-        .and_then(|f| f(&session));
-
     // Pre-fetch models so we can delete their uploaded files after the DB
     // rows go away. This is best-effort: if a fetch fails the id is skipped.
     let mut fetched_models: Vec<ActixAdminModel> = Vec::with_capacity(ids.len());
     for id in &ids {
-        match E::get_entity(db, id.clone(), tenant_ref).await {
+        match E::get_entity(db, id.clone(), ctx.tenant_ref).await {
             Ok(m) => fetched_models.push(m),
             Err(e) => errors.push(e),
         }
     }
 
     // Single batched DELETE ... WHERE pk IN (...).
-    match E::delete_entities(db, &ids, tenant_ref).await {
+    match E::delete_entities(db, &ids, ctx.tenant_ref).await {
         Ok(_) => {
             for model in &fetched_models {
-                delete_uploaded_files_for(actix_admin, &entity_name, view_model, model);
+                delete_uploaded_files_for(actix_admin, &ctx.entity_name, ctx.view_model, model);
             }
         }
         Err(e) => errors.push(e),
     }
 
-    let field = |key: &str, default: &str| -> String {
-        form.iter()
-            .find(|(k, _)| k == key)
-            .map(|(_, v)| v.as_str())
-            .unwrap_or(default)
-            .to_string()
-    };
-    let entities_per_page = field("entities_per_page", "10");
-    let search = urlencoding::encode(&field("search", "")).into_owned();
-    let sort_by = urlencoding::encode(&field("sort_by", "id")).into_owned();
-    let sort_order = field("sort_order", "Asc");
-    let page = field("page", "1");
-
     if errors.is_empty() {
+        // Round-trip the pagination state that traveled in the form body
+        // back into a URL query string, using the same encoder the list
+        // route reads it with.
+        let query = ListQuery::from_form(&form, ctx.view_model);
         Ok(HttpResponse::SeeOther()
             .append_header((
                 header::LOCATION,
-                format!(
-                    "list?entities_per_page={entities_per_page}&search={search}&sort_by={sort_by}&sort_order={sort_order}&page={page}"
-                ),
+                format!("list?{}", query.to_query_string()),
             ))
             .finish())
     } else {

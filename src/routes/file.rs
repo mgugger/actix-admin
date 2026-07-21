@@ -1,10 +1,10 @@
+use crate::admin_prelude;
 use crate::prelude::*;
 use actix_session::Session;
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use sea_orm::DatabaseConnection;
-use tera::Context;
 
-use super::{render_unauthorized, user_can_perform, view_model_or_500, AdminAction};
+use super::{AdminAction, RoutePrelude};
 
 /// Returns the field descriptor if `column_name` refers to a `FileUpload`
 /// or `Image` field on the given view model. Rejects anything else to
@@ -37,23 +37,12 @@ pub async fn download<E: ActixAdminViewModelTrait>(
 ) -> Result<HttpResponse, Error> {
     let actix_admin = &data.into_inner();
     let db = &db.into_inner();
-
-    let ctx = Context::new();
-    let entity_name = E::get_entity_name();
-    let view_model: &ActixAdminViewModel = view_model_or_500(actix_admin, &entity_name)?;
-    if !user_can_perform(&session, actix_admin, view_model, AdminAction::View) {
-        return render_unauthorized(&ctx, actix_admin);
-    }
+    let ctx = admin_prelude!(&session, &req, actix_admin, RoutePrelude::view(), E);
 
     let (id, column_name) = params.into_inner();
-    let _field = file_upload_field(view_model, &column_name)?;
+    let _field = file_upload_field(ctx.view_model, &column_name)?;
 
-    let tenant_ref = actix_admin
-        .configuration
-        .user_tenant_ref
-        .and_then(|f| f(&session));
-
-    let model = match E::get_entity(db, id, tenant_ref).await {
+    let model = match E::get_entity(db, id, ctx.tenant_ref).await {
         Ok(m) => m,
         Err(e) if e.ty == crate::ActixAdminErrorType::EntityDoesNotExistError => {
             return Ok(HttpResponse::NotFound().finish());
@@ -72,7 +61,7 @@ pub async fn download<E: ActixAdminViewModelTrait>(
     let safe = crate::model::sanitize_upload_filename(&file_name);
     let file_path = format!(
         "{}/{}/{}",
-        actix_admin.configuration.file_upload_directory, entity_name, safe
+        actix_admin.configuration.file_upload_directory, ctx.entity_name, safe
     );
 
     match actix_files::NamedFile::open_async(file_path).await {
@@ -89,26 +78,18 @@ pub async fn delete_file<E: ActixAdminViewModelTrait>(
     params: web::Path<(E::Id, String)>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = &data.into_inner();
-
-    let mut ctx = Context::new();
-    let entity_name = E::get_entity_name();
-    let view_model: &ActixAdminViewModel = view_model_or_500(actix_admin, &entity_name)?;
-    if !user_can_perform(&session, actix_admin, view_model, AdminAction::Edit) {
-        return render_unauthorized(&ctx, actix_admin);
-    }
-    if let Err(e) = crate::csrf::verify_csrf(actix_admin, &session, &req) {
-        return Err(e.into());
-    }
+    let ctx = admin_prelude!(
+        &session,
+        &req,
+        actix_admin,
+        RoutePrelude::write(AdminAction::Edit),
+        E
+    );
 
     let (id, column_name) = params.into_inner();
-    let view_model_field = file_upload_field(view_model, &column_name)?;
+    let view_model_field = file_upload_field(ctx.view_model, &column_name)?;
 
-    let tenant_ref = actix_admin
-        .configuration
-        .user_tenant_ref
-        .and_then(|f| f(&session));
-
-    let mut model = match E::get_entity(db.get_ref(), id.clone(), tenant_ref).await {
+    let mut model = match E::get_entity(db.get_ref(), id.clone(), ctx.tenant_ref).await {
         Ok(m) => m,
         Err(e) if e.ty == crate::ActixAdminErrorType::EntityDoesNotExistError => {
             return Ok(HttpResponse::NotFound().finish());
@@ -125,7 +106,7 @@ pub async fn delete_file<E: ActixAdminViewModelTrait>(
         let safe = crate::model::sanitize_upload_filename(&file_name);
         let file_path = format!(
             "{}/{}/{}",
-            actix_admin.configuration.file_upload_directory, entity_name, safe
+            actix_admin.configuration.file_upload_directory, ctx.entity_name, safe
         );
         if let Err(e) = std::fs::remove_file(&file_path) {
             log::warn!("failed to remove uploaded file {file_path}: {e}");
@@ -133,15 +114,16 @@ pub async fn delete_file<E: ActixAdminViewModelTrait>(
     }
     model.values.remove(&column_name);
 
-    let _edit_res = E::edit_entity(db.get_ref(), id, model.clone(), tenant_ref).await;
+    let _edit_res = E::edit_entity(db.get_ref(), id, model.clone(), ctx.tenant_ref).await;
 
-    ctx.insert("model_field", view_model_field);
-    ctx.insert("entity_name", &entity_name);
-    ctx.insert("model", &model);
+    let mut tctx = tera::Context::new();
+    tctx.insert("model_field", view_model_field);
+    tctx.insert("entity_name", &ctx.entity_name);
+    tctx.insert("model", &model);
 
     let body = actix_admin
         .tera
-        .render("form_elements/input.html", &ctx)
+        .render("form_elements/input.html", &tctx)
         .map_err(error::ErrorInternalServerError)?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }

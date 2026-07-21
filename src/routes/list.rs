@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::view_model::ActixAdminViewModelParams;
 use actix_web::http::header::ContentDisposition;
 use actix_web::{error, web, Error, HttpRequest, HttpResponse};
 use csv::WriterBuilder;
@@ -9,11 +8,8 @@ use std::fmt;
 use tera::Context;
 
 use super::helpers::{add_default_context_with_session, SearchParams};
-use super::{
-    add_auth_context, parse_filters_from_query, render_template, render_unauthorized,
-    user_can_access_page, user_can_perform, validate_sort_by, view_model_or_500, AdminAction,
-    Params,
-};
+use super::{add_auth_context, render_template, validate_sort_by, ListQuery, RoutePrelude};
+use crate::admin_prelude;
 use crate::ActixAdminModel;
 use crate::ActixAdminNotification;
 use crate::ActixAdminViewModel;
@@ -57,60 +53,37 @@ pub async fn export_csv<E: ActixAdminViewModelTrait>(
     db: web::Data<DatabaseConnection>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = &data.into_inner();
-    let entity_name = E::get_entity_name();
-    let view_model = view_model_or_500(actix_admin, &entity_name)?;
+    let ctx = admin_prelude!(&session, &req, actix_admin, RoutePrelude::export(), E);
 
-    if !user_can_perform(&session, actix_admin, view_model, AdminAction::Export) {
-        return render_unauthorized(&Context::new(), actix_admin);
-    }
+    let query = ListQuery::from_query(req.query_string(), ctx.view_model);
+    validate_sort_by(ctx.view_model, &query.sort_by)?;
 
-    let params = Params::from_query(req.query_string());
-    let search = params.search.clone().unwrap_or_default();
-    let sort_by = params
-        .sort_by
-        .clone()
-        .unwrap_or_else(|| view_model.primary_key.clone());
-    validate_sort_by(view_model, &sort_by)?;
-    let sort_order = params.sort_order.clone().unwrap_or(SortOrder::Asc);
-
-    let actixadminfilters = parse_filters_from_query(req.query_string());
-
-    let params = ActixAdminViewModelParams {
-        page: None,
-        entities_per_page: None,
-        viewmodel_filter: actixadminfilters,
-        search,
-        sort_by,
-        sort_order,
-        tenant_ref: actix_admin
-            .configuration
-            .user_tenant_ref
-            .and_then(|f| f(&session)),
-    };
+    let params = query.to_view_model_params(ctx.tenant_ref, false);
 
     let entities = match E::list(&db, &params).await {
         Ok(res) => {
             let mut entities = res.1;
-            replace_regex(view_model, &mut entities);
+            replace_regex(ctx.view_model, &mut entities);
             entities
         }
         Err(_) => Vec::new(),
     };
 
     let mut writer = WriterBuilder::new().from_writer(vec![]);
-    let mut fields = view_model
+    let mut fields = ctx
+        .view_model
         .fields
         .iter()
         .map(|f| f.field_name.clone())
         .collect::<Vec<_>>();
-    fields.insert(0, view_model.primary_key.clone());
+    fields.insert(0, ctx.view_model.primary_key.clone());
     writer
         .write_record(&fields)
         .map_err(error::ErrorInternalServerError)?;
 
     for entity in entities {
         let mut values = vec![entity.primary_key.unwrap_or_default()];
-        for field in view_model.fields {
+        for field in ctx.view_model.fields {
             let value = entity
                 .values
                 .get(&field.field_name)
@@ -145,33 +118,16 @@ pub async fn list<E: ActixAdminViewModelTrait>(
     db: web::Data<DatabaseConnection>,
 ) -> Result<HttpResponse, Error> {
     let actix_admin = &data.into_inner();
-    let entity_name = E::get_entity_name();
-    let view_model = view_model_or_500(actix_admin, &entity_name)?;
+    let route_ctx = admin_prelude!(&session, &req, actix_admin, RoutePrelude::view(), E);
+
+    let query = ListQuery::from_query(req.query_string(), route_ctx.view_model);
+    validate_sort_by(route_ctx.view_model, &query.sort_by)?;
+
     let mut ctx = Context::new();
     add_auth_context(&session, actix_admin, &mut ctx);
 
-    if !user_can_access_page(&session, actix_admin, view_model) {
-        return render_unauthorized(&ctx, actix_admin);
-    }
-
-    let params = Params::from_query(req.query_string());
-    let search_params = SearchParams::from_params(&params, view_model);
-    validate_sort_by(view_model, &search_params.sort_by)?;
-
-    let actixadminfilters = parse_filters_from_query(req.query_string());
-
-    let vm_params = ActixAdminViewModelParams {
-        page: Some(search_params.page),
-        entities_per_page: Some(search_params.entities_per_page),
-        viewmodel_filter: actixadminfilters,
-        search: search_params.search.clone(),
-        sort_by: search_params.sort_by.clone(),
-        sort_order: search_params.sort_order.clone(),
-        tenant_ref: actix_admin
-            .configuration
-            .user_tenant_ref
-            .and_then(|f| f(&session)),
-    };
+    let vm_params = query.to_view_model_params(route_ctx.tenant_ref, true);
+    let search_params = SearchParams::from_list_query(&query);
 
     let (num_pages, mut entities) = match E::list(&db, &vm_params).await {
         Ok(res) => res,
@@ -196,13 +152,14 @@ pub async fn list<E: ActixAdminViewModelTrait>(
     // the current page (the primary query still orders on the FK id) but
     // gives visually correct alphabetical order in the common case of
     // browsing without paging past `entities_per_page`.
-    if let Some(field) = view_model
+    if let Some(field) = route_ctx
+        .view_model
         .fields
         .iter()
-        .find(|f| f.field_name == search_params.sort_by)
+        .find(|f| f.field_name == query.sort_by)
     {
         if !field.foreign_key.is_empty() {
-            let asc = matches!(search_params.sort_order, SortOrder::Asc);
+            let asc = matches!(query.sort_order, SortOrder::Asc);
             entities.sort_by(|a, b| {
                 let av = a
                     .fk_values
@@ -223,17 +180,17 @@ pub async fn list<E: ActixAdminViewModelTrait>(
         }
     }
 
-    replace_regex(view_model, &mut entities);
+    replace_regex(route_ctx.view_model, &mut entities);
     let num_pages = num_pages.unwrap_or(1);
-    let page = search_params.page.min(num_pages);
+    let page = query.page.min(num_pages);
     let min_show_page = page.saturating_sub(4).max(1);
     let max_show_page = (page + 4).min(num_pages);
 
     add_default_context_with_session(
         &mut ctx,
         req,
-        view_model,
-        entity_name,
+        route_ctx.view_model,
+        route_ctx.entity_name,
         actix_admin,
         Vec::new(),
         &search_params,
@@ -248,7 +205,7 @@ pub async fn list<E: ActixAdminViewModelTrait>(
     // Round-trip the current query's filter values back into the view-model
     // filter map so templates can pre-select them (and so re-submitting the
     // filter form doesn't silently clear the current selection).
-    for f in &vm_params.viewmodel_filter {
+    for f in &query.filters {
         if let Some(entry) = viewmodel_filter.get_mut(&f.name) {
             entry.value = f.value.clone();
             entry.operator = f.operator.clone();
