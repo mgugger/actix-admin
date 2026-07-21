@@ -159,7 +159,6 @@ macro_rules! admin_prelude {
     }};
 }
 
-
 pub fn add_auth_context(session: &Session, actix_admin: &ActixAdmin, ctx: &mut Context) {
     let cfg = &actix_admin.configuration;
     ctx.insert("enable_auth", &cfg.enable_auth);

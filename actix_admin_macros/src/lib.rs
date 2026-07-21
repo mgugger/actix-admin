@@ -241,14 +241,19 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
     let field_html_input_type = get_fields_as_tokenstream(&fields, |model_field| -> String {
         model_field.html_input_type.to_string()
     });
-    let field_ceil =
-        get_fields_as_opt_u8_tokens(&fields, |mf| mf.ceil.as_deref().and_then(|s| s.parse().ok()));
+    let field_ceil = get_fields_as_opt_u8_tokens(&fields, |mf| {
+        mf.ceil.as_deref().and_then(|s| s.parse().ok())
+    });
     let field_floor = get_fields_as_opt_u8_tokens(&fields, |mf| {
         mf.floor.as_deref().and_then(|s| s.parse().ok())
     });
     let field_dateformat = get_fields_as_opt_string_tokens(&fields, |mf| {
         let s = mf.dateformat.trim().to_string();
-        if s.is_empty() { None } else { Some(s) }
+        if s.is_empty() {
+            None
+        } else {
+            Some(s)
+        }
     });
     let field_shorten = get_fields_as_opt_u16_tokens(&fields, |mf| {
         mf.shorten.as_deref().and_then(|s| s.parse().ok())

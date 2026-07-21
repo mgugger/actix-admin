@@ -140,11 +140,13 @@ impl ListQuery {
                 "entities_per_page" => params.entities_per_page = v.parse().ok(),
                 "search" => params.search = Some(v.clone()),
                 "sort_by" => params.sort_by = Some(v.clone()),
-                "sort_order" => params.sort_order = match v.as_str() {
-                    "Asc" => Some(SortOrder::Asc),
-                    "Desc" => Some(SortOrder::Desc),
-                    _ => None,
-                },
+                "sort_order" => {
+                    params.sort_order = match v.as_str() {
+                        "Asc" => Some(SortOrder::Asc),
+                        "Desc" => Some(SortOrder::Desc),
+                        _ => None,
+                    }
+                }
                 _ => {}
             }
         }
