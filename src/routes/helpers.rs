@@ -384,10 +384,11 @@ impl SearchParams {
 
     pub fn from_params(params: &Params, view_model: &ActixAdminViewModel) -> Self {
         SearchParams {
-            page: params.page.unwrap_or(1),
+            page: params.page.unwrap_or(1).max(1),
             entities_per_page: params
                 .entities_per_page
-                .unwrap_or(DEFAULT_ENTITIES_PER_PAGE),
+                .unwrap_or(DEFAULT_ENTITIES_PER_PAGE)
+                .max(1),
             search: params.search.clone().unwrap_or_default(),
             sort_by: params
                 .sort_by

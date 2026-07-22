@@ -24,7 +24,7 @@
                 <div>{{ model.values | get(key=model_field.field_name, default="") | safe }}</div>
                 {% elif model_field.field_type == "Url" %}
                     {% set v = model.values | get(key=model_field.field_name, default="") %}
-                    {% if v %}<a href="{{ v }}" target="_blank" rel="noopener noreferrer">{{ v }}</a>{% endif %}
+                    {% if v and (v is starting_with(pat="http://") or v is starting_with(pat="https://")) %}<a href="{{ v }}" target="_blank" rel="noopener noreferrer">{{ v }}</a>{% elif v %}{{ v }}{% endif %}
                 {% elif model_field.field_type == "Email" %}
                     {% set v = model.values | get(key=model_field.field_name, default="") %}
                     {% if v %}<a href="mailto:{{ v }}">{{ v }}</a>{% endif %}

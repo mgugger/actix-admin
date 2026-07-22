@@ -29,7 +29,7 @@
     {% elif model_field.field_type == "Html" %}
     <td>{{ entity.values | get(key=model_field.field_name, default="") | safe }}</td>
     {% elif model_field.field_type == "Url" %}
-    <td>{% set v = entity.values | get(key=model_field.field_name, default="") %}{% if v %}<a href="{{ v }}" target="_blank" rel="noopener noreferrer">{{ v | shorten(max_length=40) }}</a>{% endif %}</td>
+    <td>{% set v = entity.values | get(key=model_field.field_name, default="") %}{% if v and (v is starting_with(pat="http://") or v is starting_with(pat="https://")) %}<a href="{{ v }}" target="_blank" rel="noopener noreferrer">{{ v | shorten(max_length=40) }}</a>{% elif v %}{{ v | shorten(max_length=40) }}{% endif %}</td>
     {% elif model_field.field_type == "Email" %}
     <td>{% set v = entity.values | get(key=model_field.field_name, default="") %}{% if v %}<a href="mailto:{{ v }}">{{ v }}</a>{% endif %}</td>
     {% elif model_field.field_type == "RichText" %}

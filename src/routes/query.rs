@@ -116,10 +116,14 @@ impl ListQuery {
         view_model: &ActixAdminViewModel,
     ) -> Self {
         ListQuery {
-            page: params.page.unwrap_or(1),
+            // Clamp to >= 1: a user-supplied `page=0` would otherwise
+            // underflow `p - 1` in the paginator, and `entities_per_page=0`
+            // would panic SeaORM's paginator (zero page size).
+            page: params.page.unwrap_or(1).max(1),
             entities_per_page: params
                 .entities_per_page
-                .unwrap_or(DEFAULT_ENTITIES_PER_PAGE),
+                .unwrap_or(DEFAULT_ENTITIES_PER_PAGE)
+                .max(1),
             search: params.search.unwrap_or_default(),
             sort_by: params
                 .sort_by

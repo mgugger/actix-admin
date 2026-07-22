@@ -112,6 +112,18 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
             }
 
             async fn create_entity(db: &DatabaseConnection, mut model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError> {
+                // Guard the infallible `ActiveModel::from` conversion below,
+                // which `.unwrap()`s each field. The route layer already
+                // validates, but a direct caller could pass a malformed model;
+                // fail with a validation error instead of panicking.
+                Entity::validate_model(&mut model);
+                if model.has_errors() {
+                    return Err(ActixAdminError {
+                        ty: ActixAdminErrorType::ValidationErrors,
+                        msg: "Model failed validation".to_string(),
+                    });
+                }
+
                 let mut active_model = ActiveModel::from(model.clone());
 
                 #set_tenant_ref_field
@@ -166,6 +178,17 @@ pub fn derive_actix_admin_view_model(input: proc_macro::TokenStream) -> proc_mac
             }
 
             async fn edit_entity(db: &DatabaseConnection, id: Self::Id, mut model: ActixAdminModel, tenant_ref: Option<i32>) -> Result<ActixAdminModel, ActixAdminError> {
+                // Guard the `.unwrap()`-based field assignments below against a
+                // malformed model passed by a direct caller that skipped the
+                // route-layer validation.
+                Entity::validate_model(&mut model);
+                if model.has_errors() {
+                    return Err(ActixAdminError {
+                        ty: ActixAdminErrorType::ValidationErrors,
+                        msg: "Model failed validation".to_string(),
+                    });
+                }
+
                 let mut query = Entity::find().filter(Column::#primary_key_column.eq(id));
 
                 #tenant_ref_field
@@ -446,8 +469,11 @@ pub fn derive_actix_admin_model(input: proc_macro::TokenStream) -> proc_macro::T
                         num_pages = Some(paginator.num_pages().await?);
 
                         if (num_pages.unwrap() == 0) { return Ok((num_pages, model_entities)) };
+                        // `p` is 1-based; guard against a 0 slipping through a
+                        // custom caller that bypassed the route-layer clamp so
+                        // `p - 1` cannot underflow.
                         entities = paginator
-                            .fetch_page(std::cmp::min(num_pages.unwrap() - 1, p - 1))
+                            .fetch_page(std::cmp::min(num_pages.unwrap() - 1, p.saturating_sub(1)))
                             .await?;
                     },
                     (_, _) => {
